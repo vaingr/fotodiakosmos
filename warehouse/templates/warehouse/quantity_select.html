@@ -1,0 +1,334 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<style>
+    .content-wrapper { border: none !important; }
+</style>
+
+<div class="page-header {% if action_class == 'add' %}header-add{% else %}header-remove{% endif %}">
+    <div>
+        <h1>
+            <i class="fas {% if is_add %}fa-plus-circle{% else %}fa-minus-circle{% endif %}"></i>
+            {{ title }}
+        </h1>
+        <p class="page-subtitle">{{ subtitle }}</p>
+    </div>
+    <a href="{% url 'warehouse:dashboard' %}" class="btn-back">
+        <i class="fas fa-arrow-left"></i> Επιστροφή
+    </a>
+</div>
+
+<div class="search-section">
+    <form method="get" class="search-form" id="quantitySelectForm"
+          data-live-url="{{ request.path }}"
+          data-list-version="{{ list_version }}"
+          autocomplete="off">
+        <input type="text" name="search" id="quantitySelectSearch"
+               placeholder="Αναζήτηση με όνομα, κωδικό ή barcode..."
+               value="" class="search-input" autofocus
+               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+               data-lpignore="true" data-1p-ignore readonly>
+        <button type="submit" class="btn-search">
+            <i class="fas fa-search"></i>
+        </button>
+    </form>
+</div>
+
+<div class="product-select-list" id="quantitySelectList">
+    {% include 'warehouse/_quantity_select_list.html' %}
+</div>
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 0.75rem;
+}
+
+.header-add { border-left: 4px solid #28a745; }
+.header-remove { border-left: 4px solid #dc3545; }
+
+.page-header h1 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.page-subtitle {
+    margin: 0.375rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    text-decoration: none;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.search-section {
+    margin-bottom: 1.25rem;
+}
+
+.search-form {
+    display: flex;
+    gap: 0.625rem;
+}
+
+.search-input {
+    flex: 1;
+    padding: 0.875rem 1rem;
+    font-size: 1rem;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 0.625rem;
+    color: var(--text-primary);
+    outline: none;
+}
+
+.search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.btn-search {
+    width: 3rem;
+    border: none;
+    border-radius: 0.625rem;
+    background: var(--accent);
+    color: white;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.product-select-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.select-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.125rem;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 0.75rem;
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.select-item:active {
+    transform: scale(0.99);
+}
+
+.item-add:hover { border-color: rgba(40, 167, 69, 0.5); background: rgba(40, 167, 69, 0.06); }
+.item-remove:hover { border-color: rgba(220, 53, 69, 0.5); background: rgba(220, 53, 69, 0.06); }
+
+.select-item-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.select-item-main strong {
+    font-size: 0.9375rem;
+}
+
+.select-code {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+.select-item-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.select-qty {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #28a745;
+}
+
+.select-qty.low-stock {
+    color: #ffc107;
+}
+
+.select-item-right i {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 2.5rem;
+    opacity: 0.4;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+    }
+
+    .select-item {
+        min-height: 4rem;
+        padding: 1.125rem;
+    }
+
+    .search-input {
+        font-size: 16px;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectForm = document.getElementById('quantitySelectForm');
+    const selectList = document.getElementById('quantitySelectList');
+    const searchInput = document.getElementById('quantitySelectSearch');
+    if (!selectForm || !selectList) return;
+
+    let currentListVersion = selectForm.dataset.listVersion || '';
+    let liveSearchTimer = null;
+    let liveSearchRequestId = 0;
+    let liveSyncRequestId = 0;
+
+    function buildLiveParams() {
+        const params = new URLSearchParams({ live: '1' });
+        if (searchInput && searchInput.value.trim()) {
+            params.set('search', searchInput.value.trim());
+        }
+        return params;
+    }
+
+    function applyListHtml(data) {
+        if (data.html !== undefined) {
+            selectList.innerHTML = data.html;
+        }
+        if (data.version) {
+            currentListVersion = data.version;
+        }
+    }
+
+    function refreshQuantitySelectList(options) {
+        options = options || {};
+        const fromSync = !!options.fromSync;
+        const requestId = fromSync ? ++liveSyncRequestId : ++liveSearchRequestId;
+
+        return fetch(selectForm.dataset.liveUrl + '?' + buildLiveParams().toString(), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+            .then(function(response) {
+                if (!response.ok) throw new Error('Live update failed');
+                return response.json();
+            })
+            .then(function(data) {
+                if (fromSync) {
+                    if (requestId !== liveSyncRequestId) return;
+                } else if (requestId !== liveSearchRequestId) {
+                    return;
+                }
+                applyListHtml(data);
+            })
+            .catch(function() {});
+    }
+
+    function runLiveSearch() {
+        refreshQuantitySelectList({ fromSync: false });
+    }
+
+    function refreshFromSync() {
+        refreshQuantitySelectList({ fromSync: true });
+    }
+
+    function checkQuantitySelectVersion() {
+        if (document.hidden) return;
+
+        fetch(selectForm.dataset.liveUrl + '?version=1', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+            .then(function(response) {
+                if (!response.ok) throw new Error('Version check failed');
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.version && data.version !== currentListVersion) {
+                    refreshFromSync();
+                }
+            })
+            .catch(function() {});
+    }
+
+    if (selectForm) {
+        selectForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            clearTimeout(liveSearchTimer);
+            runLiveSearch();
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('focus', function() {
+            searchInput.removeAttribute('readonly');
+        });
+
+        searchInput.addEventListener('input', function() {
+            clearTimeout(liveSearchTimer);
+            liveSearchTimer = setTimeout(runLiveSearch, 250);
+        });
+
+        searchInput.addEventListener('paste', function() {
+            setTimeout(function() {
+                clearTimeout(liveSearchTimer);
+                liveSearchTimer = setTimeout(runLiveSearch, 100);
+            }, 0);
+        });
+    }
+
+    setInterval(checkQuantitySelectVersion, 2000);
+
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            checkQuantitySelectVersion();
+        }
+    });
+
+    window.addEventListener('focus', checkQuantitySelectVersion);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,184 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Διαχείριση Βάσης Δεδομένων{% endblock %}
+
+{% block content %}
+<h2 style="text-align:center; margin-bottom:2rem;">Διαχείριση Βάσης Δεδομένων</h2>
+
+{% if messages %}
+    {% for message in messages %}
+        <div style="color: #27ae60; text-align:center; margin-bottom:1.5rem; font-weight:bold;">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="database-actions">
+    <!-- Backup Card -->
+    <div class="action-card">
+        <div class="action-header">
+            <span class="action-title">Δημιουργία Backup</span>
+            <span class="action-icon">💾</span>
+        </div>
+        <div class="action-description">
+            Δημιουργήστε ένα ασφαλές backup της τρέχουσας βάσης δεδομένων με timestamp στο όνομα.
+        </div>
+        <div class="example-info">
+            <label>Παράδειγμα:</label>
+            <span>db_backup_20241201_143022.sqlite3</span>
+        </div>
+        <form method="post" action="{% url 'database_backup' %}" class="action-form">
+            {% csrf_token %}
+            <button type="submit" class="backup-btn">Δημιουργία Backup</button>
+        </form>
+    </div>
+
+    <!-- Restore Card -->
+    <div class="action-card">
+        <div class="action-header">
+            <span class="action-title">Επαναφορά από Backup</span>
+            <span class="action-icon">📤</span>
+        </div>
+        <div class="action-description">
+            Επιλέξτε ένα αρχείο .sqlite3 για επαναφορά. Αυτόματο backup πριν το restore.
+        </div>
+        <div class="warning-info">
+            <strong>Προσοχή!</strong> Η επαναφορά θα αντικαταστήσει την τρέχουσα βάση δεδομένων.
+        </div>
+        <form method="post" action="{% url 'database_restore' %}" enctype="multipart/form-data" class="action-form">
+            {% csrf_token %}
+            <div class="file-input-group">
+                <label for="backup_file">Επιλέξτε αρχείο backup:</label>
+                <input type="file" id="backup_file" name="backup_file" accept=".sqlite3" required>
+                <small>Μόνο αρχεία .sqlite3 επιτρέπονται</small>
+            </div>
+            <button type="submit" class="restore-btn" onclick="return confirm('Είστε σίγουροι ότι θέλετε να επαναφέρετε τη βάση δεδομένων; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.')">
+                Επαναφορά Βάσης
+            </button>
+        </form>
+    </div>
+</div>
+
+<style>
+.database-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
+    margin: 0 auto;
+    max-width: 900px;
+}
+
+.action-card {
+    background: var(--card-bg, #fff);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow, rgba(0,0,0,0.1));
+    padding: 2rem 1.5rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+}
+
+.action-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.2rem;
+    justify-content: space-between;
+}
+
+.action-title {
+    font-weight: bold;
+    font-size: 1.15rem;
+    color: var(--text-primary, #333);
+}
+
+.action-icon {
+    font-size: 1.5rem;
+}
+
+.action-description {
+    color: var(--text-secondary, #888);
+    margin-bottom: 1rem;
+    line-height: 1.4;
+}
+
+.example-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-bottom: 1rem;
+}
+
+.warning-info {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: #856404;
+}
+
+.action-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+
+.file-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.file-input-group label {
+    font-weight: bold;
+    color: var(--text-primary, #333);
+}
+
+.file-input-group input[type="file"] {
+    padding: 0.6rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    background: var(--bg-primary, #fff);
+    color: var(--text-primary, #333);
+}
+
+.file-input-group small {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #888);
+}
+
+.backup-btn {
+    background-color: var(--accent, #007bff);
+    color: white;
+    padding: 0.7rem 1.2rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.backup-btn:hover {
+    background-color: var(--accent-hover, #0056b3);
+}
+
+.restore-btn {
+    background: #e74c3c;
+    color: white;
+    padding: 0.7rem 1.2rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.restore-btn:hover {
+    background: #c0392b;
+}
+</style>
+{% endblock %} 

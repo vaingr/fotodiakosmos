@@ -1,0 +1,575 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}SMS Dashboard{% endblock %}
+
+{% block content %}
+<div class="sms-dashboard-container">
+    <div class="dashboard-header">
+        <h1><i class="fas fa-sms"></i> SMS Dashboard</h1>
+        <a href="{% url 'manage_sms_settings' %}" class="btn btn-secondary">
+            <i class="fas fa-cog"></i> Ρυθμίσεις
+        </a>
+    </div>
+
+    <div class="sms-cards-grid">
+        <!-- Balance Card -->
+        <div class="sms-card balance-card">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <h3>Υπόλοιπο Λογαριασμού</h3>
+            </div>
+            <div class="card-content">
+                {% if balance_info %}
+                <div class="balance-info">
+                    <div class="balance-item">
+                        <span class="balance-label">Υπόλοιπο:</span>
+                        <span class="balance-value">{{ balance_info.Balance|default:"0.00" }}€</span>
+                    </div>
+                    {% if balance_info.SmsRemainCount and balance_info.SmsRemainCount >= 0 %}
+                    <div class="balance-item">
+                        <span class="balance-label">Διαθέσιμα SMS:</span>
+                        <span class="balance-value sms-count">{{ balance_info.SmsRemainCount }}</span>
+                    </div>
+                    {% endif %}
+                    {% if balance_info.LCSmsRemainCount and balance_info.LCSmsRemainCount >= 0 %}
+                    <div class="balance-item">
+                        <span class="balance-label">Low Cost SMS:</span>
+                        <span class="balance-value">{{ balance_info.LCSmsRemainCount }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="refreshBalance()" style="margin-top: 1rem;">
+                    <i class="fas fa-sync-alt"></i> Ανανέωση
+                </button>
+                {% elif balance_error %}
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>{{ balance_error }}</p>
+                </div>
+                {% else %}
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Δεν ήταν δυνατή η ανάκτηση του υπολοίπου.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Send SMS Card -->
+        <div class="sms-card action-card">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i class="fas fa-paper-plane"></i>
+                </div>
+                <h3>Αποστολή SMS</h3>
+            </div>
+            <div class="card-content">
+                <p class="card-description">Στείλτε SMS σε έναν ή περισσότερους παραλήπτες</p>
+                <div class="card-actions">
+                    <a href="{% url 'send_sms' %}" class="btn btn-primary">
+                        <i class="fas fa-user"></i> Απλή Αποστολή
+                    </a>
+                    <a href="{% url 'send_bulk_sms' %}" class="btn btn-success">
+                        <i class="fas fa-users"></i> Μαζική Αποστολή
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Card -->
+        <div class="sms-card reports-card">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3>Αναφορές & Παραδόσεις</h3>
+            </div>
+            <div class="card-content">
+                <p class="card-description">Ελέγξτε το ιστορικό και την κατάσταση των SMS</p>
+                
+                <div class="history-filters" style="margin-bottom: 1rem;">
+                    <select id="history-days" class="form-control" style="padding: 0.5rem; font-size: 0.875rem;">
+                        <option value="7">Τελευταίες 7 ημέρες</option>
+                        <option value="14">Τελευταίες 14 ημέρες</option>
+                        <option value="30">Τελευταίες 30 ημέρες</option>
+                    </select>
+                </div>
+                
+                <div class="recent-history" id="history-container">
+                    {% if history_error %}
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>{{ history_error }}</p>
+                    </div>
+                    {% elif recent_history %}
+                    <div class="history-list" id="history-list">
+                        {% for item in recent_history %}
+                        <div class="history-item">
+                            <div class="history-info">
+                                <div class="history-main">
+                                    <span class="history-destination">
+                                        <i class="fas fa-phone"></i> {{ item.destination }}
+                                    </span>
+                                    <span class="history-date">
+                                        {% if item.last_status_datetime %}
+                                        {{ item.last_status_datetime }}
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <span class="history-status status-{{ item.status|lower|default:'unknown' }}">
+                                    <i class="fas fa-circle"></i> {{ item.status|default:"Άγνωστο" }}
+                                </span>
+                            </div>
+                            <div class="history-details">
+                                <small><i class="fas fa-hashtag"></i> ID: {{ item.sms_id }}</small>
+                                {% if item.sender_id %}
+                                <small><i class="fas fa-user-tag"></i> Από: {{ item.sender_id }}</small>
+                                {% endif %}
+                                {% if item.charge %}
+                                <small><i class="fas fa-euro-sign"></i> Κόστος: {{ item.charge }}€</small>
+                                {% endif %}
+                                {% if item.quantity %}
+                                <small><i class="fas fa-sms"></i> SMS: {{ item.quantity }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="no-history">Δεν υπάρχουν πρόσφατες καταγραφές</p>
+                    {% endif %}
+                </div>
+                
+                <div class="history-actions" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <button type="button" class="btn btn-sm btn-info" onclick="loadHistory()">
+                        <i class="fas fa-sync-alt"></i> Ανανέωση
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="clearHistory()">
+                        <i class="fas fa-times"></i> Καθαρισμός
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.sms-dashboard-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.dashboard-header h1 {
+    margin: 0;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.sms-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+}
+
+.sms-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 12px var(--shadow);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid var(--bg-secondary);
+}
+
+.sms-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px var(--shadow);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--bg-secondary);
+}
+
+.card-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.balance-card .card-icon {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.action-card .card-icon {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+}
+
+.reports-card .card-icon {
+    background: linear-gradient(135deg, #ffc107, #ff9800);
+}
+
+.card-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+}
+
+.card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.card-description {
+    color: var(--text-secondary);
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.balance-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.balance-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+}
+
+.balance-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.balance-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #28a745;
+}
+
+.balance-value.sms-count {
+    color: #007bff;
+}
+
+.card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.btn {
+    padding: 0.875rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #0056b3, #004085);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #20c997, #1ea085);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+    color: white;
+}
+
+.btn-info:hover {
+    background: linear-gradient(135deg, #138496, #117a8b);
+    transform: translateY(-2px);
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.error-message {
+    text-align: center;
+    padding: 1.5rem;
+    color: #dc3545;
+}
+
+.error-message i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.recent-history {
+    margin-top: 1rem;
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.history-item {
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    border-left: 3px solid #007bff;
+}
+
+.history-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.history-destination {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.history-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-delivered {
+    background: rgba(40, 167, 69, 0.2);
+    color: #28a745;
+}
+
+.status-delivered i {
+    color: #28a745;
+}
+
+.status-queued, .status-pending {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+}
+
+.status-queued i, .status-pending i {
+    color: #ffc107;
+}
+
+.status-failed, .status-error {
+    background: rgba(220, 53, 69, 0.2);
+    color: #dc3545;
+}
+
+.status-failed i, .status-error i {
+    color: #dc3545;
+}
+
+.status-unknown {
+    background: rgba(108, 117, 125, 0.2);
+    color: #6c757d;
+}
+
+.status-unknown i {
+    color: #6c757d;
+}
+
+.history-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+}
+
+.history-date {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.history-status {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+}
+
+.history-status i.fa-circle {
+    font-size: 0.5rem;
+}
+
+.history-details {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.no-history {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 2rem;
+    font-style: italic;
+}
+
+.form-control {
+    padding: 0.5rem;
+    border: 1px solid var(--bg-secondary);
+    border-radius: 4px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+    .sms-cards-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+    
+    .card-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+function refreshBalance() {
+    window.location.reload();
+}
+
+function loadHistory() {
+    const days = document.getElementById('history-days').value;
+    const container = document.getElementById('history-container');
+    const historyList = document.getElementById('history-list');
+    
+    // Show loading
+    container.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Φόρτωση...</div>';
+    
+    fetch(`{% url 'get_sms_history' %}?days=${days}&limit=50`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.history && data.history.length > 0) {
+                let html = '<div class="history-list">';
+                data.history.forEach(item => {
+                    const status = (item.status || 'Unknown').toLowerCase();
+                    const statusClass = status.includes('delivered') ? 'delivered' : 
+                                      status.includes('queued') || status.includes('pending') ? 'queued' :
+                                      status.includes('failed') || status.includes('error') ? 'failed' : 'unknown';
+                    
+                    html += `
+                        <div class="history-item">
+                            <div class="history-info">
+                                <div class="history-main">
+                                    <span class="history-destination">
+                                        <i class="fas fa-phone"></i> ${item.destination || 'N/A'}
+                                    </span>
+                                    <span class="history-date">${item.last_status_datetime || ''}</span>
+                                </div>
+                                <span class="history-status status-${statusClass}">
+                                    <i class="fas fa-circle"></i> ${item.status || 'Άγνωστο'}
+                                </span>
+                            </div>
+                            <div class="history-details">
+                                <small><i class="fas fa-hashtag"></i> ID: ${item.sms_id || 'N/A'}</small>
+                                ${item.sender_id ? `<small><i class="fas fa-user-tag"></i> Από: ${item.sender_id}</small>` : ''}
+                                ${item.charge ? `<small><i class="fas fa-euro-sign"></i> Κόστος: ${item.charge}€</small>` : ''}
+                                ${item.quantity ? `<small><i class="fas fa-sms"></i> SMS: ${item.quantity}</small>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<p class="no-history">Δεν βρέθηκαν καταγραφές</p>';
+            }
+        })
+        .catch(error => {
+            container.innerHTML = `<div class="error-message"><i class="fas fa-exclamation-triangle"></i><p>Σφάλμα φόρτωσης: ${error.message}</p></div>`;
+        });
+}
+
+function clearHistory() {
+    const container = document.getElementById('history-container');
+    container.innerHTML = '<p class="no-history">Δεν υπάρχουν καταγραφές</p>';
+}
+
+// Load history when days filter changes
+document.addEventListener('DOMContentLoaded', function() {
+    const daysSelect = document.getElementById('history-days');
+    if (daysSelect) {
+        daysSelect.addEventListener('change', loadHistory);
+    }
+});
+</script>
+{% endblock %}
+
+

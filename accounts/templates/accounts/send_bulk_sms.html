@@ -1,0 +1,330 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Μαζική Αποστολή SMS{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1><i class="fas fa-users"></i> Μαζική Αποστολή SMS</h1>
+        <a href="{% url 'sms_dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Επιστροφή
+        </a>
+    </div>
+
+    <div class="form-card">
+        {% if balance_info %}
+        <div class="balance-info" style="background: var(--bg-secondary); border: 1px solid var(--accent); border-radius: 6px; padding: 1rem; margin-bottom: 1.5rem;">
+            <h4 style="margin: 0 0 0.5rem 0; color: var(--text-primary);">
+                <i class="fas fa-wallet"></i> Υπόλοιπο Λογαριασμού
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                <div>
+                    <span style="color: var(--text-secondary); font-size: 0.9rem;">Υπόλοιπο:</span>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">
+                        {{ balance_info.Balance|default:"0.00" }}€
+                    </div>
+                </div>
+                {% if balance_info.SmsRemainCount and balance_info.SmsRemainCount >= 0 %}
+                <div>
+                    <span style="color: var(--text-secondary); font-size: 0.9rem;">Διαθέσιμα SMS:</span>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #007bff;">
+                        {{ balance_info.SmsRemainCount }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% elif balance_error %}
+        <div class="balance-error" style="background: var(--bg-secondary); border: 1px solid #ffc107; border-radius: 6px; padding: 1rem; margin-bottom: 1.5rem;">
+            <p style="margin: 0; color: var(--text-secondary);">
+                <i class="fas fa-exclamation-triangle"></i> {{ balance_error }}
+            </p>
+        </div>
+        {% endif %}
+
+        <form method="post" class="bulk-sms-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label>Επιλογή Πελατών:</label>
+                <div class="customer-selection" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--bg-secondary); border-radius: 4px; padding: 1rem; background: var(--bg-secondary);">
+                    <div style="margin-bottom: 1rem;">
+                        <button type="button" class="btn btn-sm" id="select-all" style="padding: 0.5rem 1rem; font-size: 0.875rem; background: var(--accent); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            <i class="fas fa-check-square"></i> Επιλογή Όλων
+                        </button>
+                        <button type="button" class="btn btn-sm" id="deselect-all" style="padding: 0.5rem 1rem; font-size: 0.875rem; margin-left: 0.5rem; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--bg-secondary); border-radius: 4px; cursor: pointer;">
+                            <i class="fas fa-square"></i> Αποεπιλογή Όλων
+                        </button>
+                        <span id="selected-count" style="margin-left: 1rem; color: var(--text-secondary); font-weight: 600;"></span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.5rem;">
+                        {% for customer in customers %}
+                        <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer; border-radius: 4px; transition: background 0.2s;">
+                            <input type="checkbox" name="destinations" value="{{ customer.id }}" 
+                                   class="customer-checkbox" {% if customer.phone %}data-phone="{{ customer.phone }}"{% endif %}>
+                            <span>{{ customer.full_name }}</span>
+                            {% if customer.phone %}
+                            <span style="color: var(--text-secondary); font-size: 0.875rem;">({{ customer.phone }})</span>
+                            {% else %}
+                            <span style="color: #dc3545; font-size: 0.875rem;">(Χωρίς τηλέφωνο)</span>
+                            {% endif %}
+                        </label>
+                        {% empty %}
+                        <p style="grid-column: 1 / -1; color: var(--text-secondary);">Δεν υπάρχουν πελάτες.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                <small class="form-text">
+                    Επιλέξτε τους πελάτες στους οποίους θέλετε να στείλετε SMS. Εμφανίζονται μόνο πελάτες με καταχωρημένο αριθμό τηλεφώνου.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="message">Μήνυμα:</label>
+                <textarea id="message" name="message" class="form-control" rows="5" 
+                          placeholder="Γράψτε το μήνυμα σας εδώ..." required maxlength="1600"></textarea>
+                <small class="form-text">
+                    <span id="char-count">0</span> / 1600 χαρακτήρες
+                    <span id="sms-count" style="margin-left: 1rem;"></span>
+                    <span id="total-sms-count" style="margin-left: 1rem; font-weight: 600;"></span>
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="sender_id">Sender ID (Προαιρετικό):</label>
+                <input type="text" id="sender_id" name="sender_id" class="form-control" 
+                       placeholder="Αφήστε κενό για προεπιλεγμένο" maxlength="11">
+                <small class="form-text">
+                    <i class="fas fa-info-circle"></i> Το όνομα αποστολέα (μέχρι 11 χαρακτήρες). Αν αφήσετε κενό, θα χρησιμοποιηθεί το προεπιλεγμένο από τις ρυθμίσεις.
+                    <br>
+                    <strong style="color: #ffc107;">
+                        <i class="fas fa-exclamation-triangle"></i> Προσοχή: Το Sender ID πρέπει να είναι εγκεκριμένο από τον πάροχο SMS.
+                    </strong>
+                </small>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="submit-btn">
+                    <i class="fas fa-paper-plane"></i> Αποστολή SMS
+                </button>
+                <a href="{% url 'send_sms' %}" class="btn btn-secondary">
+                    <i class="fas fa-user"></i> Απλή Αποστολή
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.form-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.form-header h1 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.form-card {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.bulk-sms-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.form-control {
+    padding: 0.75rem;
+    border: 1px solid var(--bg-secondary);
+    border-radius: 4px;
+    font-size: 1rem;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: border-color 0.2s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(255, 101, 0, 0.25);
+}
+
+.form-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.customer-selection label:hover {
+    background: var(--bg-secondary);
+}
+
+.customer-selection input[type="checkbox"]:checked + span {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--bg-secondary);
+    margin-top: 1rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const messageTextarea = document.getElementById('message');
+    const charCount = document.getElementById('char-count');
+    const smsCount = document.getElementById('sms-count');
+    const totalSmsCount = document.getElementById('total-sms-count');
+    const selectedCount = document.getElementById('selected-count');
+    const customerCheckboxes = document.querySelectorAll('.customer-checkbox');
+    const selectAllBtn = document.getElementById('select-all');
+    const deselectAllBtn = document.getElementById('deselect-all');
+    const submitBtn = document.getElementById('submit-btn');
+    
+    // Filter out customers without phone numbers
+    customerCheckboxes.forEach(checkbox => {
+        if (!checkbox.dataset.phone) {
+            checkbox.disabled = true;
+            checkbox.closest('label').style.opacity = '0.5';
+            checkbox.closest('label').style.cursor = 'not-allowed';
+        }
+    });
+    
+    function updateCounts() {
+        const length = messageTextarea.value.length;
+        charCount.textContent = length;
+        
+        // Calculate SMS count per message
+        const smsNum = Math.ceil(length / 160);
+        if (length > 0) {
+            smsCount.textContent = `(~${smsNum} SMS ανά μήνυμα)`;
+            smsCount.style.color = smsNum > 10 ? '#dc3545' : 'var(--text-secondary)';
+        } else {
+            smsCount.textContent = '';
+        }
+        
+        // Calculate total SMS count
+        const selected = Array.from(customerCheckboxes).filter(cb => cb.checked && cb.dataset.phone);
+        const selectedNum = selected.length;
+        selectedCount.textContent = `Επιλεγμένοι: ${selectedNum}`;
+        
+        if (selectedNum > 0 && length > 0) {
+            const totalSms = smsNum * selectedNum;
+            totalSmsCount.textContent = `Σύνολο: ~${totalSms} SMS`;
+            totalSmsCount.style.color = totalSms > 100 ? '#dc3545' : '#28a745';
+        } else {
+            totalSmsCount.textContent = '';
+        }
+    }
+    
+    selectAllBtn.addEventListener('click', function() {
+        customerCheckboxes.forEach(checkbox => {
+            if (checkbox.dataset.phone) {
+                checkbox.checked = true;
+            }
+        });
+        updateCounts();
+    });
+    
+    deselectAllBtn.addEventListener('click', function() {
+        customerCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        updateCounts();
+    });
+    
+    customerCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateCounts);
+    });
+    
+    messageTextarea.addEventListener('input', updateCounts);
+    
+    // Form submission validation
+    document.querySelector('.bulk-sms-form').addEventListener('submit', function(e) {
+        const selected = Array.from(customerCheckboxes).filter(cb => cb.checked && cb.dataset.phone);
+        if (selected.length === 0) {
+            e.preventDefault();
+            alert('Παρακαλώ επιλέξτε τουλάχιστον έναν πελάτη με αριθμό τηλεφώνου.');
+            return false;
+        }
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Αποστολή...';
+    });
+    
+    updateCounts();
+});
+</script>
+{% endblock %}
+
+

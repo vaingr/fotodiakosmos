@@ -1,0 +1,229 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Αποστολή SMS{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1><i class="fas fa-sms"></i> Αποστολή SMS</h1>
+        <a href="{% url 'sms_dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Επιστροφή
+        </a>
+    </div>
+
+    <div class="form-card">
+        {% if balance_info %}
+        <div class="balance-info" style="background: var(--bg-secondary); border: 1px solid var(--accent); border-radius: 6px; padding: 1rem; margin-bottom: 1.5rem;">
+            <h4 style="margin: 0 0 0.5rem 0; color: var(--text-primary);">
+                <i class="fas fa-wallet"></i> Υπόλοιπο Λογαριασμού
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                <div>
+                    <span style="color: var(--text-secondary); font-size: 0.9rem;">Υπόλοιπο:</span>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">
+                        {{ balance_info.Balance|default:"0.00" }}€
+                    </div>
+                </div>
+                {% if balance_info.SmsRemainCount and balance_info.SmsRemainCount >= 0 %}
+                <div>
+                    <span style="color: var(--text-secondary); font-size: 0.9rem;">Διαθέσιμα SMS:</span>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #007bff;">
+                        {{ balance_info.SmsRemainCount }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% elif balance_error %}
+        <div class="balance-error" style="background: var(--bg-secondary); border: 1px solid #ffc107; border-radius: 6px; padding: 1rem; margin-bottom: 1.5rem;">
+            <p style="margin: 0; color: var(--text-secondary);">
+                <i class="fas fa-exclamation-triangle"></i> {{ balance_error }}
+            </p>
+        </div>
+        {% endif %}
+
+        <form method="post" class="sms-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="destination">Αριθμός Τηλεφώνου:</label>
+                <input type="text" id="destination" name="destination" class="form-control" 
+                       placeholder="306912345678" required
+                       pattern="[0-9+ ]+" title="Εισάγετε αριθμό τηλεφώνου (π.χ. 306912345678)">
+                <small class="form-text">
+                    Εισάγετε τον αριθμό χωρίς πρόθεμα + ή 00 (π.χ. 306912345678 για Ελλάδα)
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="message">Μήνυμα:</label>
+                <textarea id="message" name="message" class="form-control" rows="5" 
+                          placeholder="Γράψτε το μήνυμα σας εδώ..." required maxlength="1600"></textarea>
+                <small class="form-text">
+                    <span id="char-count">0</span> / 1600 χαρακτήρες
+                    <span id="sms-count" style="margin-left: 1rem;"></span>
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="sender_id">Sender ID (Προαιρετικό):</label>
+                <input type="text" id="sender_id" name="sender_id" class="form-control" 
+                       placeholder="Αφήστε κενό για προεπιλεγμένο" maxlength="11">
+                <small class="form-text">
+                    <i class="fas fa-info-circle"></i> Το όνομα αποστολέα (μέχρι 11 χαρακτήρες). Αν αφήσετε κενό, θα χρησιμοποιηθεί το προεπιλεγμένο από τις ρυθμίσεις.
+                    <br>
+                    <strong style="color: #ffc107;">
+                        <i class="fas fa-exclamation-triangle"></i> Προσοχή: Το Sender ID πρέπει να είναι εγκεκριμένο από τον πάροχο SMS.
+                    </strong>
+                </small>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane"></i> Αποστολή SMS
+                </button>
+                <a href="{% url 'send_bulk_sms' %}" class="btn btn-secondary">
+                    <i class="fas fa-users"></i> Μαζική Αποστολή
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.form-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.form-header h1 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.form-card {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.sms-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.form-control {
+    padding: 0.75rem;
+    border: 1px solid var(--bg-secondary);
+    border-radius: 4px;
+    font-size: 1rem;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: border-color 0.2s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(255, 101, 0, 0.25);
+}
+
+.form-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--bg-secondary);
+    margin-top: 1rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--accent);
+    color: white;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const messageTextarea = document.getElementById('message');
+    const charCount = document.getElementById('char-count');
+    const smsCount = document.getElementById('sms-count');
+    
+    function updateCounts() {
+        const length = messageTextarea.value.length;
+        charCount.textContent = length;
+        
+        // Calculate SMS count (160 characters per SMS for standard encoding)
+        const smsNum = Math.ceil(length / 160);
+        if (length > 0) {
+            smsCount.textContent = `(~${smsNum} SMS)`;
+            smsCount.style.color = smsNum > 10 ? '#dc3545' : 'var(--text-secondary)';
+        } else {
+            smsCount.textContent = '';
+        }
+    }
+    
+    messageTextarea.addEventListener('input', updateCounts);
+    updateCounts();
+});
+</script>
+{% endblock %}
+
+

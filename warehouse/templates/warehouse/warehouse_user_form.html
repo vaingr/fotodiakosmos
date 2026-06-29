@@ -1,0 +1,203 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<style>.content-wrapper { border: none !important; }</style>
+
+<div class="page-header">
+    <h1><i class="fas fa-user{% if is_create %}-plus{% else %}-edit{% endif %}"></i> {{ title }}</h1>
+    <a href="{% url 'warehouse:warehouse_user_list' %}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Επιστροφή</a>
+</div>
+
+<form method="post" class="user-form-card" id="warehouseUserForm" autocomplete="off">
+    {% csrf_token %}
+    <input type="text" name="fake_username" tabindex="-1" aria-hidden="true" autocomplete="username"
+           style="position:absolute;left:-9999px;width:0;height:0;opacity:0;pointer-events:none;">
+    <input type="password" name="fake_password" tabindex="-1" aria-hidden="true" autocomplete="current-password"
+           style="position:absolute;left:-9999px;width:0;height:0;opacity:0;pointer-events:none;">
+
+    {% if is_create %}
+    <div class="form-group">
+        <label for="{{ form.username.id_for_label }}">{{ form.username.label }} *</label>
+        {{ form.username }}
+        {% if form.username.errors %}<div class="error">{{ form.username.errors.0 }}</div>{% endif %}
+        <small class="help-text">Μόνο αγγλικά πεζά γράμματα (a-z).</small>
+    </div>
+    <div class="form-grid">
+        <div class="form-group">
+            <label for="{{ form.password1.id_for_label }}">{{ form.password1.label }} *</label>
+            <div class="password-field-wrap">
+                {{ form.password1 }}
+                <button type="button" class="password-toggle-btn" aria-label="Εμφάνιση κωδικού" title="Εμφάνιση κωδικού">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+            {% if form.password1.errors %}<div class="error">{{ form.password1.errors.0 }}</div>{% endif %}
+            <small class="help-text">Μόνο αγγλικά πεζά γράμματα και αριθμοί (a-z, 0-9).</small>
+        </div>
+        <div class="form-group">
+            <label for="{{ form.password2.id_for_label }}">{{ form.password2.label }} *</label>
+            <div class="password-field-wrap">
+                {{ form.password2 }}
+                <button type="button" class="password-toggle-btn" aria-label="Εμφάνιση κωδικού" title="Εμφάνιση κωδικού">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+            {% if form.password2.errors %}<div class="error">{{ form.password2.errors.0 }}</div>{% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="form-group">
+        <label>Όνομα Χρήστη</label>
+        <div class="readonly-field">{{ profile.user.username }}</div>
+    </div>
+    <div class="form-grid">
+        <div class="form-group">
+            <label for="{{ form.new_password1.id_for_label }}">{{ form.new_password1.label }}</label>
+            <div class="password-field-wrap">
+                {{ form.new_password1 }}
+                <button type="button" class="password-toggle-btn" aria-label="Εμφάνιση κωδικού" title="Εμφάνιση κωδικού">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+            <small class="help-text">Αφήστε κενό αν δεν θέλετε αλλαγή κωδικού. Μόνο αγγλικά πεζά και αριθμοί (a-z, 0-9).</small>
+        </div>
+        <div class="form-group">
+            <label for="{{ form.new_password2.id_for_label }}">{{ form.new_password2.label }}</label>
+            <div class="password-field-wrap">
+                {{ form.new_password2 }}
+                <button type="button" class="password-toggle-btn" aria-label="Εμφάνιση κωδικού" title="Εμφάνιση κωδικού">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if form.non_field_errors %}
+    <div class="error-box">{% for error in form.non_field_errors %}{{ error }}{% endfor %}</div>
+    {% endif %}
+
+    <div class="form-group">
+        <span class="field-label">Ρόλος *</span>
+        <div class="role-selector">
+            {% for option in form.role %}
+            <label class="role-option">
+                {{ option.tag }}
+                <span>{{ option.choice_label }}</span>
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="permissions-section" id="permissionsSection">
+        <h3>Δικαιώματα Πρόσβασης</h3>
+        <p class="help-text">Επιλέξτε τι μπορεί να βλέπει και να κάνει ο απλός χρήστης. Οι διαχειριστές έχουν πλήρη πρόσβαση.</p>
+        <div class="permissions-grid">
+            {% for field, label in permission_form_fields %}
+            <label class="perm-option" for="{{ field.id_for_label }}">
+                {{ field.as_widget }}
+                <span>{{ label }}</span>
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Αποθήκευση</button>
+    </div>
+</form>
+
+<style>
+.page-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; padding:1.25rem 1.5rem; background:var(--card-bg); border:1px solid var(--card-border); border-radius:.75rem; }
+.page-header h1 { margin:0; font-size:1.25rem; color:var(--text-primary); display:flex; align-items:center; gap:.5rem; }
+.user-form-card { background:var(--card-bg); border:1px solid var(--card-border); border-radius:.75rem; padding:1.5rem; max-width:720px; }
+.form-group { margin-bottom:1.25rem; }
+.form-group label, .field-label { display:block; margin-bottom:.5rem; font-weight:500; color:var(--text-primary); font-size:.875rem; }
+.form-control, input[type=text], input[type=password] { width:100%; padding:.75rem 1rem; border:1px solid var(--card-border); border-radius:.5rem; background:var(--card-bg); color:var(--text-primary); font-size:1rem; box-sizing:border-box; }
+.password-field-wrap { position:relative; }
+.password-field-wrap input { padding-right:2.75rem; }
+.password-toggle-btn { position:absolute; right:.5rem; top:50%; transform:translateY(-50%); width:2.25rem; height:2.25rem; border:none; border-radius:.375rem; background:transparent; color:var(--text-secondary); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.password-toggle-btn:hover { color:var(--accent); background:rgba(59,130,246,.1); }
+.readonly-field { padding:.75rem 1rem; background:var(--bg-secondary); border-radius:.5rem; color:var(--text-primary); font-weight:600; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+.role-selector { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+.role-option { display:flex; align-items:center; justify-content:center; gap:.5rem; min-height:3rem; padding:.75rem; border:2px solid var(--card-border); border-radius:.75rem; cursor:pointer; position:relative; }
+.role-option input { position:absolute; opacity:0; pointer-events:none; }
+.role-option:has(input:checked) { border-color:var(--accent); background:rgba(59,130,246,.1); }
+.permissions-section { margin-top:1.5rem; padding-top:1.5rem; border-top:1px solid var(--card-border); }
+.permissions-section h3 { margin:0 0 .5rem; font-size:1rem; color:var(--text-primary); }
+.help-text { margin:0 0 1rem; color:var(--text-secondary); font-size:.8125rem; display:block; }
+.permissions-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:.625rem; }
+.perm-option { display:flex; align-items:center; gap:.625rem; padding:.875rem; border:1px solid var(--card-border); border-radius:.625rem; cursor:pointer; min-height:3rem; transition:border-color .2s, background .2s; }
+.perm-option:has(input:checked) { border-color:var(--accent); background:rgba(59,130,246,.1); }
+.perm-option input[type="checkbox"] { width:1.125rem; height:1.125rem; flex-shrink:0; margin:0; cursor:pointer; accent-color:var(--accent); }
+.perm-option span { font-size:.875rem; color:var(--text-primary); user-select:none; }
+.error { color:#ef4444; font-size:.8125rem; margin-top:.25rem; }
+.error-box { background:rgba(239,68,68,.1); color:#ef4444; padding:.75rem 1rem; border-radius:.5rem; margin-bottom:1rem; }
+.form-actions { margin-top:1.5rem; }
+.btn { padding:.75rem 1.5rem; border:none; border-radius:.5rem; cursor:pointer; display:inline-flex; align-items:center; gap:.5rem; font-weight:600; text-decoration:none; }
+.btn-primary { background:var(--accent); color:#fff; }
+.btn-secondary { background:var(--bg-secondary); color:var(--text-primary); }
+.permissions-section.is-disabled { opacity:.45; pointer-events:none; }
+@media (max-width:768px) { .form-grid, .role-selector { grid-template-columns:1fr; } .permissions-grid { grid-template-columns:1fr; } .form-control, input[type=password] { font-size:16px; min-height:3rem; } }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roleInputs = document.querySelectorAll('input[name="role"]');
+    const permSection = document.getElementById('permissionsSection');
+
+    function syncRoleUI() {
+        const selected = document.querySelector('input[name="role"]:checked');
+        const isAdmin = selected && selected.value === 'admin';
+        if (permSection) {
+            permSection.classList.toggle('is-disabled', isAdmin);
+        }
+        document.querySelectorAll('#permissionsSection input[type="checkbox"]').forEach(function(checkbox) {
+            checkbox.disabled = isAdmin;
+        });
+    }
+
+    roleInputs.forEach(function(input) {
+        input.addEventListener('change', syncRoleUI);
+    });
+    syncRoleUI();
+
+    document.querySelectorAll('[data-lowercase-latin]').forEach(function(input) {
+        input.addEventListener('input', function() {
+            const filtered = input.value.toLowerCase().replace(/[^a-z]/g, '');
+            if (input.value !== filtered) {
+                input.value = filtered;
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-lowercase-alnum]').forEach(function(input) {
+        input.addEventListener('input', function() {
+            const filtered = input.value.toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (input.value !== filtered) {
+                input.value = filtered;
+            }
+        });
+    });
+
+    document.querySelectorAll('.password-toggle-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const wrap = btn.closest('.password-field-wrap');
+            const input = wrap ? wrap.querySelector('input') : null;
+            const icon = btn.querySelector('i');
+            if (!input || !icon) return;
+
+            const showPassword = input.type === 'password';
+            input.type = showPassword ? 'text' : 'password';
+            icon.classList.toggle('fa-eye', !showPassword);
+            icon.classList.toggle('fa-eye-slash', showPassword);
+            btn.setAttribute('aria-label', showPassword ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού');
+            btn.title = showPassword ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού';
+        });
+    });
+});
+</script>
+{% endblock %}

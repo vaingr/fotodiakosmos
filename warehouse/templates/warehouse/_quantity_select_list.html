@@ -1,0 +1,17 @@
+{% for product in products %}
+<a href="{% url action_url_name product.pk %}?next={% url 'warehouse:dashboard' %}" class="select-item {% if action_class == 'add' %}item-add{% else %}item-remove{% endif %}">
+    <div class="select-item-main">
+        <strong>{{ product.name }}</strong>
+        <span class="select-code">Κωδικός: {{ product.code }}</span>
+    </div>
+    <div class="select-item-right">
+        <span class="select-qty {% if product.is_low_stock %}low-stock{% endif %}">{{ product.quantity_display }}</span>
+        <i class="fas fa-chevron-right"></i>
+    </div>
+</a>
+{% empty %}
+<div class="empty-state">
+    <i class="fas fa-box-open"></i>
+    <p>{% if search_query %}Δεν βρέθηκαν υλικά.{% else %}Δεν υπάρχουν καταχωρημένα υλικά.{% endif %}</p>
+</div>
+{% endfor %}

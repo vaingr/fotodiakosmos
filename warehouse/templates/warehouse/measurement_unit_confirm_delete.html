@@ -1,0 +1,129 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Διαγραφή Μονάδας Μέτρησης{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1><i class="fas fa-trash"></i> Διαγραφή Μονάδας Μέτρησης</h1>
+        <a href="{% url 'warehouse:measurement_unit_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Επιστροφή
+        </a>
+    </div>
+
+    <div class="form-card">
+        <div class="warning-message">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h2>Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή τη μονάδα;</h2>
+            <p>Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.</p>
+        </div>
+
+        <div class="unit-info">
+            <h3>{{ unit.name }}</h3>
+            <p><strong>Χρήση σε υλικά:</strong> {{ product_count }}</p>
+            {% if product_count > 0 %}
+            <p class="warning-text">Η μονάδα χρησιμοποιείται από υλικά και δεν μπορεί να διαγραφεί.</p>
+            {% endif %}
+        </div>
+
+        <form method="post" class="delete-form">
+            {% csrf_token %}
+            <div class="form-actions">
+                {% if product_count == 0 %}
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Ναι, Διαγραφή
+                </button>
+                {% endif %}
+                <a href="{% url 'warehouse:measurement_unit_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Ακύρωση
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.form-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.form-header h1 {
+    margin: 0;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-card {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.warning-message {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+}
+
+.warning-message i {
+    font-size: 3rem;
+    color: #ffc107;
+    margin-bottom: 1rem;
+}
+
+.unit-info {
+    background: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.unit-info h3 {
+    margin: 0 0 1rem 0;
+}
+
+.warning-text {
+    color: #dc3545;
+    margin-top: 1rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.btn {
+    padding: 0.75rem 1.25rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+</style>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Module Πελατών{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 style="text-align:center; margin-bottom:2rem;">Module Πελατών</h2>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div style="color: {% if message.tags == 'error' %}#dc3545{% else %}#27ae60{% endif %}; text-align:center; margin-bottom:1.5rem; font-weight:bold;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <div style="max-width: 600px; margin: 0 auto;">
+        <div style="background: var(--card-bg, #fff); border-radius: 8px; box-shadow: 0 2px 4px var(--shadow, rgba(0,0,0,0.1)); padding: 2rem;">
+            <form method="post" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                {% csrf_token %}
+                
+                <!-- Module Enable/Disable -->
+                <div style="border-bottom: 1px solid var(--bg-secondary); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <input type="checkbox" id="customers_enabled" name="customers_enabled" 
+                               {% if customers_enabled %}checked{% endif %}
+                               style="width: 20px; height: 20px; cursor: pointer;">
+                        <label for="customers_enabled" style="font-weight: bold; color: var(--text-primary, #333); cursor: pointer; font-size: 1.1rem;">
+                            <i class="fas fa-toggle-on"></i> Ενεργοποίηση Module Πελατών
+                        </label>
+                    </div>
+                    <small style="color: var(--text-secondary, #888); font-size: 0.85rem; display: block; margin-top: 0.5rem; margin-left: 2rem;">
+                        Όταν είναι απενεργοποιημένο, η επιλογή "Πελάτες" θα είναι κρυμμένη από το sidebar για απλούς χρήστες. Οι superusers θα βλέπουν πάντα την επιλογή.
+                    </small>
+                </div>
+                
+                <!-- SMS Enable/Disable -->
+                <div style="border-bottom: 1px solid var(--bg-secondary); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <input type="checkbox" id="sms_enabled" name="sms_enabled" 
+                               {% if sms_enabled %}checked{% endif %}
+                               style="width: 20px; height: 20px; cursor: pointer;">
+                        <label for="sms_enabled" style="font-weight: bold; color: var(--text-primary, #333); cursor: pointer; font-size: 1.1rem;">
+                            <i class="fas fa-sms"></i> Ενεργοποίηση SMS για Απλούς Χρήστες
+                        </label>
+                    </div>
+                    <small style="color: var(--text-secondary, #888); font-size: 0.85rem; display: block; margin-top: 0.5rem; margin-left: 2rem;">
+                        Όταν είναι απενεργοποιημένο, η επιλογή "SMS" θα είναι κρυμμένη από το sidebar για απλούς χρήστες. Οι superusers θα βλέπουν πάντα την επιλογή.
+                    </small>
+                </div>
+                
+                <button type="submit" style="background-color: var(--accent, #007bff); color: white; padding: 0.75rem; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; transition: background-color 0.2s;">
+                    Αποθήκευση Ρυθμίσεων
+                </button>
+            </form>
+            
+            <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-secondary, #fff3cd); border: 1px solid var(--text-secondary, #ffeaa7); border-radius: 4px; color: var(--text-primary, #856404);">
+                <strong>Σημείωση:</strong> Οι ρυθμίσεις αποθηκεύονται στο αρχείο .env. Όταν το Module Πελατών είναι απενεργοποιημένο, οι απλοί χρήστες δεν θα μπορούν να δουν ή να χρησιμοποιήσουν τη λειτουργία Πελατών. Όταν το SMS είναι απενεργοποιημένο, οι απλοί χρήστες δεν θα μπορούν να δουν ή να χρησιμοποιήσουν τη λειτουργία SMS.
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .container {
+        padding: 1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .container {
+            padding: 0.5rem;
+        }
+        
+        h2 {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+

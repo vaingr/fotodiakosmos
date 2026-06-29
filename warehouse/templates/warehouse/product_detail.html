@@ -1,0 +1,520 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Λεπτομέρειες Υλικού{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-box"></i> Λεπτομέρειες Υλικού</h1>
+    <div class="header-actions">
+        {% if wh_perms.perm_edit_products %}
+        <a href="{% url 'warehouse:product_edit' product.pk %}?next={% url 'warehouse:product_list' %}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> Επεξεργασία
+        </a>
+        {% endif %}
+        <a href="#" onclick="window.history.back(); return false;" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Επιστροφή
+        </a>
+    </div>
+</div>
+
+<div class="product-detail-container">
+    <div class="product-info-card">
+        <div class="product-header">
+            <div class="product-avatar {% if product.is_low_stock %}low-stock-avatar{% endif %}">
+                <i class="fas fa-box"></i>
+            </div>
+            <div class="product-info">
+                <h2>{{ product.name }}</h2>
+                <p class="product-code">Κωδικός: {{ product.code }}</p>
+                {% if product.barcode %}
+                <p class="product-barcode">Barcode: {{ product.barcode }}</p>
+                {% endif %}
+                {% if product.is_low_stock %}
+                <span class="low-stock-badge">
+                    <i class="fas fa-exclamation-triangle"></i> Χαμηλό Απόθεμα
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="product-details">
+            <div class="detail-row">
+                <span class="label">Κωδικός:</span>
+                <span class="value">{{ product.code }}</span>
+            </div>
+            {% if product.barcode %}
+            <div class="detail-row">
+                <span class="label">QR/Bar Code:</span>
+                <span class="value">{{ product.barcode }}</span>
+            </div>
+            {% endif %}
+            <div class="detail-row">
+                <span class="label">Όνομα:</span>
+                <span class="value">{{ product.name }}</span>
+            </div>
+            <div class="detail-row quantity-row">
+                <span class="label">Ποσότητα:</span>
+                <div class="quantity-block">
+                    <span class="value {% if product.is_low_stock %}low-stock-value{% else %}quantity-value{% endif %}">
+                        {{ product.quantity_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="detail-row">
+                <span class="label">Όριο Χαμηλού Αποθέματος:</span>
+                <span class="value">{{ product.low_stock_threshold }}</span>
+            </div>
+            <div class="detail-row description-row">
+                <span class="label">Περιγραφή:</span>
+                <span class="value">{% if product.description %}{{ product.description }}{% else %}<em style="color: var(--text-secondary);">Δεν υπάρχει περιγραφή</em>{% endif %}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Ημ/νία Δημιουργίας:</span>
+                <span class="value">{{ product.created_at|date:"d/m/Y H:i" }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Τελευταία Ενημέρωση:</span>
+                <span class="value">{{ product.updated_at|date:"d/m/Y H:i" }}</span>
+            </div>
+        </div>
+    </div>
+
+    {% if recent_movements %}
+    <div class="movements-card">
+        <h3 class="movements-title"><i class="fas fa-history"></i> Ιστορικό Κινήσεων</h3>
+        <div class="movements-table-wrap">
+            <table class="movements-table">
+                <thead>
+                    <tr>
+                        <th>Ημ/νία</th>
+                        <th>Τύπος</th>
+                        <th>Ποσότητα</th>
+                        <th>Απόθεμα</th>
+                        <th>Σημείωση</th>
+                        <th>Χρήστης</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for movement in recent_movements %}
+                    <tr>
+                        <td>{{ movement.created_at|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            <span class="movement-badge {% if movement.movement_type == 'add' %}badge-add{% else %}badge-remove{% endif %}">
+                                {{ movement.movement_type_label }}
+                            </span>
+                        </td>
+                        <td>{{ movement.amount }}</td>
+                        <td>{{ movement.quantity_before }} → {{ movement.quantity_after }}</td>
+                        <td>{% if movement.note %}{{ movement.note }}{% else %}—{% endif %}</td>
+                        <td>{% if movement.created_by %}{{ movement.created_by.username }}{% else %}—{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.page-header h1 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.product-detail-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.product-info-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.product-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--bg-secondary);
+}
+
+.product-avatar {
+    width: 80px;
+    height: 80px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.product-avatar.low-stock-avatar {
+    background: #ffc107;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+    }
+    50% {
+        box-shadow: 0 4px 20px rgba(255, 193, 7, 0.6);
+    }
+}
+
+.product-info {
+    flex: 1;
+}
+
+.product-info h2 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+}
+
+.product-code, .product-barcode {
+    margin: 0.25rem 0;
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.low-stock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #fff3cd;
+    color: #856404;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+.product-details {
+    margin-bottom: 2rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--bg-secondary);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-row.description-row {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--bg-primary);
+    border-radius: 6px;
+    margin-top: 0.5rem;
+}
+
+.detail-row.description-row .label {
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.detail-row.description-row .value {
+    text-align: left;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.label {
+    font-weight: bold;
+    color: var(--text-secondary);
+    min-width: 150px;
+}
+
+.value {
+    color: var(--text-primary);
+    text-align: right;
+    flex: 1;
+}
+
+.quantity-value {
+    color: #28a745;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.low-stock-value {
+    color: #ffc107;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.quantity-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+}
+
+.quantity-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-end;
+}
+
+.quantity-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.btn-qty {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn-qty-add {
+    background: rgba(40, 167, 69, 0.15);
+    color: #28a745;
+    border: 1px solid rgba(40, 167, 69, 0.4);
+}
+
+.btn-qty-remove {
+    background: rgba(220, 53, 69, 0.15);
+    color: #dc3545;
+    border: 1px solid rgba(220, 53, 69, 0.4);
+}
+
+.movements-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.movements-title {
+    margin: 0 0 1rem 0;
+    color: var(--text-primary);
+    font-size: 1.0625rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.movements-table-wrap {
+    overflow-x: auto;
+}
+
+.movements-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.movements-table th,
+.movements-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--card-border);
+    color: var(--text-primary);
+}
+
+.movements-table th {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+.movement-badge {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-add {
+    background: rgba(40, 167, 69, 0.15);
+    color: #28a745;
+}
+
+.badge-remove {
+    background: rgba(220, 53, 69, 0.15);
+    color: #dc3545;
+}
+
+.product-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--bg-secondary);
+}
+
+.btn {
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+.btn-warning:hover {
+    background: #e0a800;
+    transform: translateY(-2px);
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #218838;
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+}
+
+.btn-outline-danger {
+    background: transparent;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+}
+
+.btn-outline-danger:hover {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--accent);
+    color: white;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .header-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .product-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .product-avatar {
+        width: 100px;
+        height: 100px;
+        font-size: 2.5rem;
+    }
+    
+    .detail-row {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .label {
+        min-width: auto;
+    }
+    
+    .value {
+        text-align: left;
+    }
+
+    .quantity-block {
+        align-items: stretch;
+    }
+
+    .quantity-actions {
+        justify-content: stretch;
+    }
+
+    .btn-qty {
+        flex: 1;
+        justify-content: center;
+        min-height: 2.75rem;
+        font-size: 0.9375rem;
+    }
+    
+    .product-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,263 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Αποστολή SMS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-sms"></i> Αποστολή SMS</h1>
+    <a href="{% url 'customers:customer_detail' customer.id %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Επιστροφή
+    </a>
+</div>
+
+<div class="sms-form-container">
+    <div class="sms-form-card">
+        <div class="customer-info-section">
+            <h3>Πελάτης</h3>
+            <div class="customer-details">
+                <p><strong>Όνομα:</strong> {{ customer.full_name }}</p>
+                <p><strong>Τηλέφωνο:</strong> {{ customer.phone }}</p>
+            </div>
+        </div>
+        
+        <form method="post" class="sms-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="message">Μήνυμα SMS:</label>
+                <textarea 
+                    id="message" 
+                    name="message" 
+                    rows="6" 
+                    class="form-control"
+                    placeholder="Εισάγετε το μήνυμα που θέλετε να στείλετε..."
+                    required
+                    maxlength="1600"
+                ></textarea>
+                <small class="char-count">
+                    <span id="charCount">0</span> / 1600 χαρακτήρες
+                </small>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane"></i> Αποστολή SMS
+                </button>
+                <a href="{% url 'customers:customer_detail' customer.id %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Ακύρωση
+                </a>
+            </div>
+        </form>
+        
+        <div class="sms-info">
+            <p><i class="fas fa-info-circle"></i> <strong>Σημείωση:</strong> Βεβαιωθείτε ότι οι ρυθμίσεις SMS έχουν ρυθμιστεί σωστά από το μενού διαχείρισης.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.page-header h1 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.sms-form-container {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.sms-form-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.customer-info-section {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--bg-secondary);
+}
+
+.customer-info-section h3 {
+    margin: 0 0 1rem 0;
+    color: var(--text-primary);
+}
+
+.customer-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.customer-details p {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.customer-details strong {
+    color: var(--text-secondary);
+    margin-right: 0.5rem;
+}
+
+.sms-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-weight: bold;
+    color: var(--text-primary);
+}
+
+.form-control {
+    padding: 1rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 6px;
+    font-size: 1rem;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.3s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.char-count {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    text-align: right;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--accent);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.sms-info {
+    margin-top: 2rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    border-left: 4px solid var(--accent);
+}
+
+.sms-info p {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.sms-info i {
+    color: var(--accent);
+    margin-right: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .sms-form-card {
+        padding: 1.5rem;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const messageTextarea = document.getElementById('message');
+    const charCount = document.getElementById('charCount');
+    
+    if (messageTextarea && charCount) {
+        // Update character count on input
+        messageTextarea.addEventListener('input', function() {
+            charCount.textContent = this.value.length;
+            
+            // Change color if approaching limit
+            if (this.value.length > 1500) {
+                charCount.style.color = '#dc3545';
+            } else if (this.value.length > 1400) {
+                charCount.style.color = '#ffc107';
+            } else {
+                charCount.style.color = 'var(--text-secondary)';
+            }
+        });
+        
+        // Focus on textarea when page loads
+        messageTextarea.focus();
+    }
+});
+</script>
+{% endblock %}
+
+

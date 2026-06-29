@@ -1,0 +1,308 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<style>
+    .content-wrapper { border: none !important; }
+</style>
+
+<div class="form-container">
+    <div class="form-header">
+        <h2 class="form-title">{{ title }}</h2>
+    </div>
+
+    <div class="product-summary {% if action_class == 'add' %}summary-add{% else %}summary-remove{% endif %}">
+        <div class="summary-icon">
+            <i class="fas {% if is_add %}fa-plus{% else %}fa-minus{% endif %}"></i>
+        </div>
+        <div>
+            <div class="summary-name">{{ product.name }}</div>
+            <div class="summary-code">Κωδικός: {{ product.code }}</div>
+            <div class="summary-qty">Τρέχον απόθεμα: <strong>{{ product.quantity_display }}</strong></div>
+        </div>
+    </div>
+
+    <form method="post" id="quantityForm" class="adjust-form" autocomplete="off">
+        {% csrf_token %}
+        {% if next_url %}
+        <input type="hidden" name="next" value="{{ next_url }}">
+        {% endif %}
+
+        <div class="form-section">
+            <div class="form-group">
+                <label for="{{ form.amount.id_for_label }}">{{ form.amount.label }} *</label>
+                <div class="qty-input-wrap">
+                    {{ form.amount }}
+                    <span class="qty-suffix">{{ product.measurement_unit.name }}</span>
+                </div>
+                {% if not is_add %}
+                <small class="field-help">Μέγιστο διαθέσιμο: {{ product.quantity }} {{ product.measurement_unit.name }}</small>
+                {% endif %}
+                {% if form.amount.errors %}
+                <div class="error-message">{{ form.amount.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.note.id_for_label }}">{{ form.note.label }}</label>
+                {{ form.note }}
+                {% if form.note.errors %}
+                <div class="error-message">{{ form.note.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+
+    <div class="form-action-bar">
+        <a href="#" onclick="window.history.back(); return false;" class="form-action-btn form-action-cancel">
+            <i class="fas fa-times"></i>
+            Ακύρωση
+        </a>
+        <button type="submit" form="quantityForm" class="form-action-btn form-action-submit {% if action_class == 'add' %}submit-add{% else %}submit-remove{% endif %}">
+            <i class="fas {% if is_add %}fa-plus{% else %}fa-minus{% endif %}"></i>
+            {{ submit_label }}
+        </button>
+    </div>
+</div>
+
+<style>
+.form-container {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 0 2rem 2rem;
+}
+
+.form-header {
+    margin-bottom: 1.25rem;
+    padding: 0.5rem 0 1rem;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.form-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.product-summary {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--card-border);
+}
+
+.summary-add {
+    background: rgba(40, 167, 69, 0.1);
+    border-color: rgba(40, 167, 69, 0.35);
+}
+
+.summary-remove {
+    background: rgba(220, 53, 69, 0.1);
+    border-color: rgba(220, 53, 69, 0.35);
+}
+
+.summary-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.125rem;
+    flex-shrink: 0;
+}
+
+.summary-add .summary-icon { background: #28a745; }
+.summary-remove .summary-icon { background: #dc3545; }
+
+.summary-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1.0625rem;
+}
+
+.summary-code,
+.summary-qty {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.form-section {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group:last-child { margin-bottom: 0; }
+
+.form-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #cbd5e1;
+    margin-bottom: 0.5rem;
+}
+
+:root[data-theme="light"] .form-group label { color: #4c566a; }
+
+.qty-input-wrap {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid #475569;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: var(--card-bg);
+    max-width: 280px;
+}
+
+.qty-input-wrap:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.qty-input-wrap .qty-input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    padding: 0.875rem 1rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--text-primary);
+    outline: none;
+}
+
+.qty-suffix {
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-left: 1px solid #475569;
+}
+
+.form-group textarea {
+    width: 100%;
+    background: var(--card-bg);
+    border: 1px solid #475569;
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.field-help {
+    display: block;
+    margin-top: 0.375rem;
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    font-style: italic;
+}
+
+.error-message {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-top: 0.375rem;
+}
+
+.form-action-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.875rem;
+    margin-top: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 0.75rem;
+}
+
+.form-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    min-height: 2.875rem;
+    padding: 0.75rem 1.75rem;
+    border-radius: 0.625rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    border: none;
+    transition: all 0.2s;
+}
+
+.form-action-cancel {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--card-border);
+}
+
+.form-action-submit.submit-add {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    box-shadow: 0 4px 14px rgba(40, 167, 69, 0.35);
+}
+
+.form-action-submit.submit-remove {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    box-shadow: 0 4px 14px rgba(220, 53, 69, 0.35);
+}
+
+@media (max-width: 768px) {
+    .form-container {
+        padding: 0 1rem calc(6rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .qty-input-wrap {
+        max-width: 100%;
+    }
+
+    .qty-input-wrap .qty-input {
+        min-height: 3.25rem;
+        font-size: 1.125rem;
+    }
+
+    .form-action-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin-top: 0;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
+        padding-bottom: calc(0.875rem + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+        z-index: 100;
+        display: grid;
+        grid-template-columns: 1fr 1.4fr;
+        gap: 0.75rem;
+    }
+
+    .form-action-btn {
+        min-height: 3.5rem;
+        font-size: 1rem;
+    }
+}
+</style>
+{% endblock %}

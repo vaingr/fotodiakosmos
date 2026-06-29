@@ -1,0 +1,951 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Λίστα Υλικών{% endblock %}
+
+{% block content %}
+<style>
+    .content-wrapper {
+        border: none !important;
+    }
+</style>
+
+<div class="page-header">
+    <h1><i class="fas fa-box"></i> Λίστα Υλικών</h1>
+    <div class="header-actions">
+        <a href="{% url wh_home_url %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Επιστροφή
+        </a>
+        <div class="view-toggle">
+            <button type="button" class="view-btn active" id="card-view-btn" title="Προβολή Cards">
+                <i class="fas fa-th-large"></i>
+            </button>
+            <button type="button" class="view-btn" id="table-view-btn" title="Προβολή Πίνακα">
+                <i class="fas fa-table"></i>
+            </button>
+        </div>
+        <button type="button" class="btn btn-secondary" id="printProductsBtn" title="Εκτύπωση λίστας">
+            <i class="fas fa-print"></i> Εκτύπωση
+        </button>
+        {% if wh_perms.perm_create_products %}
+        <a href="{% url 'warehouse:product_create' %}?next={{ request.path|urlencode }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Νέο Υλικό
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="search-section">
+    <form method="get" class="search-form" id="productSearchForm"
+          data-live-url="{% url 'warehouse:product_list' %}"
+          data-low-stock="{{ low_stock }}"
+          data-list-version="{{ list_version }}"
+          data-current-page="{{ products.number }}">
+        <div class="search-input-wrap">
+            <input type="search" name="search" id="productSearchInput"
+                   placeholder="ΑΝΑΖΗΤΗΣΗ ΜΕ ΟΝΟΜΑ, ΚΩΔΙΚΟ Ή BARCODE..."
+                   value="{{ search_query }}" class="search-input" autocomplete="off" enterkeyhint="search"
+                   autocapitalize="characters" spellcheck="false" data-lpignore="true" data-1p-ignore readonly>
+            <button type="submit" class="search-submit-btn" aria-label="Αναζήτηση">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+        <div class="search-meta">
+            <span id="liveSearchStatus" class="live-search-status" aria-live="polite"></span>
+        </div>
+        <div class="search-actions">
+            <button type="submit" class="btn btn-secondary search-btn-full">
+                <i class="fas fa-search"></i> Αναζήτηση
+            </button>
+            {% if low_stock == 'true' %}
+            <a href="?{% if search_query %}search={{ search_query }}{% endif %}" class="btn btn-warning">
+                <i class="fas fa-filter"></i> Καθαρισμός Φίλτρου
+            </a>
+            {% else %}
+            <a href="?low_stock=true{% if search_query %}&search={{ search_query }}{% endif %}" class="btn btn-warning">
+                <i class="fas fa-exclamation-triangle"></i> Χαμηλό Απόθεμα
+            </a>
+            {% endif %}
+        </div>
+        {% if low_stock == 'true' %}
+        <input type="hidden" name="low_stock" value="true">
+        {% endif %}
+    </form>
+</div>
+
+<!-- Card View -->
+<div class="products-container" id="card-view">
+    <div class="products-grid" id="productCardsGrid">
+        {% include 'warehouse/_product_list_cards.html' %}
+    </div>
+</div>
+
+<!-- Table View -->
+<div class="products-container" id="table-view" style="display: none;">
+    <div class="table-wrapper">
+        <table class="products-table">
+            <thead>
+                <tr>
+                    <th>Υλικό</th>
+                    <th>Κωδικός</th>
+                    <th>Barcode</th>
+                    <th>Ποσότητα</th>
+                    <th>Ενέργειες</th>
+                </tr>
+            </thead>
+            <tbody id="productTableBody">
+                {% include 'warehouse/_product_list_table_rows.html' %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if products.has_other_pages %}
+<div class="pagination-container" id="paginationContainer">
+    <div class="pagination-info">
+        Εμφάνιση {{ products.start_index }} - {{ products.end_index }} από {{ products.paginator.count }} υλικά
+    </div>
+    <div class="pagination">
+        {% if products.has_previous %}
+            <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if low_stock %}&low_stock={{ low_stock }}{% endif %}" class="page-link">
+                <i class="fas fa-angle-double-left"></i>
+            </a>
+            <a href="?page={{ products.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if low_stock %}&low_stock={{ low_stock }}{% endif %}" class="page-link">
+                <i class="fas fa-angle-left"></i>
+            </a>
+        {% endif %}
+        
+        {% for num in products.paginator.page_range %}
+            {% if products.number == num %}
+                <span class="page-link active">{{ num }}</span>
+            {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
+                <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if low_stock %}&low_stock={{ low_stock }}{% endif %}" class="page-link">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+        
+        {% if products.has_next %}
+            <a href="?page={{ products.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if low_stock %}&low_stock={{ low_stock }}{% endif %}" class="page-link">
+                <i class="fas fa-angle-right"></i>
+            </a>
+            <a href="?page={{ products.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if low_stock %}&low_stock={{ low_stock }}{% endif %}" class="page-link">
+                <i class="fas fa-angle-double-right"></i>
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.page-header h1 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.view-toggle {
+    display: flex;
+    gap: 0.5rem;
+    background: var(--bg-secondary);
+    padding: 0.25rem;
+    border-radius: 6px;
+}
+
+.view-btn {
+    padding: 0.75rem 1rem;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+}
+
+.view-btn:hover {
+    background: var(--card-bg);
+    color: var(--text-primary);
+}
+
+.view-btn.active {
+    background: var(--accent);
+    color: white;
+}
+
+.view-btn i {
+    font-size: 1.1rem;
+}
+
+.search-section {
+    margin-bottom: 2rem;
+}
+
+.search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.search-input-wrap {
+    display: flex;
+    align-items: stretch;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 0.625rem;
+    overflow: hidden;
+    background: var(--bg-primary);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input-wrap:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.search-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.875rem 1rem;
+    border: none;
+    font-size: 1rem;
+    background: transparent;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    outline: none;
+}
+
+.search-input::placeholder {
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    opacity: 0.85;
+}
+
+.search-submit-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-width: 3.25rem;
+    padding: 0 1rem;
+    border: none;
+    background: var(--accent);
+    color: white;
+    cursor: pointer;
+    font-size: 1.125rem;
+    flex-shrink: 0;
+}
+
+.search-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.search-btn-full {
+    display: inline-flex;
+}
+
+.search-meta {
+    min-height: 1.25rem;
+}
+
+.live-search-status {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.live-search-status.is-loading {
+    color: var(--accent);
+}
+
+.products-container {
+    margin-bottom: 2rem;
+}
+
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Table View Styles */
+.table-wrapper {
+    overflow-x: auto;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.products-table {
+    width: 100%;
+    text-align: left;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    border-collapse: collapse;
+    background: var(--card-bg);
+}
+
+.products-table thead {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+}
+
+.products-table th {
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--card-border);
+    white-space: nowrap;
+}
+
+.products-table tbody {
+    border-top: 1px solid var(--card-border);
+}
+
+.products-table tbody tr {
+    border-bottom: 1px solid var(--card-border);
+}
+
+.products-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.products-table tbody tr:hover {
+    background: var(--bg-secondary);
+    transition: background 0.2s ease;
+}
+
+.products-table td {
+    padding: 0.75rem 1rem;
+    color: var(--text-secondary);
+}
+
+.products-table td strong {
+    color: var(--text-primary);
+}
+
+.products-table td.text-white {
+    color: var(--text-primary);
+}
+
+.products-table td.text-white .table-description {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+.products-table tbody tr.low-stock-row {
+    border-left: 3px solid #ffc107;
+}
+
+.table-cell-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.table-icon {
+    width: 35px;
+    height: 35px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.table-description {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+.table-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.empty-table-state {
+    text-align: center;
+    padding: 3rem !important;
+}
+
+.empty-table-state .empty-state {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+}
+
+.product-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px var(--shadow);
+    transition: transform 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--shadow);
+}
+
+.product-card.low-stock {
+    border-color: #ffc107;
+}
+
+.product-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--bg-secondary);
+}
+
+.product-icon {
+    width: 50px;
+    height: 50px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.product-info h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+}
+
+.product-code, .product-barcode {
+    margin: 0.25rem 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.product-details {
+    margin-bottom: 1rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.label {
+    font-weight: bold;
+    color: var(--text-secondary);
+}
+
+.value {
+    color: var(--text-primary);
+}
+
+.low-stock-value {
+    color: #ffc107;
+    font-weight: bold;
+}
+
+.product-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 0.75rem 1.25rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    min-height: 44px;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--accent);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-info:hover {
+    background: #138496;
+    transform: translateY(-2px);
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+.btn-warning:hover {
+    background: #e0a800;
+    transform: translateY(-2px);
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #218838;
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+}
+
+.btn-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    min-height: auto;
+}
+
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+}
+
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.pagination-info {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.pagination {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.page-link {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--bg-secondary);
+    border-radius: 4px;
+    text-decoration: none;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    transition: all 0.3s ease;
+    min-width: 40px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page-link:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+.page-link.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .header-actions {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .products-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .product-actions {
+        flex-direction: column;
+    }
+    
+    .btn-sm {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .search-form {
+        gap: 0.625rem;
+    }
+
+    .search-input-wrap {
+        width: 100%;
+    }
+
+    .search-input {
+        min-height: 3.25rem;
+        font-size: 16px;
+        padding: 0.875rem 1rem;
+    }
+
+    .search-submit-btn {
+        display: flex;
+    }
+
+    .search-btn-full {
+        display: none;
+    }
+
+    .search-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .search-actions .btn {
+        width: 100%;
+        justify-content: center;
+        min-height: 3rem;
+        font-size: 0.9375rem;
+    }
+    
+    .pagination-container {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .table-wrapper {
+        overflow-x: scroll;
+    }
+    
+    .products-table {
+        min-width: 800px;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cardViewBtn = document.getElementById('card-view-btn');
+    const tableViewBtn = document.getElementById('table-view-btn');
+    const cardView = document.getElementById('card-view');
+    const tableView = document.getElementById('table-view');
+    
+    // Load saved view preference or default based on screen size
+    const savedView = localStorage.getItem('productViewMode');
+    const defaultView = window.innerWidth <= 768 ? 'card' : 'table';
+    const initialView = savedView || defaultView;
+    
+    function setView(mode) {
+        if (mode === 'card') {
+            cardView.style.display = 'block';
+            tableView.style.display = 'none';
+            cardViewBtn.classList.add('active');
+            tableViewBtn.classList.remove('active');
+        } else {
+            cardView.style.display = 'none';
+            tableView.style.display = 'block';
+            cardViewBtn.classList.remove('active');
+            tableViewBtn.classList.add('active');
+        }
+        localStorage.setItem('productViewMode', mode);
+    }
+    
+    // Set initial view
+    setView(initialView);
+    
+    // Toggle buttons
+    if (cardViewBtn) {
+        cardViewBtn.addEventListener('click', function() {
+            setView('card');
+        });
+    }
+    
+    if (tableViewBtn) {
+        tableViewBtn.addEventListener('click', function() {
+            setView('table');
+        });
+    }
+    
+    // Live search + uppercase
+    const searchForm = document.getElementById('productSearchForm');
+    const searchInput = document.getElementById('productSearchInput');
+    const cardsGrid = document.getElementById('productCardsGrid');
+    const tableBody = document.getElementById('productTableBody');
+    const paginationContainer = document.getElementById('paginationContainer');
+    const liveSearchStatus = document.getElementById('liveSearchStatus');
+
+    let liveSearchTimer = null;
+    let liveSearchRequestId = 0;
+    let liveSyncRequestId = 0;
+    let currentListVersion = searchForm ? (searchForm.dataset.listVersion || '') : '';
+    const currentPage = searchForm ? (searchForm.dataset.currentPage || '1') : '1';
+    let initialCardsHtml = cardsGrid ? cardsGrid.innerHTML : '';
+    let initialTableHtml = tableBody ? tableBody.innerHTML : '';
+
+    function convertToUppercase(input) {
+        input.value = input.value.toUpperCase();
+    }
+
+    function setLiveStatus(message, loading) {
+        if (!liveSearchStatus) return;
+        liveSearchStatus.textContent = message;
+        liveSearchStatus.classList.toggle('is-loading', !!loading);
+    }
+
+    function updateResults(cardsHtml, tableHtml, count, query, version) {
+        if (cardsGrid) cardsGrid.innerHTML = cardsHtml;
+        if (tableBody) tableBody.innerHTML = tableHtml;
+        if (paginationContainer) {
+            paginationContainer.style.display = query ? 'none' : '';
+        }
+        if (version) {
+            currentListVersion = version;
+        }
+        if (!query && currentPage === '1') {
+            initialCardsHtml = cardsHtml;
+            initialTableHtml = tableHtml;
+        }
+        if (query) {
+            setLiveStatus(count === 1 ? '1 αποτέλεσμα' : count + ' αποτελέσματα', false);
+        } else {
+            setLiveStatus('', false);
+        }
+    }
+
+    function buildLiveParams() {
+        const params = new URLSearchParams({ live: '1' });
+        const lowStock = searchForm.dataset.lowStock;
+        if (lowStock === 'true') {
+            params.set('low_stock', 'true');
+        }
+        if (searchInput) {
+            convertToUppercase(searchInput);
+            const query = searchInput.value.trim().toUpperCase();
+            if (query) {
+                params.set('search', query);
+            } else if (currentPage !== '1') {
+                params.set('page', currentPage);
+            }
+        }
+        return params;
+    }
+
+    function fetchLiveList(requestId, showLoading) {
+        if (!searchForm) return Promise.resolve();
+
+        const query = searchInput ? searchInput.value.trim().toUpperCase() : '';
+        if (showLoading && query) {
+            setLiveStatus('Αναζήτηση...', true);
+        }
+
+        const baseUrl = searchForm.dataset.liveUrl;
+        return fetch(baseUrl + '?' + buildLiveParams().toString(), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+            .then(function(response) {
+                if (!response.ok) throw new Error('Live update failed');
+                return response.json();
+            })
+            .then(function(data) {
+                if (requestId !== liveSearchRequestId && requestId !== liveSyncRequestId) return;
+                updateResults(data.cards_html, data.table_html, data.count, query, data.version);
+                if (query && window.history.replaceState) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('search', query);
+                    window.history.replaceState({}, '', url);
+                }
+            });
+    }
+
+    function refreshProductListFromServer() {
+        const query = searchInput ? searchInput.value.trim().toUpperCase() : '';
+        if (!query && currentPage !== '1') {
+            setLiveStatus('Υπάρχουν ενημερώσεις — ανανεώστε τη σελίδα', false);
+            return;
+        }
+        const requestId = ++liveSyncRequestId;
+        fetchLiveList(requestId, false).catch(function() {});
+    }
+
+    function checkProductListVersion() {
+        if (document.hidden || !searchForm) return;
+
+        const baseUrl = searchForm.dataset.liveUrl;
+        fetch(baseUrl + '?version=1', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+            .then(function(response) {
+                if (!response.ok) throw new Error('Version check failed');
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.version && data.version !== currentListVersion) {
+                    refreshProductListFromServer();
+                }
+            })
+            .catch(function() {});
+    }
+
+    function restoreInitialResults() {
+        updateResults(initialCardsHtml, initialTableHtml, 0, '');
+    }
+
+    function runLiveSearch() {
+        if (!searchInput || !searchForm) return;
+
+        convertToUppercase(searchInput);
+        const query = searchInput.value.trim().toUpperCase();
+
+        if (!query) {
+            restoreInitialResults();
+            if (window.history.replaceState) {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('search');
+                window.history.replaceState({}, '', url);
+            }
+            return;
+        }
+
+        const requestId = ++liveSearchRequestId;
+        fetchLiveList(requestId, true).catch(function() {
+            if (requestId !== liveSearchRequestId) return;
+            setLiveStatus('Σφάλμα αναζήτησης', false);
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('focus', function() {
+            searchInput.removeAttribute('readonly');
+        });
+
+        convertToUppercase(searchInput);
+
+        searchInput.addEventListener('input', function() {
+            convertToUppercase(this);
+            clearTimeout(liveSearchTimer);
+            liveSearchTimer = setTimeout(runLiveSearch, 250);
+        });
+
+        searchInput.addEventListener('paste', function() {
+            setTimeout(function() {
+                convertToUppercase(searchInput);
+                clearTimeout(liveSearchTimer);
+                liveSearchTimer = setTimeout(runLiveSearch, 100);
+            }, 0);
+        });
+    }
+
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            clearTimeout(liveSearchTimer);
+            runLiveSearch();
+        });
+    }
+
+    if (searchInput && searchInput.value.trim()) {
+        runLiveSearch();
+    }
+
+    const printProductsBtn = document.getElementById('printProductsBtn');
+    if (printProductsBtn) {
+        printProductsBtn.addEventListener('click', function() {
+            const params = new URLSearchParams();
+            const searchValue = searchInput ? searchInput.value.trim() : '';
+            if (searchValue) {
+                params.set('search', searchValue);
+            }
+            if (searchForm && searchForm.dataset.lowStock === 'true') {
+                params.set('low_stock', 'true');
+            }
+            const query = params.toString();
+            const printUrl = "{% url 'warehouse:product_list_print' %}" + (query ? '?' + query : '');
+            window.open(printUrl, '_blank', 'noopener');
+        });
+    }
+
+    setInterval(checkProductListVersion, 4000);
+});
+</script>
+{% endblock %}

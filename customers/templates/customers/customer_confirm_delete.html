@@ -1,0 +1,183 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Διαγραφή Πελάτη{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-trash"></i> Διαγραφή Πελάτη</h1>
+    <a href="{% url 'customers:customer_list' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Επιστροφή
+    </a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="success-message">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="delete-container">
+    <div class="delete-card">
+        <div class="delete-header">
+            <span class="delete-title">Επιβεβαίωση Διαγραφής</span>
+            <span class="delete-icon">⚠️</span>
+        </div>
+        
+        <div class="customer-info">
+            <p><strong>Επώνυμο:</strong> {{ customer.last_name }}</p>
+            <p><strong>Όνομα:</strong> {{ customer.first_name }}</p>
+            <p><strong>Τηλέφωνο:</strong> {{ customer.phone }}</p>
+            <p><strong>Email:</strong> {{ customer.email }}</p>
+        </div>
+        
+        <div class="warning-message">
+            <strong>Προσοχή!</strong> Η διαγραφή του πελάτη είναι μη αναστρέψιμη ενέργεια.
+        </div>
+        
+        <form method="post" class="delete-form">
+            {% csrf_token %}
+            <div class="delete-actions">
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Διαγραφή Πελάτη
+                </button>
+                <a href="{% url 'customers:customer_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Ακύρωση
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.page-header h1 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.success-message {
+    color: var(--success-color, #27ae60);
+    text-align: center;
+    margin-bottom: 1.5rem;
+    font-weight: bold;
+    padding: 1rem;
+    background: var(--success-bg, rgba(39, 174, 96, 0.1));
+    border-radius: 4px;
+    border: 1px solid var(--success-border, rgba(39, 174, 96, 0.2));
+}
+
+.delete-container {
+    display: flex;
+    justify-content: center;
+    margin: 0 auto;
+    max-width: 500px;
+}
+
+.delete-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+    padding: 2rem;
+    width: 100%;
+}
+
+.delete-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    justify-content: space-between;
+}
+
+.delete-title {
+    font-weight: bold;
+    font-size: 1.25rem;
+    color: var(--text-primary, #333);
+}
+
+.delete-icon {
+    font-size: 1.5rem;
+}
+
+.customer-info {
+    background-color: var(--bg-secondary, #f8f9fa);
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--bg-secondary, #e9ecef);
+}
+
+.customer-info p {
+    margin: 0.5rem 0;
+    color: var(--text-primary, #333);
+}
+
+.warning-message {
+    background: var(--warning-bg, #fff3cd);
+    border: 1px solid var(--warning-border, #ffeaa7);
+    border-radius: 4px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    color: var(--warning-text, #856404);
+    font-size: 0.95rem;
+}
+
+.delete-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.delete-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn {
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    flex: 1;
+    justify-content: center;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--accent);
+    color: white;
+    transform: translateY(-2px);
+}
+</style>
+{% endblock %} 

@@ -1,0 +1,64 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Διαχείριση Ονόματος Συνεργάτη{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 style="text-align:center; margin-bottom:2rem;">Διαχείριση Ονόματος Συνεργάτη</h2>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div style="color: {% if message.tags == 'error' %}#dc3545{% else %}#27ae60{% endif %}; text-align:center; margin-bottom:1.5rem; font-weight:bold;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <div style="max-width: 500px; margin: 0 auto;">
+        <div style="background: var(--card-bg, #fff); border-radius: 8px; box-shadow: 0 2px 4px var(--shadow, rgba(0,0,0,0.1)); padding: 2rem;">
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="color: var(--text-primary, #333); margin-bottom: 0.5rem;">Τρέχον Όνομα Συνεργάτη:</h4>
+                <div style="background: var(--bg-secondary, #f8f9fa); padding: 1rem; border-radius: 4px; border: 1px solid var(--text-secondary, #dee2e6); color: var(--text-primary, #333);">
+                    <strong>{{ current_name }}</strong>
+                </div>
+            </div>
+            
+            <form method="post" style="display: flex; flex-direction: column; gap: 1rem;">
+                {% csrf_token %}
+                <div>
+                    <label for="partner_name" style="font-weight: bold; color: var(--text-primary, #333); display: block; margin-bottom: 0.5rem;">
+                        Νέο Όνομα Συνεργάτη:
+                    </label>
+                    <input type="text" id="partner_name" name="partner_name" value="{{ current_name }}" 
+                           style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; background: var(--bg-primary, #fff); color: var(--text-primary, #333);"
+                           required>
+                </div>
+                
+                <button type="submit" style="background-color: var(--accent, #007bff); color: white; padding: 0.75rem; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; transition: background-color 0.2s;">
+                    Αποθήκευση Αλλαγών
+                </button>
+            </form>
+            
+            <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-secondary, #fff3cd); border: 1px solid var(--text-secondary, #ffeaa7); border-radius: 4px; color: var(--text-primary, #856404);">
+                <strong>Σημείωση:</strong> Το όνομα αυτό θα εμφανιστεί στο navbar πάνω. Το default όνομα είναι "DataLab" αν δεν έχει οριστεί κάποιο άλλο.
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .container {
+        padding: 1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .container {
+            padding: 0.5rem;
+        }
+        
+        h2 {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %} 

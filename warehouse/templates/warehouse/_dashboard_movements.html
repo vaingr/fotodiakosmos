@@ -1,0 +1,52 @@
+{% if recent_movements %}
+<div class="movements-table-wrap">
+    <table class="movements-table">
+        <thead>
+            <tr>
+                <th>Ημ/νία</th>
+                <th>Υλικό</th>
+                <th>Κωδικός</th>
+                <th>Τύπος</th>
+                <th>Ποσότητα</th>
+                <th>Απόθεμα</th>
+                <th>Σημείωση</th>
+                <th>Χρήστης</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for movement in recent_movements %}
+            <tr>
+                <td class="cell-date">{{ movement.created_at|date:"d/m/Y H:i" }}</td>
+                <td class="cell-product">
+                    {% if wh_perms.perm_view_products %}
+                    <a href="{% url 'warehouse:product_detail' movement.product.pk %}">{{ movement.product.name }}</a>
+                    {% else %}
+                    {{ movement.product.name }}
+                    {% endif %}
+                </td>
+                <td>{{ movement.product.code }}</td>
+                <td>
+                    <span class="movement-badge {% if movement.movement_type == 'add' %}badge-add{% else %}badge-remove{% endif %}">
+                        {% if movement.movement_type == 'add' %}
+                        <i class="fas fa-plus"></i>
+                        {% else %}
+                        <i class="fas fa-minus"></i>
+                        {% endif %}
+                        {{ movement.movement_type_label }}
+                    </span>
+                </td>
+                <td class="cell-amount">{{ movement.amount }} {{ movement.product.measurement_unit.name }}</td>
+                <td class="cell-stock">{{ movement.quantity_before }} → {{ movement.quantity_after }}</td>
+                <td class="cell-note">{% if movement.note %}{{ movement.note }}{% else %}—{% endif %}</td>
+                <td>{% if movement.created_by %}{{ movement.created_by.username }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="movements-empty">
+    <i class="fas fa-history"></i>
+    <p>Δεν υπάρχουν καταχωρημένες κινήσεις ακόμα.</p>
+</div>
+{% endif %}

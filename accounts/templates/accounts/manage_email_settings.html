@@ -1,0 +1,141 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Ρυθμίσεις Email{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 style="text-align:center; margin-bottom:2rem;">Ρυθμίσεις Email</h2>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div style="color: {% if message.tags == 'error' %}#dc3545{% else %}#27ae60{% endif %}; text-align:center; margin-bottom:1.5rem; font-weight:bold;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <div style="max-width: 600px; margin: 0 auto;">
+        <div style="background: var(--card-bg, #fff); border-radius: 8px; box-shadow: 0 2px 4px var(--shadow, rgba(0,0,0,0.1)); padding: 2rem;">
+            <form method="post" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                {% csrf_token %}
+                
+                <!-- SMTP Server Settings -->
+                <div style="border-bottom: 1px solid var(--text-secondary, #dee2e6); padding-bottom: 1rem;">
+                    <h4 style="color: var(--text-primary, #333); margin-bottom: 1rem;">SMTP Server Ρυθμίσεις</h4>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label for="smtp_server" style="font-weight: bold; color: var(--text-primary, #333); display: block; margin-bottom: 0.5rem;">
+                                SMTP Server:
+                            </label>
+                            <input type="text" id="smtp_server" name="smtp_server" value="{{ email_settings.smtp_server }}" 
+                                   placeholder="smtp.gmail.com"
+                                   style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; background: var(--bg-primary, #fff); color: var(--text-primary, #333);"
+                                   required>
+                        </div>
+                        
+                        <div>
+                            <label for="smtp_port" style="font-weight: bold; color: var(--text-primary, #333); display: block; margin-bottom: 0.5rem;">
+                                Port:
+                            </label>
+                            <input type="number" id="smtp_port" name="smtp_port" value="{{ email_settings.smtp_port }}" 
+                                   placeholder="587"
+                                   style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; background: var(--bg-primary, #fff); color: var(--text-primary, #333);"
+                                   required>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                        <div>
+                            <label for="smtp_username" style="font-weight: bold; color: var(--text-primary, #333); display: block; margin-bottom: 0.5rem;">
+                                Username:
+                            </label>
+                            <input type="email" id="smtp_username" name="smtp_username" value="{{ email_settings.smtp_username }}" 
+                                   placeholder="your-email@gmail.com"
+                                   style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; background: var(--bg-primary, #fff); color: var(--text-primary, #333);"
+                                   required>
+                        </div>
+                        
+                        <div>
+                            <label for="smtp_password" style="font-weight: bold; color: var(--text-primary, #333); display: block; margin-bottom: 0.5rem;">
+                                Password:
+                            </label>
+                            <input type="password" id="smtp_password" name="smtp_password" value="{{ email_settings.smtp_password }}" 
+                                   placeholder="App Password"
+                                   style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; background: var(--bg-primary, #fff); color: var(--text-primary, #333);"
+                                   required>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary, #333);">
+                            <input type="checkbox" name="smtp_use_tls" {% if email_settings.smtp_use_tls %}checked{% endif %} style="margin: 0;">
+                            <span>Χρήση TLS</span>
+                        </label>
+                        
+                        <label style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary, #333);">
+                            <input type="checkbox" name="smtp_use_ssl" {% if email_settings.smtp_use_ssl %}checked{% endif %} style="margin: 0;">
+                            <span>Χρήση SSL</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- From Email Settings -->
+                <div>
+                    <h4 style="color: var(--text-primary, #333); margin-bottom: 1rem;">Ρυθμίσεις Αποστολέα</h4>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label for="from_email" style="font-weight: bold; color: var(--text-primary, #333); display: block; margin-bottom: 0.5rem;">
+                                Email Αποστολέα:
+                            </label>
+                            <input type="email" id="from_email" name="from_email" value="{{ email_settings.from_email }}" 
+                                   placeholder="noreply@yourdomain.com"
+                                   style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; background: var(--bg-primary, #fff); color: var(--text-primary, #333);"
+                                   required>
+                        </div>
+                        
+                        <div>
+                            <label for="from_name" style="font-weight: bold; color: var(--text-primary, #333); display: block; margin-bottom: 0.5rem;">
+                                Όνομα Αποστολέα:
+                            </label>
+                            <input type="text" id="from_name" name="from_name" value="{{ email_settings.from_name }}" 
+                                   placeholder="Your Company Name"
+                                   style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; background: var(--bg-primary, #fff); color: var(--text-primary, #333);"
+                                   required>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" style="background-color: var(--accent, #007bff); color: white; padding: 0.75rem; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; transition: background-color 0.2s;">
+                    Αποθήκευση Ρυθμίσεων
+                </button>
+            </form>
+            
+            <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-secondary, #fff3cd); border: 1px solid var(--text-secondary, #ffeaa7); border-radius: 4px; color: var(--text-primary, #856404);">
+                <strong>Σημείωση:</strong> Οι ρυθμίσεις αποθηκεύονται στο αρχείο .env για μελλοντική χρήση. Για Gmail, χρησιμοποιήστε App Password αντί για τον κύριο κωδικό πρόσβασης.
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .container {
+        padding: 1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .container {
+            padding: 0.5rem;
+        }
+        
+        h2 {
+            font-size: 1.5rem;
+        }
+        
+        .grid-template-columns {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+{% endblock %} 

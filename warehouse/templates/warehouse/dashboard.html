@@ -1,0 +1,521 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Αποθήκη - Αρχική{% endblock %}
+
+{% block content %}
+<style>
+    .content-wrapper {
+        border: none !important;
+    }
+</style>
+
+<div class="page-header">
+    <h1><i class="fas fa-warehouse"></i> Αποθήκη</h1>
+</div>
+
+<div class="dashboard-actions">
+    {% if wh_perms.perm_create_products %}
+    <a href="{% url 'warehouse:product_create' %}?next={{ request.path|urlencode }}" class="action-card">
+        <div class="action-icon" style="background: #28a745;">
+            <i class="fas fa-plus"></i>
+        </div>
+        <div class="action-content">
+            <h3>Νέο Υλικό</h3>
+            <p>Προσθήκη νέου υλικού στην αποθήκη</p>
+        </div>
+        <i class="fas fa-chevron-right"></i>
+    </a>
+    {% endif %}
+    
+    {% if wh_perms.perm_view_products %}
+    <a href="{% url 'warehouse:product_list' %}" class="action-card">
+        <div class="action-icon">
+            <i class="fas fa-box"></i>
+        </div>
+        <div class="action-content">
+            <h3>Υλικά</h3>
+            <p>Διαχείριση υλικών αποθήκης</p>
+        </div>
+        <i class="fas fa-chevron-right"></i>
+    </a>
+    {% endif %}
+
+    {% if wh_perms.perm_add_quantity %}
+    <a href="{% url 'warehouse:quantity_select_add' %}" class="action-card">
+        <div class="action-icon" style="background: #20c997;">
+            <i class="fas fa-plus-circle"></i>
+        </div>
+        <div class="action-content">
+            <h3>Προσθήκη Ποσότητας</h3>
+            <p>Καταχώρηση εισερχόμενου υλικού στην αποθήκη</p>
+        </div>
+        <i class="fas fa-chevron-right"></i>
+    </a>
+    {% endif %}
+
+    {% if wh_perms.perm_remove_quantity %}
+    <a href="{% url 'warehouse:quantity_select_remove' %}" class="action-card">
+        <div class="action-icon" style="background: #dc3545;">
+            <i class="fas fa-minus-circle"></i>
+        </div>
+        <div class="action-content">
+            <h3>Αφαίρεση Ποσότητας</h3>
+            <p>Καταχώρηση εξόδου υλικού από την αποθήκη</p>
+        </div>
+        <i class="fas fa-chevron-right"></i>
+    </a>
+    {% endif %}
+    
+    {% if wh_is_admin or wh_perms.perm_measurement_units %}
+    <a href="{% url 'warehouse:settings' %}" class="action-card">
+        <div class="action-icon" style="background: #6c757d;">
+            <i class="fas fa-cog"></i>
+        </div>
+        <div class="action-content">
+            <h3>Ρυθμίσεις Αποθήκης</h3>
+            <p>Ρυθμίσεις και διαχείριση αποθήκης</p>
+        </div>
+        <i class="fas fa-chevron-right"></i>
+    </a>
+    {% endif %}
+</div>
+
+{% if wh_perms.perm_dashboard %}
+<div class="dashboard-stats">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-box"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-label">Σύνολο Υλικών</div>
+            <div class="stat-value" id="statTotalProducts">{{ total_products }}</div>
+        </div>
+    </div>
+    
+    {% if wh_perms.perm_view_products %}
+    <a href="{% url 'warehouse:product_list' %}?low_stock=true" class="stat-card stat-card-link {% if low_stock_products > 0 %}warning{% endif %}" title="Προβολή υλικών με χαμηλό απόθεμα">
+        <div class="stat-icon" style="background: {% if low_stock_products > 0 %}#ffc107{% else %}var(--accent){% endif %};">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-label">Χαμηλό Απόθεμα</div>
+            <div class="stat-value" id="statLowStock">{{ low_stock_products }}</div>
+        </div>
+    </a>
+    {% else %}
+    <div class="stat-card {% if low_stock_products > 0 %}warning{% endif %}">
+        <div class="stat-icon" style="background: {% if low_stock_products > 0 %}#ffc107{% else %}var(--accent){% endif %};">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-label">Χαμηλό Απόθεμα</div>
+            <div class="stat-value" id="statLowStock">{{ low_stock_products }}</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if wh_perms.perm_dashboard %}
+<div class="movements-section" id="dashboardMovementsSection"
+     data-live-url="{% url 'warehouse:dashboard' %}"
+     data-dashboard-version="{{ dashboard_version }}">
+    <h2 class="movements-heading"><i class="fas fa-exchange-alt"></i> Κινήσεις Αποθήκης</h2>
+    <div id="dashboardMovementsContent">
+        {% include 'warehouse/_dashboard_movements.html' %}
+    </div>
+</div>
+{% endif %}
+
+<style>
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.stat-card {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--shadow);
+}
+
+.stat-card-link {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.stat-card-link:hover {
+    color: inherit;
+}
+
+.stat-card.warning {
+    border: 2px solid #ffc107;
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.stat-info {
+    flex: 1;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.dashboard-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.action-card {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.action-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--shadow);
+    color: var(--text-primary);
+}
+
+.action-icon {
+    width: 50px;
+    height: 50px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.action-content {
+    flex: 1;
+}
+
+.action-content h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.1rem;
+}
+
+.action-content p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.action-card i.fa-chevron-right {
+    color: var(--text-secondary);
+}
+
+.movements-section {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin: 2rem 0 0;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.movements-heading {
+    margin: 0 0 1.25rem 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.movements-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.movements-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    min-width: 720px;
+}
+
+.movements-table th,
+.movements-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--card-border);
+    color: var(--text-primary);
+}
+
+.movements-table th {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    background: var(--bg-secondary);
+}
+
+.movements-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.movements-table tbody tr:hover {
+    background: var(--bg-secondary);
+}
+
+.cell-product a {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.cell-product a:hover {
+    color: var(--accent);
+}
+
+.cell-date {
+    white-space: nowrap;
+    color: var(--text-secondary);
+}
+
+.cell-amount {
+    font-weight: 600;
+}
+
+.cell-stock {
+    white-space: nowrap;
+    color: var(--text-secondary);
+}
+
+.cell-note {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-secondary);
+}
+
+.movement-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-add {
+    background: rgba(40, 167, 69, 0.15);
+    color: #28a745;
+}
+
+.badge-remove {
+    background: rgba(220, 53, 69, 0.15);
+    color: #dc3545;
+}
+
+.movements-empty {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--text-secondary);
+}
+
+.movements-empty i {
+    font-size: 2rem;
+    opacity: 0.4;
+    margin-bottom: 0.75rem;
+}
+
+.movements-empty p {
+    margin: 0;
+}
+
+.stats-summary {
+    margin: 2rem 0;
+}
+
+.summary-card {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.summary-card h3 {
+    margin: 0 0 1rem 0;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.summary-content {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.summary-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.summary-value {
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .dashboard-stats,
+    .dashboard-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .movements-section {
+        padding: 1rem;
+    }
+
+    .movements-table th,
+    .movements-table td {
+        padding: 0.625rem 0.75rem;
+        font-size: 0.8125rem;
+    }
+    
+    .summary-content {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
+
+</style>
+
+{% if wh_perms.perm_dashboard %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const section = document.getElementById('dashboardMovementsSection');
+    const content = document.getElementById('dashboardMovementsContent');
+    if (!section || !content) return;
+
+    const liveUrl = section.dataset.liveUrl;
+    let currentVersion = section.dataset.dashboardVersion || '';
+    let syncRequestId = 0;
+
+    function updateStats(data) {
+        const totalEl = document.getElementById('statTotalProducts');
+        const lowEl = document.getElementById('statLowStock');
+        if (totalEl && data.total_products !== undefined) {
+            totalEl.textContent = data.total_products;
+        }
+        if (lowEl && data.low_stock_products !== undefined) {
+            lowEl.textContent = data.low_stock_products;
+        }
+    }
+
+    function refreshDashboardLive() {
+        const requestId = ++syncRequestId;
+
+        fetch(liveUrl + '?live=1', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+            .then(function(response) {
+                if (!response.ok) throw new Error('Live update failed');
+                return response.json();
+            })
+            .then(function(data) {
+                if (requestId !== syncRequestId) return;
+                if (data.movements_html !== undefined) {
+                    content.innerHTML = data.movements_html;
+                }
+                updateStats(data);
+                if (data.version) {
+                    currentVersion = data.version;
+                }
+            })
+            .catch(function() {});
+    }
+
+    function checkDashboardVersion() {
+        if (document.hidden) return;
+
+        fetch(liveUrl + '?version=1', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+            .then(function(response) {
+                if (!response.ok) throw new Error('Version check failed');
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.version && data.version !== currentVersion) {
+                    refreshDashboardLive();
+                }
+            })
+            .catch(function() {});
+    }
+
+    setInterval(checkDashboardVersion, 2000);
+
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            checkDashboardVersion();
+        }
+    });
+
+    window.addEventListener('focus', checkDashboardVersion);
+});
+</script>
+{% endif %}
+{% endblock %}
+

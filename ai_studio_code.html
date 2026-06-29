@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard | SoftMarket</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js for Graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1rem; color: #94a3b8; border-radius: 0.5rem; transition: all 0.2s; cursor: pointer; }
+        .sidebar-link:hover, .sidebar-link.active { background-color: #1e293b; color: #fff; }
+        .card { background-color: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; padding: 1.5rem; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col">
+        <div class="h-16 flex items-center px-6 border-b border-slate-800">
+            <span class="text-xl font-bold text-white">Soft<span class="text-blue-500">Admin</span></span>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <div class="sidebar-link active">
+                <span class="mr-3">📊</span> Dashboard
+            </div>
+            <div class="sidebar-link">
+                <span class="mr-3">📦</span> Προϊόντα
+            </div>
+            <div class="sidebar-link">
+                <span class="mr-3">🛒</span> Παραγγελίες <span class="ml-auto bg-blue-600 text-xs text-white px-2 py-0.5 rounded-full">3</span>
+            </div>
+            <div class="sidebar-link">
+                <span class="mr-3">🔑</span> License Keys
+            </div>
+            <div class="sidebar-link">
+                <span class="mr-3">👥</span> Πελάτες
+            </div>
+            <div class="sidebar-link">
+                <span class="mr-3">⚙️</span> Ρυθμίσεις
+            </div>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center font-bold">A</div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-white">Admin User</p>
+                    <p class="text-xs text-slate-500">Έξοδος</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-y-auto">
+        <!-- Header -->
+        <header class="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-8">
+            <h2 class="text-lg font-semibold">Επισκόπηση</h2>
+            <button class="bg-blue-600 hover:bg-blue-700 text-sm px-4 py-2 rounded-lg"> + Νέο Προϊόν</button>
+        </header>
+
+        <div class="p-8">
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="card">
+                    <p class="text-slate-400 text-sm">Συνολικά Έσοδα</p>
+                    <p class="text-2xl font-bold text-white mt-1">€12,450</p>
+                    <p class="text-green-400 text-xs mt-2">▲ 12% από χθες</p>
+                </div>
+                <div class="card">
+                    <p class="text-slate-400 text-sm">Παραγγελίες</p>
+                    <p class="text-2xl font-bold text-white mt-1">145</p>
+                    <p class="text-green-400 text-xs mt-2">▲ 5 νέες σήμερα</p>
+                </div>
+                <div class="card">
+                    <p class="text-slate-400 text-sm">Active Licenses</p>
+                    <p class="text-2xl font-bold text-white mt-1">1,203</p>
+                    <p class="text-slate-500 text-xs mt-2">Σύνολο ενεργών κλειδιών</p>
+                </div>
+                <div class="card">
+                    <p class="text-slate-400 text-sm">Downloads</p>
+                    <p class="text-2xl font-bold text-white mt-1">3.4k</p>
+                </div>
+            </div>
+
+            <!-- Chart Section -->
+            <div class="card mb-8">
+                <h3 class="font-bold mb-4">Πωλήσεις τελευταίων 7 ημερών</h3>
+                <div class="h-64 w-full">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Recent Orders Table -->
+            <div class="card">
+                <h3 class="font-bold mb-4">Πρόσφατες Παραγγελίες</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-400">
+                        <thead class="bg-slate-800 text-slate-200 uppercase text-xs">
+                            <tr>
+                                <th class="px-4 py-3">ID</th>
+                                <th class="px-4 py-3">Πελάτης</th>
+                                <th class="px-4 py-3">Προϊόν</th>
+                                <th class="px-4 py-3">Ημ/νία</th>
+                                <th class="px-4 py-3">Ποσό</th>
+                                <th class="px-4 py-3">Κατάσταση</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-700">
+                            <tr>
+                                <td class="px-4 py-3">#ORD-001</td>
+                                <td class="px-4 py-3 text-white">Γιάννης Π.</td>
+                                <td class="px-4 py-3">SpeedBoost Pro</td>
+                                <td class="px-4 py-3">23 Νοε 2025</td>
+                                <td class="px-4 py-3">€29.00</td>
+                                <td class="px-4 py-3"><span class="bg-green-900 text-green-300 px-2 py-1 rounded-full text-xs">Ολοκληρώθηκε</span></td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3">#ORD-002</td>
+                                <td class="px-4 py-3 text-white">Μαρία Κ.</td>
+                                <td class="px-4 py-3">PixelMaster</td>
+                                <td class="px-4 py-3">23 Νοε 2025</td>
+                                <td class="px-4 py-3">€89.00</td>
+                                <td class="px-4 py-3"><span class="bg-yellow-900 text-yellow-300 px-2 py-1 rounded-full text-xs">Επεξεργασία</span></td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3">#ORD-003</td>
+                                <td class="px-4 py-3 text-white">Δημήτρης Λ.</td>
+                                <td class="px-4 py-3">NetShield 360</td>
+                                <td class="px-4 py-3">22 Νοε 2025</td>
+                                <td class="px-4 py-3">€45.00</td>
+                                <td class="px-4 py-3"><span class="bg-green-900 text-green-300 px-2 py-1 rounded-full text-xs">Ολοκληρώθηκε</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Demo Chart Data
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Δευ', 'Τρι', 'Τετ', 'Πεμ', 'Παρ', 'Σαβ', 'Κυρ'],
+                datasets: [{
+                    label: 'Έσοδα (€)',
+                    data: [120, 190, 300, 50, 200, 400, 450],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

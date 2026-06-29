@@ -1,0 +1,642 @@
+{% load greek_date %}
+<!DOCTYPE html>
+<html lang="el" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root[data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --navbar-bg: #0f172a;
+            --sidebar-bg: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --shadow: rgba(0, 0, 0, 0.3);
+            --sidebar-text: #94a3b8;
+            --sidebar-hover: #1e293b;
+            --sidebar-active: #3b82f6;
+            --sidebar-active-hover: #2563eb;
+            --sidebar-border: #1e293b;
+            --sidebar-shadow: rgba(0, 0, 0, 0.2);
+            --dashboard-bg-dark: #1e293b;
+        }
+
+        :root[data-theme="light"] {
+            --bg-primary: #eceff4;
+            --bg-secondary: #e5e9f0;
+            --text-primary: #2e3440;
+            --text-secondary: #4c566a;
+            --accent: #5e81ac;
+            --accent-hover: #81a1c1;
+            --navbar-bg: #e5e9f0;
+            --sidebar-bg: #d8dee9;
+            --card-bg: #ffffff;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Theme Toggle Button */
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 0.5rem;
+            margin-right: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .theme-toggle:hover {
+            color: var(--accent);
+        }
+
+        .theme-toggle i {
+            font-size: 1.2rem;
+        }
+
+        /* Burger Menu Button */
+        .burger-menu {
+            display: none;
+            cursor: pointer;
+            padding: 1rem;
+            z-index: 1001;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            background-color: var(--navbar-bg);
+            border-radius: 4px;
+            box-shadow: 0 2px 4px var(--shadow);
+            color: var(--text-primary);
+        }
+
+        .burger-menu:hover {
+            background-color: var(--bg-secondary);
+        }
+
+        .burger-menu span {
+            display: block;
+            width: 25px;
+            height: 3px;
+            background-color: var(--text-primary);
+            margin: 5px 0;
+            transition: all 0.3s ease;
+            border-radius: 3px;
+        }
+
+        /* Navbar Styles */
+        .navbar {
+            background-color: var(--navbar-bg);
+            border-bottom: 1px solid var(--sidebar-border);
+            color: var(--text-primary);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            z-index: 1000;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            box-shadow: 0 2px 4px var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-right: 1rem;
+        }
+
+        .navbar-user span {
+            font-size: 1rem;
+        }
+
+        .navbar-user a {
+            color: var(--text-primary);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            background-color: var(--accent);
+            transition: background-color 0.2s;
+        }
+
+        .navbar-user a:hover {
+            background-color: var(--accent-hover);
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            background-color: var(--sidebar-bg);
+            color: var(--text-primary);
+            width: 250px;
+            height: calc(100vh - 64px);
+            position: fixed;
+            left: 0;
+            top: 64px;
+            padding-top: 2rem;
+            padding-bottom: 4rem;
+            transition: transform 0.3s ease;
+            z-index: 999;
+            box-shadow: 2px 0 8px var(--sidebar-shadow);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 1rem;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-menu a {
+            color: var(--sidebar-text);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .sidebar-menu a i {
+            margin-right: 0.75rem;
+            width: 20px;
+            text-align: center;
+            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+        }
+
+        /* Colored icon backgrounds - Dashboard */
+        .sidebar-menu a[href*="dashboard"] i {
+            color: #3b82f6;
+        }
+
+        /* Customers */
+        .sidebar-menu a[href*="customer"] i {
+            color: #10b981;
+        }
+
+        /* Warehouse */
+        .sidebar-menu a[href*="warehouse"] i {
+            color: #f59e0b;
+        }
+
+        /* SMS */
+        .sidebar-menu a[href*="sms"] i {
+            color: #8b5cf6;
+        }
+
+        /* Create User */
+        .sidebar-menu a[href*="create_user"] i,
+        .sidebar-menu a[href*="user-plus"] i {
+            color: #06b6d4;
+        }
+
+        /* Subscriptions */
+        .sidebar-menu a[href*="subscription"] i,
+        .sidebar-menu a[href*="id-card"] i {
+            color: #ec4899;
+        }
+
+        /* Manage Users */
+        .sidebar-menu a[href*="manage_users"] i,
+        .sidebar-menu a[href*="users-cog"] i {
+            color: #6366f1;
+        }
+
+        /* Database */
+        .sidebar-menu a[href*="database"] i {
+            color: #14b8a6;
+        }
+
+        /* Client Name */
+        .sidebar-menu a[href*="client_name"] i,
+        .sidebar-menu a[href*="building"] i {
+            color: #f97316;
+        }
+
+        /* App Name */
+        .sidebar-menu a[href*="app_name"] i,
+        .sidebar-menu a[href*="code"] i {
+            color: #84cc16;
+        }
+
+        /* Partner Name */
+        .sidebar-menu a[href*="partner_name"] i,
+        .sidebar-menu a[href*="handshake"] i {
+            color: #eab308;
+        }
+
+        /* Email */
+        .sidebar-menu a[href*="email"] i,
+        .sidebar-menu a[href*="envelope"] i {
+            color: #3b82f6;
+        }
+
+        /* Inventory */
+        .sidebar-menu a[href*="inventory"] i,
+        .sidebar-menu a[href*="clipboard-check"] i {
+            color: #8b5cf6;
+        }
+
+        .sidebar-menu a:hover {
+            background-color: var(--sidebar-hover);
+            color: var(--text-primary);
+        }
+
+        .sidebar-menu a.active {
+            background-color: var(--sidebar-hover);
+            color: var(--text-primary);
+        }
+        
+        /* Sidebar Footer */
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            background-color: var(--sidebar-bg);
+            border-top: 1px solid var(--text-secondary);
+            text-align: center;
+        }
+        
+        .app-name {
+            color: var(--text-primary);
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            margin-left: 250px;
+            margin-top: 64px;
+            padding: 2rem;
+            transition: margin-left 0.3s ease;
+            min-height: calc(100vh - 64px);
+            background: var(--bg-primary);
+        }
+        
+        /* Mobile responsive adjustments for main content */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 0.5rem;
+                margin-left: 0;
+                margin-top: 0;
+            }
+            
+            .content-wrapper {
+                padding: 0.5rem;
+                border-radius: 0;
+            }
+        }
+
+        .content-wrapper {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            box-shadow: 0 2px 4px var(--shadow);
+        }
+
+        /* Remove border on dashboard page */
+        body.dashboard-page .content-wrapper {
+            border: none;
+        }
+
+        /* Overlay for mobile */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+        }
+
+        /* Mobile Styles */
+        @media (max-width: 768px) {
+            .navbar {
+                display: none;
+            }
+
+            .burger-menu {
+                display: block;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+                top: 0;
+                height: 100vh;
+                z-index: 1001;
+            }
+
+            .main-content {
+                margin-left: 0;
+                margin-top: 0;
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content.active {
+                margin-left: 0;
+            }
+
+            .sidebar-overlay.active {
+                display: block;
+            }
+        }
+
+        html[data-theme="dark"] #dashboard-bg-wrapper,
+        html[data-theme="light"] #dashboard-bg-wrapper {
+            background: none !important;
+        }
+        html[data-theme="dark"] .content-wrapper,
+        html[data-theme="light"] .content-wrapper {
+            background: none !important;
+            box-shadow: none !important;
+        }
+
+        .alert {
+            padding: 0.9rem 1.2rem;
+            border-radius: 6px;
+            margin-bottom: 1.2rem;
+            font-size: 1.05rem;
+            font-weight: 500;
+            box-shadow: 0 2px 4px var(--shadow, rgba(0,0,0,0.08));
+        }
+        .alert-warning {
+            background: #fffbe6;
+            color: #b26a00;
+            border: 1px solid #ffe58f;
+        }
+        .alert-error {
+            background: #fff1f0;
+            color: #a8071a;
+            border: 1px solid #ffa39e;
+        }
+        .alert-success {
+            background: #f6ffed;
+            color: #237804;
+            border: 1px solid #b7eb8f;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Burger Menu -->
+    <div class="burger-menu" id="burgerMenu">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar" id="navbar">
+        <div class="navbar-brand">{{ client_name }}</div>
+        <div style="flex:1"></div>
+        <button class="theme-toggle" id="themeToggle">
+            <i class="fas fa-moon"></i>
+            <span>Αλλαγή Θέματος</span>
+        </button>
+        <div class="navbar-user">
+            <span>Καλώς ήρθες, {{ user.username }}
+            {% if user.is_authenticated and not user.is_superuser and user.subscription %}
+                <span style="font-size:0.95em; color:var(--accent);">| Συνδρομή έως: {{ user.subscription.expiry_date|greek_date }}</span>
+            {% endif %}
+            <span style="font-size:0.95em; color:var(--text-secondary); margin-left:0.5rem;">| {{ partner_name }}</span>
+            </span>
+            <form method="post" action="{% url 'logout' %}" style="display:inline; margin-left:1rem;">
+                {% csrf_token %}
+                <button type="submit" style="background:var(--accent); color:white; border:none; border-radius:4px; padding:0.5rem 1rem; cursor:pointer; font-size:1rem;">Αποσύνδεση</button>
+            </form>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <ul class="sidebar-menu">
+            <li><a href="{% url 'dashboard' %}"><i class="fas fa-home"></i> Αρχική</a></li>
+            {% if customers_enabled or user.is_superuser %}
+            <li><a href="{% url 'customers:customer_list' %}"><i class="fas fa-users"></i> Πελάτες</a></li>
+            {% endif %}
+            {% if wh_has_access %}
+            <li><a href="{% url wh_home_url %}"><i class="fas fa-warehouse"></i> Αποθήκη</a></li>
+            {% endif %}
+            {% if sms_enabled or user.is_superuser %}
+            <li><a href="{% url 'sms_dashboard' %}" id="sms-link"><i class="fas fa-sms" id="sms-icon"></i> <span id="sms-text">SMS</span></a></li>
+            {% endif %}
+            {% if user.is_superuser %}
+            <li><a href="{% url 'create_user' %}"><i class="fas fa-user-plus"></i> Νέος Χρήστης</a></li>
+            <li><a href="{% url 'manage_subscriptions' %}"><i class="fas fa-id-card"></i> Συνδρομές Χρηστών</a></li>
+            <li><a href="{% url 'manage_users' %}"><i class="fas fa-users-cog"></i> Διαχείριση Χρηστών</a></li>
+            <li><a href="{% url 'database_management' %}"><i class="fas fa-database"></i> Διαχείριση Βάσης</a></li>
+            <li><a href="{% url 'manage_client_name' %}"><i class="fas fa-building"></i> Όνομα Πελάτη</a></li>
+            <li><a href="{% url 'manage_app_name' %}"><i class="fas fa-code"></i> Όνομα Εφαρμογής</a></li>
+            <li><a href="{% url 'manage_partner_name' %}"><i class="fas fa-handshake"></i> Όνομα Συνεργάτη</a></li>
+            <li><a href="{% url 'manage_email_settings' %}"><i class="fas fa-envelope"></i> Ρυθμίσεις Email</a></li>
+            <li><a href="{% url 'manage_sms_settings' %}"><i class="fas fa-sms"></i> Ρυθμίσεις SMS</a></li>
+            {% endif %}
+        </ul>
+        
+        <!-- Sidebar Footer -->
+        <div class="sidebar-footer">
+            <div class="app-name">{{ app_name }}</div>
+        </div>
+    </div>
+
+    <!-- Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        <div class="content-wrapper">
+            {% if messages %}
+              <div class="messages">
+                {% for message in messages %}
+                  <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+              </div>
+            {% endif %}
+            {% block content %}
+            {% endblock %}
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const burgerMenu = document.getElementById('burgerMenu');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const overlay = document.getElementById('sidebarOverlay');
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = themeToggle.querySelector('i');
+
+            // Theme toggle functionality
+            themeToggle.addEventListener('click', function() {
+                const html = document.documentElement;
+                const currentTheme = html.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                
+                html.setAttribute('data-theme', newTheme);
+                themeIcon.className = newTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+                
+                // Save theme preference
+                localStorage.setItem('theme', newTheme);
+            });
+
+            // Load saved theme
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            themeIcon.className = savedTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+
+            function toggleSidebar() {
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active');
+                
+                // Animate burger menu
+                const spans = burgerMenu.querySelectorAll('span');
+                spans[0].style.transform = sidebar.classList.contains('active') ? 'rotate(45deg) translate(5px, 5px)' : '';
+                spans[1].style.opacity = sidebar.classList.contains('active') ? '0' : '1';
+                spans[2].style.transform = sidebar.classList.contains('active') ? 'rotate(-45deg) translate(7px, -6px)' : '';
+            }
+
+            burgerMenu.addEventListener('click', toggleSidebar);
+            overlay.addEventListener('click', toggleSidebar);
+
+            // Auto-dismiss alerts after 10 seconds
+            setTimeout(function() {
+                document.querySelectorAll('.alert').forEach(function(el) {
+                    el.style.transition = 'opacity 0.5s';
+                    el.style.opacity = '0';
+                    setTimeout(function() { el.remove(); }, 500);
+                });
+            }, 10000);
+
+            // Highlight current page in sidebar
+            function updateActiveLink() {
+            const currentPath = window.location.pathname;
+            const sidebarLinks = document.querySelectorAll('.sidebar-menu a');
+                
+                // Remove all active classes first
+                sidebarLinks.forEach(function(link) {
+                    link.classList.remove('active');
+                });
+                
+                // Find and highlight the matching link
+                let bestMatch = null;
+                let bestMatchLength = 0;
+            
+            sidebarLinks.forEach(function(link) {
+                const linkPath = link.getAttribute('href');
+                    if (linkPath && linkPath !== '#') {
+                        // Exact match
+                        if (currentPath === linkPath) {
+                    link.classList.add('active');
+                            bestMatch = link;
+                        }
+                        // Path starts with link path (for sub-pages)
+                        else if (currentPath.startsWith(linkPath) && linkPath.length > bestMatchLength) {
+                            // Only match if it's a complete path segment
+                            if (currentPath === linkPath || currentPath.charAt(linkPath.length) === '/') {
+                                bestMatch = link;
+                                bestMatchLength = linkPath.length;
+                            }
+                        }
+                    }
+                });
+                
+                // If we found a best match, highlight it
+                if (bestMatch && !bestMatch.classList.contains('active')) {
+                    bestMatch.classList.add('active');
+                }
+            }
+            
+            // Update active link on page load
+            updateActiveLink();
+            
+            // SMS link spinner functionality
+            const smsLink = document.getElementById('sms-link');
+            if (smsLink) {
+                smsLink.addEventListener('click', function(e) {
+                    const smsIcon = document.getElementById('sms-icon');
+                    const smsText = document.getElementById('sms-text');
+                    
+                    if (smsIcon && smsText) {
+                        // Replace icon with spinner
+                        smsIcon.className = 'fas fa-spinner fa-spin';
+                        smsText.textContent = ' Φόρτωση...';
+                        // Disable link to prevent multiple clicks
+                        smsLink.style.pointerEvents = 'none';
+                        smsLink.style.opacity = '0.7';
+                    }
+                });
+            }
+            
+            // Reset SMS link when page loads (in case of back button or direct navigation)
+            window.addEventListener('load', function() {
+                const smsIcon = document.getElementById('sms-icon');
+                const smsText = document.getElementById('sms-text');
+                const smsLink = document.getElementById('sms-link');
+                
+                if (smsIcon && smsText && smsLink) {
+                    smsIcon.className = 'fas fa-sms';
+                    smsText.textContent = ' SMS';
+                    smsLink.style.pointerEvents = 'auto';
+                    smsLink.style.opacity = '1';
+                }
+            });
+            
+            // Update active link when clicking sidebar links
+            const sidebarLinks = document.querySelectorAll('.sidebar-menu a');
+            sidebarLinks.forEach(function(link) {
+                link.addEventListener('click', function() {
+                    // Remove all active classes
+                    sidebarLinks.forEach(function(l) {
+                        l.classList.remove('active');
+                    });
+                    // Add active to clicked link
+                    this.classList.add('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,267 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Λεπτομέρειες Πελάτη{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-user"></i> Λεπτομέρειες Πελάτη</h1>
+    <div class="header-actions">
+        <a href="{% url 'customers:customer_edit' customer.id %}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> Επεξεργασία
+        </a>
+        <a href="{% url 'customers:customer_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Επιστροφή
+        </a>
+    </div>
+</div>
+
+<div class="customer-detail-container">
+    <div class="customer-info-card">
+        <div class="customer-header">
+            <div class="customer-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="customer-info">
+                <h2>{{ customer.full_name }}</h2>
+                <p class="customer-phone">{{ customer.phone }}</p>
+                {% if customer.email %}
+                <p class="customer-email">{{ customer.email }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="customer-details">
+            <div class="detail-row">
+                <span class="label">Επώνυμο:</span>
+                <span class="value">{{ customer.last_name }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Όνομα:</span>
+                <span class="value">{{ customer.first_name }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Τηλέφωνο:</span>
+                <span class="value">{{ customer.phone|default:"Δεν έχει καταχωρηθεί" }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Email:</span>
+                <span class="value">{{ customer.email|default:"Δεν έχει καταχωρηθεί" }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Ημ/νία Εγγραφής:</span>
+                <span class="value">{{ customer.created_at|date:"d/m/Y H:i" }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Τελευταία Ενημέρωση:</span>
+                <span class="value">{{ customer.updated_at|date:"d/m/Y H:i" }}</span>
+            </div>
+        </div>
+        
+        <div class="customer-actions">
+            {% if customer.phone %}
+            <a href="{% url 'customers:send_sms' customer.id %}" class="btn btn-info">
+                <i class="fas fa-sms"></i> Αποστολή SMS
+            </a>
+            {% endif %}
+            <a href="{% url 'customers:customer_edit' customer.id %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Επεξεργασία
+            </a>
+            <a href="{% url 'customers:delete_customer' customer.id %}" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Διαγραφή
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.page-header h1 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.customer-detail-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.customer-info-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.customer-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--bg-secondary);
+}
+
+.customer-avatar {
+    width: 80px;
+    height: 80px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2rem;
+}
+
+.customer-info h2 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+}
+
+.customer-phone, .customer-email {
+    margin: 0.25rem 0;
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.customer-details {
+    margin-bottom: 2rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--bg-secondary);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.label {
+    font-weight: bold;
+    color: var(--text-secondary);
+}
+
+.value {
+    color: var(--text-primary);
+}
+
+.customer-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--bg-secondary);
+}
+
+.btn {
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+.btn-warning:hover {
+    background: #e0a800;
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--accent);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-info:hover {
+    background: #138496;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .header-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .customer-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .customer-avatar {
+        width: 100px;
+        height: 100px;
+        font-size: 2.5rem;
+    }
+    
+    .detail-row {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .customer-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %} 

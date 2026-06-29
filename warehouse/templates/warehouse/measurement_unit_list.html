@@ -1,0 +1,195 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Μονάδες Μέτρησης{% endblock %}
+
+{% block content %}
+<style>
+    .content-wrapper {
+        border: none !important;
+    }
+</style>
+
+<div class="page-header">
+    <h1><i class="fas fa-ruler"></i> Μονάδες Μέτρησης</h1>
+    <div class="header-actions">
+        <a href="{% url 'warehouse:settings' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Επιστροφή
+        </a>
+        <a href="{% url 'warehouse:measurement_unit_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Νέα Μονάδα
+        </a>
+    </div>
+</div>
+
+<div class="settings-card">
+    {% if units %}
+    <div class="table-wrapper">
+        <table class="units-table">
+            <thead>
+                <tr>
+                    <th>Όνομα</th>
+                    <th>Υλικά</th>
+                    <th>Ενέργειες</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for unit in units %}
+                <tr>
+                    <td><strong>{{ unit.name }}</strong></td>
+                    <td>{{ unit.product_count }}</td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="{% url 'warehouse:measurement_unit_edit' unit.pk %}" class="btn btn-warning btn-sm" title="Επεξεργασία">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'warehouse:measurement_unit_delete' unit.pk %}" class="btn btn-danger btn-sm" title="Διαγραφή">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-ruler"></i>
+        <p>Δεν υπάρχουν μονάδες μέτρησης.</p>
+        <a href="{% url 'warehouse:measurement_unit_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Προσθήκη πρώτης μονάδας
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 0.75rem;
+}
+
+.page-header h1 {
+    margin: 0;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.settings-card {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.units-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.units-table th,
+.units-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--card-border);
+    color: var(--text-primary);
+}
+
+.units-table th {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+}
+
+.table-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.btn {
+    padding: 0.75rem 1.25rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.btn-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+    color: white;
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+}
+</style>
+{% endblock %}

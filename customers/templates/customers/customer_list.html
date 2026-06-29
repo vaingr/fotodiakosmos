@@ -1,0 +1,837 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Λίστα Πελατών{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-users"></i> Λίστα Πελατών</h1>
+    <div class="header-actions">
+        <div class="view-toggle">
+            <button type="button" class="view-btn active" id="card-view-btn" title="Προβολή Cards">
+                <i class="fas fa-th-large"></i>
+            </button>
+            <button type="button" class="view-btn" id="table-view-btn" title="Προβολή Πίνακα">
+                <i class="fas fa-table"></i>
+            </button>
+        </div>
+    <a href="{% url 'customers:customer_create' %}" class="btn btn-primary">
+        <i class="fas fa-user-plus"></i> Νέος Πελάτης
+    </a>
+    </div>
+</div>
+
+<div class="search-section">
+    <form method="get" class="search-form">
+        <input type="text" name="search" placeholder="Αναζήτηση με όνομα, τηλέφωνο ή email..." 
+               value="{{ request.GET.search }}" class="search-input">
+        <button type="submit" class="btn btn-secondary">
+            <i class="fas fa-search"></i> Αναζήτηση
+        </button>
+    </form>
+</div>
+
+<!-- Card View -->
+<div class="customers-container" id="card-view">
+<div class="customers-grid">
+    {% for customer in customers %}
+    <div class="customer-card">
+        <div class="customer-header">
+            <div class="customer-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="customer-info">
+                <h3>{{ customer.full_name }}</h3>
+                <p class="customer-phone">{{ customer.phone }}</p>
+                {% if customer.email %}
+                <p class="customer-email">{{ customer.email }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="customer-details">
+            <div class="detail-row">
+                <span class="label">Ημ/νία Εγγραφής:</span>
+                <span class="value">{{ customer.created_at|date:"d/m/Y" }}</span>
+            </div>
+        </div>
+        
+        <div class="customer-actions">
+            <a href="{% url 'customers:customer_detail' customer.id %}" class="btn btn-info btn-sm">
+                <i class="fas fa-eye"></i> Λεπτομέρειες
+            </a>
+            <a href="{% url 'customers:customer_edit' customer.id %}" class="btn btn-warning btn-sm">
+                <i class="fas fa-edit"></i> Επεξεργασία
+            </a>
+            <a href="{% url 'customers:delete_customer' customer.id %}" class="btn btn-danger btn-sm">
+                <i class="fas fa-trash"></i> Διαγραφή
+            </a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="empty-state">
+        <i class="fas fa-users"></i>
+        <h3>Δεν βρέθηκαν πελάτες</h3>
+        <p>Δεν υπάρχουν καταχωρημένοι πελάτες. Δημιουργήστε τον πρώτο πελάτη!</p>
+        <a href="{% url 'customers:customer_create' %}" class="btn btn-primary">
+            <i class="fas fa-user-plus"></i> Νέος Πελάτης
+        </a>
+    </div>
+    {% endfor %}
+    </div>
+</div>
+
+<!-- Table View -->
+<div class="customers-container" id="table-view" style="display: none;">
+    <div class="table-wrapper">
+        <table class="customers-table">
+            <thead>
+                <tr>
+                    <th>Όνομα</th>
+                    <th>Τηλέφωνο</th>
+                    <th>Email</th>
+                    <th>Ημ/νία Εγγραφής</th>
+                    <th>Ενέργειες</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                <tr>
+                    <td>
+                        <div class="table-cell-content">
+                            <div class="table-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <span>{{ customer.full_name }}</span>
+                        </div>
+                    </td>
+                    <td>{{ customer.phone }}</td>
+                    <td>{% if customer.email %}{{ customer.email }}{% else %}-{% endif %}</td>
+                    <td>{{ customer.created_at|date:"d/m/Y" }}</td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="{% url 'customers:customer_detail' customer.id %}" class="btn btn-info btn-sm" title="Λεπτομέρειες">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'customers:customer_edit' customer.id %}" class="btn btn-warning btn-sm" title="Επεξεργασία">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'customers:delete_customer' customer.id %}" class="btn btn-danger btn-sm" title="Διαγραφή">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="empty-table-state">
+                        <div class="empty-state">
+                            <i class="fas fa-users"></i>
+                            <h3>Δεν βρέθηκαν πελάτες</h3>
+                            <p>Δεν υπάρχουν καταχωρημένοι πελάτες. Δημιουργήστε τον πρώτο πελάτη!</p>
+                            <a href="{% url 'customers:customer_create' %}" class="btn btn-primary">
+                                <i class="fas fa-user-plus"></i> Νέος Πελάτης
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if customers.has_other_pages %}
+<div class="pagination-container">
+    <div class="pagination-info">
+        Εμφάνιση {{ customers.start_index }} - {{ customers.end_index }} από {{ customers.paginator.count }} πελάτες
+    </div>
+    <div class="pagination">
+        {% if customers.has_previous %}
+            <a href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="page-link">
+                <i class="fas fa-angle-double-left"></i>
+            </a>
+            <a href="?page={{ customers.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="page-link">
+                <i class="fas fa-angle-left"></i>
+            </a>
+        {% endif %}
+        
+        {% for num in customers.paginator.page_range %}
+            {% if customers.number == num %}
+                <span class="page-link active">{{ num }}</span>
+            {% elif num > customers.number|add:'-3' and num < customers.number|add:'3' %}
+                <a href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="page-link">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+        
+        {% if customers.has_next %}
+            <a href="?page={{ customers.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="page-link">
+                <i class="fas fa-angle-right"></i>
+            </a>
+            <a href="?page={{ customers.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="page-link">
+                <i class="fas fa-angle-double-right"></i>
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.page-header h1 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.view-toggle {
+    display: flex;
+    gap: 0.5rem;
+    background: var(--bg-secondary);
+    padding: 0.25rem;
+    border-radius: 6px;
+}
+
+.view-btn {
+    padding: 0.75rem 1rem;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+}
+
+.view-btn:hover {
+    background: var(--card-bg);
+    color: var(--text-primary);
+}
+
+.view-btn.active {
+    background: var(--accent);
+    color: white;
+}
+
+.view-btn i {
+    font-size: 1.1rem;
+}
+
+.search-section {
+    margin-bottom: 2rem;
+}
+
+.search-form {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.search-input {
+    flex: 1;
+    padding: 1rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 4px;
+    font-size: 1rem;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.customers-container {
+    margin-bottom: 2rem;
+}
+
+.customers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Table View Styles */
+.table-wrapper {
+    overflow-x: auto;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.customers-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-bg);
+}
+
+.customers-table thead {
+    background: var(--bg-secondary);
+}
+
+.customers-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--bg-secondary);
+    white-space: nowrap;
+}
+
+.customers-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.customers-table tbody tr:hover {
+    background: var(--bg-secondary);
+    transition: background 0.2s ease;
+}
+
+.customers-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.table-cell-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.table-avatar {
+    width: 35px;
+    height: 35px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.table-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.empty-table-state {
+    text-align: center;
+    padding: 3rem !important;
+}
+
+.empty-table-state .empty-state {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+}
+
+.customer-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px var(--shadow);
+    transition: transform 0.2s ease;
+}
+
+.customer-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--shadow);
+}
+
+.customer-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--bg-secondary);
+}
+
+.customer-avatar {
+    width: 50px;
+    height: 50px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.customer-info h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+}
+
+.customer-phone, .customer-email {
+    margin: 0.25rem 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.customer-details {
+    margin-bottom: 1rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.label {
+    font-weight: bold;
+    color: var(--text-secondary);
+}
+
+.value {
+    color: var(--text-primary);
+}
+
+.customer-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 0.75rem 1.25rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    min-height: 44px;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--accent);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-info:hover {
+    background: #138496;
+    transform: translateY(-2px);
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+.btn-warning:hover {
+    background: #e0a800;
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #218838;
+    transform: translateY(-2px);
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    min-height: 40px;
+}
+
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    margin: 0 0 1rem 0;
+    color: var(--text-primary);
+}
+
+.empty-state p {
+    margin: 0 0 2rem 0;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .header-actions {
+        flex-direction: column;
+        width: 100%;
+        gap: 1rem;
+    }
+    
+    .view-toggle {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .view-btn {
+        flex: 1;
+    }
+    
+    .search-form {
+        flex-direction: column;
+    }
+    
+    .customers-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .customer-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .btn {
+        justify-content: center;
+        width: 100%;
+        padding: 1rem 1.5rem;
+        font-size: 1.1rem;
+        min-height: 50px;
+    }
+    
+    .btn-sm {
+        padding: 0.75rem 1.25rem;
+        font-size: 1rem;
+        min-height: 45px;
+    }
+    
+    .customer-card {
+        padding: 1.25rem;
+    }
+    
+    .customer-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.75rem;
+    }
+    
+    .customer-avatar {
+        width: 60px;
+        height: 60px;
+        font-size: 1.75rem;
+    }
+    
+    /* Table view on mobile */
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .customers-table {
+        min-width: 600px;
+    }
+    
+    .customers-table th,
+    .customers-table td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .table-actions {
+        flex-direction: column;
+    }
+    
+    .table-actions .btn-sm {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Pagination Styles */
+.pagination-container {
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.pagination-info {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.pagination {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.page-link {
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--text-primary);
+    background: var(--card-bg);
+    transition: all 0.3s ease;
+    min-width: 44px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page-link:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.page-link.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    font-weight: bold;
+}
+
+.page-link i {
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .pagination {
+        gap: 0.25rem;
+    }
+    
+    .page-link {
+        padding: 0.5rem 0.75rem;
+        min-width: 40px;
+        font-size: 0.9rem;
+    }
+    
+    .pagination-info {
+        text-align: center;
+        font-size: 0.85rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('.search-input');
+    const searchForm = document.querySelector('.search-form');
+    
+    // View toggle functionality
+    const cardViewBtn = document.getElementById('card-view-btn');
+    const tableViewBtn = document.getElementById('table-view-btn');
+    const cardView = document.getElementById('card-view');
+    const tableView = document.getElementById('table-view');
+    
+    // Detect if mobile device
+    function isMobileDevice() {
+        return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+    
+    // Get saved view preference or set default based on device
+    function getDefaultView() {
+        const savedView = localStorage.getItem('customerViewPreference');
+        if (savedView) {
+            return savedView;
+        }
+        // Default: cards on mobile, table on desktop
+        return isMobileDevice() ? 'card' : 'table';
+    }
+    
+    // Set view
+    function setView(view) {
+        if (view === 'card') {
+            cardView.style.display = 'block';
+            tableView.style.display = 'none';
+            cardViewBtn.classList.add('active');
+            tableViewBtn.classList.remove('active');
+            localStorage.setItem('customerViewPreference', 'card');
+        } else {
+            cardView.style.display = 'none';
+            tableView.style.display = 'block';
+            cardViewBtn.classList.remove('active');
+            tableViewBtn.classList.add('active');
+            localStorage.setItem('customerViewPreference', 'table');
+        }
+    }
+    
+    // Initialize view
+    const defaultView = getDefaultView();
+    setView(defaultView);
+    
+    // Toggle buttons
+    if (cardViewBtn && tableViewBtn) {
+        cardViewBtn.addEventListener('click', function() {
+            setView('card');
+        });
+        
+        tableViewBtn.addEventListener('click', function() {
+            setView('table');
+        });
+    }
+    
+    if (searchInput && searchForm) {
+        let inputTimer = null;
+        let lastInputTime = 0;
+        let isTyping = false;
+        
+        // Function to clean input and convert to uppercase
+        function cleanInput(input) {
+            let value = input.value.trim();
+            // Convert to uppercase
+            value = value.toUpperCase();
+            if (input.value !== value) {
+                input.value = value;
+            }
+        }
+        
+        // Set input attributes for general text input
+        searchInput.setAttribute('inputmode', 'text');
+        searchInput.setAttribute('autocomplete', 'off');
+        searchInput.setAttribute('spellcheck', 'false');
+        
+        // Auto-submit on Enter key
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchForm.submit();
+            }
+        });
+        
+        // Handle input and detect typing vs barcode scanning
+        searchInput.addEventListener('input', function(e) {
+            // Clean the input and convert to uppercase
+            cleanInput(this);
+            
+            const currentTime = Date.now();
+            const inputLength = searchInput.value.length;
+            
+            // Clear previous timer
+            if (inputTimer) {
+                clearTimeout(inputTimer);
+            }
+            
+            // Check if this is rapid input (barcode scanner)
+            const timeSinceLastInput = currentTime - lastInputTime;
+            
+            if (timeSinceLastInput < 50) {
+                // Very rapid input - likely barcode scanner
+                isTyping = false;
+                if (inputLength >= 3) {
+                    inputTimer = setTimeout(function() {
+                        searchForm.submit();
+                    }, 50);
+                }
+            } else if (timeSinceLastInput > 200) {
+                // Slower input - likely manual typing
+                isTyping = true;
+            }
+            
+            lastInputTime = currentTime;
+        });
+        
+        // Also convert to uppercase on keyup for immediate feedback
+        searchInput.addEventListener('keyup', function(e) {
+            // Skip for special keys
+            if (e.key === 'Enter' || e.key === 'Tab' || e.key === 'Escape') {
+                return;
+            }
+            // Convert to uppercase
+            this.value = this.value.toUpperCase();
+        });
+        
+        // Also listen for paste events (some scanners use paste)
+        searchInput.addEventListener('paste', function(e) {
+            setTimeout(function() {
+                cleanInput(searchInput);
+                if (searchInput.value.length >= 3) {
+                    searchForm.submit();
+                }
+            }, 100);
+        });
+    }
+    
+    // Focus on search input when page loads
+    if (searchInput) {
+    searchInput.focus();
+    }
+});
+</script>
+{% endblock %} 
