@@ -102,7 +102,14 @@
     border: 1px solid var(--card-border);
     border-radius: 0.625rem;
     color: var(--text-primary);
+    text-transform: uppercase;
     outline: none;
+}
+
+.search-input::placeholder {
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    opacity: 0.85;
 }
 
 .search-input:focus {
@@ -226,10 +233,18 @@ document.addEventListener('DOMContentLoaded', function() {
     let liveSearchRequestId = 0;
     let liveSyncRequestId = 0;
 
+    function convertToUppercase(input) {
+        input.value = input.value.toUpperCase();
+    }
+
     function buildLiveParams() {
         const params = new URLSearchParams({ live: '1' });
-        if (searchInput && searchInput.value.trim()) {
-            params.set('search', searchInput.value.trim());
+        if (searchInput) {
+            convertToUppercase(searchInput);
+            const query = searchInput.value.trim().toUpperCase();
+            if (query) {
+                params.set('search', query);
+            }
         }
         return params;
     }
@@ -307,13 +322,17 @@ document.addEventListener('DOMContentLoaded', function() {
             searchInput.removeAttribute('readonly');
         });
 
+        convertToUppercase(searchInput);
+
         searchInput.addEventListener('input', function() {
+            convertToUppercase(this);
             clearTimeout(liveSearchTimer);
             liveSearchTimer = setTimeout(runLiveSearch, 250);
         });
 
         searchInput.addEventListener('paste', function() {
             setTimeout(function() {
+                convertToUppercase(searchInput);
                 clearTimeout(liveSearchTimer);
                 liveSearchTimer = setTimeout(runLiveSearch, 100);
             }, 0);
