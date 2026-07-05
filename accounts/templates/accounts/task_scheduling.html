@@ -1,0 +1,42 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Προγραμματισμός Εργασιών{% endblock %}
+
+{% block content %}
+<style>
+    .content-wrapper { border: none !important; }
+</style>
+
+<div class="page-header">
+    <h1><i class="fas fa-calendar-check"></i> Προγραμματισμός Εργασιών</h1>
+</div>
+
+<div class="empty-state-card">
+    <i class="fas fa-tools empty-state-icon"></i>
+    <p>Η ενότητα βρίσκεται υπό ανάπτυξη.</p>
+</div>
+
+<style>
+.empty-state-card {
+    margin-top: 2rem;
+    padding: 3rem 2rem;
+    text-align: center;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+
+.empty-state-icon {
+    font-size: 2.5rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.empty-state-card p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+}
+</style>
+{% endblock %}

@@ -224,6 +224,11 @@
             color: #f59e0b;
         }
 
+        /* Task scheduling */
+        .sidebar-menu a[href*="task-scheduling"] i {
+            color: #6366f1;
+        }
+
         /* Warehouse */
         .sidebar-menu a[href*="warehouse"] i {
             color: #f59e0b;
@@ -484,6 +489,7 @@
             {% if wh_perms.perm_offers %}
             <li><a href="{% url 'products:offers' %}"><i class="fas fa-file-invoice"></i> Προσφορές</a></li>
             {% endif %}
+            <li><a href="{% url 'task_scheduling' %}"><i class="fas fa-calendar-check"></i> Προγραμματισμός Εργασιών</a></li>
             {% if user.is_superuser %}
             <li><a href="{% url 'sms_dashboard' %}" id="sms-link"><i class="fas fa-sms" id="sms-icon"></i> <span id="sms-text">SMS</span></a></li>
             {% endif %}

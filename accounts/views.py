@@ -47,6 +47,11 @@ from customers.models import Customer
 def dashboard(request):
     return render(request, 'accounts/dashboard.html')
 
+
+@login_required
+def task_scheduling(request):
+    return render(request, 'accounts/task_scheduling.html')
+
 def superuser_required(view_func):
     decorated_view_func = user_passes_test(lambda u: u.is_superuser)(view_func)
     return decorated_view_func
