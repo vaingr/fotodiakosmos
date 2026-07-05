@@ -71,6 +71,10 @@ class CustomerForm(forms.ModelForm):
         self.fields['company_name'].required = False
         self.fields['contact_person'].required = False
         self.fields['contact_person_gender'].required = False
+        gender_field = self.fields['contact_person_gender']
+        gender_field.choices = [
+            choice for choice in gender_field.choices if choice[0]
+        ]
 
     def clean_first_name(self):
         first_name = self.cleaned_data.get('first_name')
