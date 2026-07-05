@@ -146,6 +146,13 @@ class WarehouseUserProfile(models.Model):
     perm_add_quantity = models.BooleanField(default=False, verbose_name='Προσθήκη Ποσότητας')
     perm_remove_quantity = models.BooleanField(default=False, verbose_name='Αφαίρεση Ποσότητας')
     perm_measurement_units = models.BooleanField(default=False, verbose_name='Μονάδες Μέτρησης')
+    perm_products = models.BooleanField(default=False, verbose_name='Προϊόντα')
+    perm_finished_products_warehouse = models.BooleanField(
+        default=False,
+        verbose_name='Αποθήκη Έτοιμων Προϊόντων',
+    )
+    perm_offers = models.BooleanField(default=False, verbose_name='Προσφορές')
+    perm_customers = models.BooleanField(default=False, verbose_name='Πελάτες')
     is_managed_user = models.BooleanField(
         default=False,
         verbose_name='Δημιουργήθηκε από Διαχείριση Αποθήκης',
@@ -169,6 +176,10 @@ class WarehouseUserProfile(models.Model):
             self.perm_add_quantity = True
             self.perm_remove_quantity = True
             self.perm_measurement_units = True
+            self.perm_products = True
+            self.perm_finished_products_warehouse = True
+            self.perm_offers = True
+            self.perm_customers = True
         super().save(*args, **kwargs)
 
     @property

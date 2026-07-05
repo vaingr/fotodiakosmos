@@ -1,0 +1,277 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Προσφορές{% endblock %}
+
+{% block content %}
+<style>
+    .content-wrapper { border: none !important; }
+</style>
+
+<div class="page-header">
+    <h1><i class="fas fa-file-invoice"></i> Προσφορές</h1>
+</div>
+
+<div class="dashboard-actions">
+    <a href="{% url 'products:offer_create' %}" class="offer-create-card">
+        <div class="offer-create-icon">
+            <i class="fas fa-plus"></i>
+        </div>
+        <div class="offer-create-content">
+            <h3>Δημιουργία Προσφοράς</h3>
+            <p>Καταχώρηση οικονομικής προσφοράς για πελάτη</p>
+        </div>
+        <div class="offer-create-arrow">
+            <i class="fas fa-arrow-right"></i>
+        </div>
+    </a>
+    <a href="{% url 'products:offer_settings' %}" class="offer-create-card offer-settings-card">
+        <div class="offer-create-icon offer-settings-icon">
+            <i class="fas fa-cog"></i>
+        </div>
+        <div class="offer-create-content">
+            <h3>Ρυθμίσεις προσφορών</h3>
+            <p>Λογότυπο και άλλες ρυθμίσεις εκτύπωσης</p>
+        </div>
+        <div class="offer-create-arrow">
+            <i class="fas fa-arrow-right"></i>
+        </div>
+    </a>
+</div>
+
+<div class="offers-section">
+    <div class="offers-section-header">
+        <h2><i class="fas fa-list"></i> Προσφορές</h2>
+        <form method="get" class="offers-search-form">
+            <input type="search"
+                   name="search"
+                   class="offers-search-input"
+                   placeholder="Αναζήτηση με αριθμό προσφοράς ή όνομα πελάτη..."
+                   value="{{ search_query }}"
+                   autocomplete="off">
+            <button type="submit" class="btn btn-secondary btn-sm">
+                <i class="fas fa-search"></i> Αναζήτηση
+            </button>
+            {% if search_query %}
+            <a href="{% url 'products:offers' %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-times"></i> Καθαρισμός
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    {% if offers %}
+    <div class="table-wrapper">
+        <table class="offers-table">
+            <thead>
+                <tr>
+                    <th>Αριθμός</th>
+                    <th>Πελάτης</th>
+                    <th>Ημ/νία</th>
+                    <th>Σύνολο</th>
+                    <th>Δημιουργός</th>
+                    <th>Ενέργειες</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for offer in offers %}
+                <tr>
+                    <td>{{ offer.offer_number }}</td>
+                    <td>{{ offer.customer.display_name }}</td>
+                    <td>{{ offer.created_at|date:"d/m/Y H:i" }}</td>
+                    <td>{{ offer.total_amount|floatformat:2 }} €</td>
+                    <td>{{ offer.created_by.username|default:"—" }}</td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="{% url 'products:offer_edit' offer.pk %}" class="btn btn-warning btn-sm" title="Επεξεργασία">
+                                <i class="fas fa-edit"></i> Επεξεργασία
+                            </a>
+                            <a href="{% url 'products:offer_print' offer.pk %}" class="btn btn-secondary btn-sm" target="_blank">
+                                <i class="fas fa-print"></i> Προεπίσκοπηση
+                            </a>
+                            <a href="{% url 'products:offer_delete' offer.pk %}" class="btn btn-danger btn-sm" title="Διαγραφή">
+                                <i class="fas fa-trash"></i> Διαγραφή
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-file-invoice"></i>
+        {% if search_query %}
+        <p>Δεν βρέθηκαν προσφορές για «{{ search_query }}».</p>
+        {% else %}
+        <p>Δεν υπάρχουν προσφορές ακόμα.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.page-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+.page-header h1 {
+    margin: 0;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.dashboard-actions {
+    margin-bottom: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.offer-create-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+    text-decoration: none;
+    color: var(--text-primary);
+    flex: 1 1 320px;
+    max-width: 420px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.offer-create-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--shadow);
+}
+.offer-create-icon {
+    width: 50px;
+    height: 50px;
+    background: #f59e0b;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+.offer-settings-icon {
+    background: #6366f1;
+}
+.offer-create-content h3 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.1rem;
+}
+.offer-create-content p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+.offer-create-arrow {
+    margin-left: auto;
+    color: var(--text-secondary);
+}
+.offers-section {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+.offers-section h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.offers-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+.offers-search-form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    justify-content: flex-end;
+    min-width: 280px;
+    max-width: 560px;
+}
+.offers-search-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    box-sizing: border-box;
+}
+.offers-search-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+.table-wrapper { overflow-x: auto; }
+.offers-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.offers-table th,
+.offers-table td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--bg-secondary);
+    text-align: left;
+    color: var(--text-primary);
+}
+.offers-table th {
+    background: var(--bg-secondary);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.875rem;
+}
+.btn-sm { padding: 0.5rem 0.75rem; font-size: 0.875rem; }
+.btn-secondary { background: var(--bg-secondary); color: var(--text-primary); }
+.btn-warning { background: #ffc107; color: #212529; }
+.btn-danger { background: #dc3545; color: white; }
+.table-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-secondary);
+}
+.empty-state i {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+    display: block;
+    color: var(--accent);
+}
+</style>
+{% endblock %}

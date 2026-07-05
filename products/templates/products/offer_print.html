@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Προσφορά {{ offer.offer_number }}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            color: #111;
+            background: #e5e7eb;
+            margin: 0;
+            padding: 1.5rem;
+        }
+        .print-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin: 0 auto 1.5rem;
+            max-width: 210mm;
+        }
+        .btn {
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.9375rem;
+            cursor: pointer;
+        }
+        .btn-primary { background: #2563eb; color: #fff; }
+        .btn-secondary { background: #e5e7eb; color: #111; }
+        .btn-email { background: #059669; color: #fff; }
+        .btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+        .print-messages {
+            max-width: 210mm;
+            margin: 0 auto 1rem;
+        }
+        .print-message {
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+        .print-message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+        .print-message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .email-sending-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .email-sending-overlay[hidden] {
+            display: none;
+        }
+        .email-sending-modal {
+            background: #fff;
+            padding: 1.5rem 2rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+        .email-sending-spinner {
+            font-size: 1.75rem;
+            color: #2563eb;
+            margin-bottom: 0.75rem;
+        }
+        .print-pages {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            align-items: center;
+        }
+        .a4-page {
+            width: 210mm;
+            height: 297mm;
+            padding: 12mm 10mm 14mm;
+            background: #fff;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .a4-page-body {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .a4-page-footer {
+            flex-shrink: 0;
+            margin-top: 0.5rem;
+            padding-top: 0.45rem;
+            border-top: 1px solid #ccc;
+            text-align: center;
+            font-size: 0.6875rem;
+            color: #444;
+            line-height: 1.35;
+        }
+        .print-header { margin-bottom: 0.85rem; }
+        .print-header h1 {
+            margin: 0 0 0.35rem;
+            font-size: 1.35rem;
+        }
+        .offer-title {
+            text-align: center;
+            margin: 0 0 0.85rem;
+        }
+        .offer-title h1 {
+            margin: 0;
+            font-size: 1.35rem;
+        }
+        .customer-box {
+            margin: 0 0 0.85rem;
+            padding: 0.65rem 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+        .offer-logo-wrap {
+            margin-bottom: 0.65rem;
+        }
+        .offer-logo {
+            max-width: 180px;
+            max-height: 70px;
+            object-fit: contain;
+            display: block;
+        }
+        .customer-box-layout {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        .customer-box-main {
+            flex: 1;
+            min-width: 0;
+        }
+        .customer-box-meta {
+            flex-shrink: 0;
+            text-align: right;
+            font-size: 0.8125rem;
+            color: #444;
+            line-height: 1.45;
+        }
+        .customer-box-meta p {
+            margin: 0.1rem 0;
+            white-space: nowrap;
+        }
+        .customer-box-meta-only .customer-box-main {
+            display: none;
+        }
+        .customer-box-meta-only .customer-box-layout {
+            justify-content: flex-end;
+        }
+        .customer-box h2 {
+            margin: 0 0 0.35rem;
+            font-size: 0.9rem;
+        }
+        .customer-box p {
+            margin: 0.1rem 0;
+            font-size: 0.8125rem;
+        }
+        .print-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+        .print-table th,
+        .print-table td {
+            border: 1px solid #ccc;
+            padding: 0.35rem 0.45rem;
+            text-align: left;
+            vertical-align: middle;
+        }
+        .print-table th {
+            background: #f3f4f6;
+            font-weight: 700;
+        }
+        .photo-col { width: 52px; text-align: center; }
+        .print-product-thumb {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            display: block;
+            margin: 0 auto;
+        }
+        .print-photo-empty {
+            color: #999;
+            font-size: 0.6875rem;
+        }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .grand-total {
+            margin-top: 0.35rem;
+            margin-bottom: 1.35rem;
+            text-align: right;
+            font-size: 0.95rem;
+            font-weight: bold;
+        }
+        .notes-box {
+            margin-top: 0.5rem;
+            padding: 0.5rem 0.65rem;
+            border: 1px dashed #ccc;
+            border-radius: 4px;
+            font-size: 0.8125rem;
+        }
+        .offer-terms-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8125rem;
+            font-weight: bold;
+            margin-bottom: 0.85rem;
+        }
+        .offer-terms-table td {
+            border: 1px solid #111;
+            padding: 0.4rem 0.55rem;
+            text-align: left;
+            vertical-align: middle;
+        }
+        .bank-accounts {
+            margin: 0 0 0.85rem;
+            font-size: 0.8125rem;
+            font-weight: bold;
+            line-height: 1.55;
+        }
+        .bank-accounts p { margin: 0; }
+        .bank-name { color: #8b1538; }
+        .bank-iban { color: #111; }
+        .customer-approval {
+            margin: 0 0 0.85rem;
+            font-size: 0.8125rem;
+            font-weight: bold;
+        }
+        .company-signature {
+            margin: 0;
+            text-align: center;
+            font-size: 0.8125rem;
+            font-weight: bold;
+            line-height: 1.45;
+        }
+        .company-signature p { margin: 0; }
+        .signature-line {
+            display: inline-block;
+            min-width: 200px;
+            border-bottom: 1px solid #111;
+            margin-left: 0.35rem;
+            vertical-align: bottom;
+        }
+        #printSource {
+            display: none;
+        }
+        body.pdf-export {
+            background: #fff;
+            padding: 0;
+        }
+        body.pdf-export .print-toolbar,
+        body.pdf-export .print-messages,
+        body.pdf-export .email-sending-overlay {
+            display: none !important;
+        }
+        body.pdf-export .print-pages {
+            gap: 0;
+        }
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+            }
+            .print-toolbar {
+                display: none !important;
+            }
+            .print-pages {
+                gap: 0;
+            }
+            .a4-page {
+                margin: 0;
+                box-shadow: none;
+                page-break-after: always;
+            }
+            .a4-page:last-child {
+                page-break-after: auto;
+            }
+            .print-product-thumb {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body{% if pdf_export %} class="pdf-export"{% endif %}>
+    {% if messages %}
+    <div class="print-messages">
+        {% for message in messages %}
+        <div class="print-message {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="print-toolbar">
+        <button type="button" class="btn btn-primary" onclick="window.print()">Εκτύπωση</button>
+        <form method="post"
+              action="{% url 'products:offer_email' offer.pk %}"
+              id="offerEmailForm"
+              style="display: inline;">
+            {% csrf_token %}
+            <button type="submit"
+                    class="btn btn-email"
+                    id="offerEmailBtn"
+                    {% if not email_configured or not customer_email %}disabled title="{% if not email_configured %}Οι ρυθμίσεις email δεν έχουν ολοκληρωθεί{% else %}Ο πελάτης δεν έχει email{% endif %}"{% endif %}>
+                <i class="fas fa-envelope"></i> Αποστολή σε mail
+            </button>
+        </form>
+        <button type="button" class="btn btn-secondary" onclick="closePrintPage()">Κλείσιμο</button>
+    </div>
+
+    <div class="email-sending-overlay" id="emailSendingOverlay" hidden aria-live="polite" aria-busy="true">
+        <div class="email-sending-modal">
+            <i class="fas fa-spinner fa-spin email-sending-spinner"></i>
+            <p>Παρακαλώ περιμένετε, γίνεται αποστολή...</p>
+        </div>
+    </div>
+
+    <div id="printSource">
+        <div class="content-block" data-block="customer">
+            <div class="customer-box">
+                {% if offer_settings.logo %}
+                <div class="offer-logo-wrap">
+                    <img src="{{ request.scheme }}://{{ request.get_host }}{{ offer_settings.logo.url }}"
+                         alt="Λογότυπο"
+                         class="offer-logo">
+                </div>
+                {% endif %}
+                <div class="customer-box-layout">
+                    <div class="customer-box-main">
+                        <h2>Στοιχεία Πελάτη</h2>
+                        <p><strong>{{ offer.customer.display_name }}</strong></p>
+                        {% if offer.customer.phone %}<p>Τηλέφωνο: {{ offer.customer.phone }}</p>{% endif %}
+                        {% if offer.customer.email %}<p>Email: {{ offer.customer.email }}</p>{% endif %}
+                        {% if offer.customer.is_company and offer.customer.contact_person %}
+                        <p>Υπόψιν: {{ offer.customer.contact_person_display }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="customer-box-meta">
+                        <p><strong>Αριθμός προσφοράς:</strong> {{ offer.offer_number }}</p>
+                        <p class="a4-page-number"><strong>Σελίδες:</strong> </p>
+                        <p><strong>Ημερομηνία:</strong> {{ offer.created_at|date:"d/m/Y H:i" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-block" data-block="title">
+            <div class="offer-title">
+                <h1>Οικονομική Προσφορά</h1>
+            </div>
+        </div>
+
+        <table class="print-table" data-block="products" id="sourceProductsTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th class="photo-col">Φωτο</th>
+                    <th>Κωδικός</th>
+                    <th>Προϊόν</th>
+                    <th class="text-center">Ποσότητα</th>
+                    <th class="text-right">Τιμή μονάδας</th>
+                    <th class="text-right">Σύνολο</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in offer.items.all %}
+                <tr class="product-row">
+                    <td>{{ forloop.counter }}</td>
+                    <td class="photo-col">
+                        {% if item.product.photo %}
+                        <img src="{{ request.scheme }}://{{ request.get_host }}{{ item.product.photo.url }}"
+                             alt="{{ item.product.name }}"
+                             class="print-product-thumb">
+                        {% else %}
+                        <span class="print-photo-empty">—</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.product.code }}</td>
+                    <td>{{ item.product.name }}</td>
+                    <td class="text-center">{{ item.quantity }}</td>
+                    <td class="text-right">{{ item.unit_price|floatformat:2 }} €</td>
+                    <td class="text-right">{{ item.line_total|floatformat:2 }} €</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="content-block" data-block="total">
+            <div class="grand-total">
+                Συνολικό ποσό: {{ offer.total_amount|floatformat:2 }} €
+            </div>
+        </div>
+
+        {% if offer.notes %}
+        <div class="content-block" data-block="notes">
+            <div class="notes-box">
+                <strong>Σημείωση:</strong> {{ offer.notes }}
+            </div>
+        </div>
+        {% endif %}
+
+        <table class="offer-terms-table" data-block="terms" id="sourceTermsTable">
+            <tbody>
+                <tr class="terms-row"><td>Χρόνος παράδοσης: Κατόπιν συνεννόησης</td></tr>
+                <tr class="terms-row"><td>Τόπος παράδοσης: Έδρα πελάτη</td></tr>
+                <tr class="terms-row"><td>Τρόπος παράδοσης: Κατόπιν συνεννόησης</td></tr>
+                <tr class="terms-row"><td>Συσκευασία: Δέματα</td></tr>
+                <tr class="terms-row"><td>Τρόπος πληρωμής:</td></tr>
+            </tbody>
+        </table>
+
+        <div class="content-block" data-block="banks">
+            <div class="bank-accounts">
+                <p>
+                    <span class="bank-name">ΕΘΝΙΚΗ</span>
+                    <span class="bank-iban">GR4701103030000030301714256</span>
+                </p>
+                <p>
+                    <span class="bank-name">ΠΕΙΡΑΙΩΣ</span>
+                    <span class="bank-iban">GR 5001712640006264170336444</span>
+                </p>
+                <p>
+                    <span class="bank-name">ALPHA</span>
+                    <span class="bank-iban">GR 8501402200220002002033741</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="content-block" data-block="approval">
+            <p class="customer-approval">
+                ΕΓΚΡΙΣΗ ΠΕΛΑΤΗ<span class="signature-line">&nbsp;</span>
+            </p>
+        </div>
+
+        <div class="content-block" data-block="signature">
+            <div class="company-signature">
+                <p>Μετά τιμής,</p>
+                <p>ΓΙΑ ΤΗΝ ΕΤΑΙΡΕΙΑ</p>
+                <p>ΜΠΟΥΡΟΥ ΓΕΩΡΓΙΑ &amp; ΣΙΑ Ε.Ε.</p>
+                <p>Η ΕΚΠΡΟΣΩΠΟΣ</p>
+                <p>ΜΠΟΥΡΟΥ ΓΕΩΡΓΙΑ</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="printPages" class="print-pages"></div>
+
+    <script>
+    const OFFER_NUMBER = '{{ offer.offer_number|escapejs }}';
+    const OFFER_DATE = '{{ offer.created_at|date:"d/m/Y H:i" }}';
+    const FOOTER_TEXT = 'Η προσφορά ισχύει για 1 μήνα ή μέχρι νεότερης αύξησης τιμής Α΄ ύλης';
+
+    function closePrintPage() {
+        window.close();
+        setTimeout(function() {
+            window.location.href = "{% url 'products:offers' %}";
+        }, 150);
+    }
+
+    const offerEmailForm = document.getElementById('offerEmailForm');
+    if (offerEmailForm) {
+        offerEmailForm.addEventListener('submit', function() {
+            const overlay = document.getElementById('emailSendingOverlay');
+            const submitBtn = document.getElementById('offerEmailBtn');
+            if (overlay) {
+                overlay.hidden = false;
+            }
+            if (submitBtn) {
+                submitBtn.disabled = true;
+            }
+        });
+    }
+
+    function pageBodyOverflows(page) {
+        const body = page.querySelector('.a4-page-body');
+        return body.scrollHeight > body.clientHeight + 1;
+    }
+
+    function createPage() {
+        const page = document.createElement('div');
+        page.className = 'a4-page';
+        page.innerHTML =
+            '<div class="a4-page-body"></div>' +
+            '<div class="a4-page-footer">' + FOOTER_TEXT + '</div>';
+        return page;
+    }
+
+    function createMetaOnlyCustomerBox() {
+        const box = document.createElement('div');
+        box.className = 'customer-box customer-box-meta-only';
+        box.innerHTML =
+            '<div class="customer-box-layout">' +
+                '<div class="customer-box-main"></div>' +
+                '<div class="customer-box-meta">' +
+                    '<p><strong>Αριθμός προσφοράς:</strong> ' + OFFER_NUMBER + '</p>' +
+                    '<p class="a4-page-number"><strong>Σελίδες:</strong> </p>' +
+                    '<p><strong>Ημερομηνία:</strong> ' + OFFER_DATE + '</p>' +
+                '</div>' +
+            '</div>';
+        return box;
+    }
+
+    function updatePageNumbers() {
+        const pages = document.querySelectorAll('.a4-page');
+        pages.forEach(function(page, index) {
+            page.querySelectorAll('.a4-page-number').forEach(function(label) {
+                label.innerHTML = '<strong>Σελίδες:</strong> Σελίδα ' + (index + 1) + ' από ' + pages.length;
+            });
+        });
+    }
+
+    function appendBlock(page, node) {
+        const body = page.querySelector('.a4-page-body');
+        body.appendChild(node);
+        if (pageBodyOverflows(page)) {
+            body.removeChild(node);
+            return false;
+        }
+        return true;
+    }
+
+    function createProductTable() {
+        const sourceTable = document.getElementById('sourceProductsTable');
+        const table = document.createElement('table');
+        table.className = 'print-table';
+        table.innerHTML = sourceTable.querySelector('thead').outerHTML;
+        const tbody = document.createElement('tbody');
+        table.appendChild(tbody);
+        return table;
+    }
+
+    function getActiveProductTable(page) {
+        const body = page.querySelector('.a4-page-body');
+        const tables = body.querySelectorAll('.print-table');
+        if (!tables.length) {
+            return null;
+        }
+        return tables[tables.length - 1];
+    }
+
+    function appendProductRow(page, row) {
+        const body = page.querySelector('.a4-page-body');
+        let table = getActiveProductTable(page);
+        if (!table || table.dataset.complete === 'true') {
+            table = createProductTable();
+            body.appendChild(table);
+        }
+
+        const tbody = table.querySelector('tbody');
+        tbody.appendChild(row);
+
+        if (pageBodyOverflows(page)) {
+            tbody.removeChild(row);
+            if (!tbody.children.length) {
+                table.remove();
+            } else {
+                table.dataset.complete = 'true';
+            }
+            return false;
+        }
+        return true;
+    }
+
+    function createTermsTable() {
+        const table = document.createElement('table');
+        table.className = 'offer-terms-table';
+        const tbody = document.createElement('tbody');
+        table.appendChild(tbody);
+        return table;
+    }
+
+    function getActiveTermsTable(page) {
+        const body = page.querySelector('.a4-page-body');
+        const tables = body.querySelectorAll('.offer-terms-table');
+        if (!tables.length) {
+            return null;
+        }
+        return tables[tables.length - 1];
+    }
+
+    function appendTermsRow(page, row) {
+        const body = page.querySelector('.a4-page-body');
+        let table = getActiveTermsTable(page);
+        if (!table || table.dataset.complete === 'true') {
+            table = createTermsTable();
+            body.appendChild(table);
+        }
+
+        const tbody = table.querySelector('tbody');
+        tbody.appendChild(row);
+
+        if (pageBodyOverflows(page)) {
+            tbody.removeChild(row);
+            if (!tbody.children.length) {
+                table.remove();
+            } else {
+                table.dataset.complete = 'true';
+            }
+            return false;
+        }
+        return true;
+    }
+
+    function buildPages() {
+        const source = document.getElementById('printSource');
+        const container = document.getElementById('printPages');
+        document.documentElement.setAttribute('data-pages-ready', 'false');
+        container.innerHTML = '';
+
+        let page = createPage();
+        container.appendChild(page);
+
+        function ensurePage() {
+            page = createPage();
+            container.appendChild(page);
+            page.querySelector('.a4-page-body').appendChild(createMetaOnlyCustomerBox());
+        }
+
+        function placeBlock(clone) {
+            if (!appendBlock(page, clone)) {
+                ensurePage();
+                appendBlock(page, clone);
+            }
+        }
+
+        source.childNodes.forEach(function(child) {
+            if (child.nodeType !== Node.ELEMENT_NODE) {
+                return;
+            }
+
+            if (child.classList.contains('content-block')) {
+                placeBlock(child.cloneNode(true));
+                return;
+            }
+
+            if (child.id === 'sourceProductsTable') {
+                child.querySelectorAll('.product-row').forEach(function(row) {
+                    const clone = row.cloneNode(true);
+                    if (!appendProductRow(page, clone)) {
+                        ensurePage();
+                        appendProductRow(page, clone);
+                    }
+                });
+                return;
+            }
+
+            if (child.id === 'sourceTermsTable') {
+                child.querySelectorAll('.terms-row').forEach(function(row) {
+                    const clone = row.cloneNode(true);
+                    if (!appendTermsRow(page, clone)) {
+                        ensurePage();
+                        appendTermsRow(page, clone);
+                    }
+                });
+            }
+        });
+
+        updatePageNumbers();
+        document.documentElement.setAttribute('data-pages-ready', 'true');
+    }
+
+    function waitForImages() {
+        const images = Array.from(document.querySelectorAll('#printSource img'));
+        return Promise.all(images.map(function(img) {
+            if (img.complete) {
+                return Promise.resolve();
+            }
+            return new Promise(function(resolve) {
+                img.addEventListener('load', resolve, { once: true });
+                img.addEventListener('error', resolve, { once: true });
+            });
+        }));
+    }
+
+    let layoutTimer = null;
+    function scheduleLayout() {
+        clearTimeout(layoutTimer);
+        layoutTimer = setTimeout(function() {
+            waitForImages().then(buildPages);
+        }, 50);
+    }
+
+    document.addEventListener('DOMContentLoaded', scheduleLayout);
+    window.addEventListener('load', scheduleLayout);
+    window.addEventListener('resize', scheduleLayout);
+    window.addEventListener('beforeprint', buildPages);
+    </script>
+</body>
+</html>

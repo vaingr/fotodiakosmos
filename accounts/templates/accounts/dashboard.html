@@ -11,14 +11,15 @@
 
 <div id="dashboard-bg-wrapper" style="min-height: 80vh; border-radius: 8px; padding: 0;">
 
-<div style="margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1.5rem;">
-    <a href="{% url 'warehouse:dashboard' %}" class="warehouse-card-link" style="text-decoration: none;">
+<div class="dashboard-cards-row">
+    {% if wh_has_access %}
+    <a href="{% url 'warehouse:dashboard' %}" class="warehouse-card-link">
         <div class="warehouse-card">
             <div class="warehouse-card-icon">
                 <i class="fas fa-warehouse"></i>
             </div>
             <div class="warehouse-card-content">
-                <h4 class="warehouse-card-title">Αποθήκη</h4>
+                <h4 class="warehouse-card-title">Αποθήκη Υλικών</h4>
                 <p class="warehouse-card-description">Διαχείριση αποθήκης και υλικών</p>
             </div>
             <div class="warehouse-card-arrow">
@@ -26,12 +27,56 @@
             </div>
         </div>
     </a>
+    {% endif %}
+
+    {% if wh_perms.perm_finished_products_warehouse %}
+    <a href="{% url 'products:product_warehouse' %}" class="warehouse-card-link">
+        <div class="warehouse-card">
+            <div class="warehouse-card-icon warehouse-card-icon-products">
+                <i class="fas fa-boxes-stacked"></i>
+            </div>
+            <div class="warehouse-card-content">
+                <h4 class="warehouse-card-title">Αποθήκη Έτοιμων Προϊόντων</h4>
+                <p class="warehouse-card-description">Διαχείριση αποθέματος έτοιμων προϊόντων</p>
+            </div>
+            <div class="warehouse-card-arrow">
+                <i class="fas fa-arrow-right"></i>
+            </div>
+        </div>
+    </a>
+    {% endif %}
+
+    {% if wh_perms.perm_offers %}
+    <a href="{% url 'products:offers' %}" class="warehouse-card-link">
+        <div class="warehouse-card">
+            <div class="warehouse-card-icon warehouse-card-icon-offers">
+                <i class="fas fa-file-invoice"></i>
+            </div>
+            <div class="warehouse-card-content">
+                <h4 class="warehouse-card-title">Προσφορές</h4>
+                <p class="warehouse-card-description">Δημιουργία και διαχείριση προσφορών</p>
+            </div>
+            <div class="warehouse-card-arrow">
+                <i class="fas fa-arrow-right"></i>
+            </div>
+        </div>
+    </a>
+    {% endif %}
 </div>
 
 <style>
+.dashboard-cards-row {
+    margin-top: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: stretch;
+}
+
 .warehouse-card-link {
-    flex: 0 0 auto;
-    display: block;
+    flex: 0 1 320px;
+    display: flex;
+    text-decoration: none;
 }
 
 .warehouse-card {
@@ -39,8 +84,10 @@
     border: 1px solid var(--card-border);
     border-radius: 0.75rem;
     padding: 1.5rem;
+    width: 100%;
     min-width: 280px;
     max-width: 320px;
+    flex: 1;
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -64,6 +111,14 @@
     color: white;
     font-size: 1.5rem;
     flex-shrink: 0;
+}
+
+.warehouse-card-icon-products {
+    background: #20c997;
+}
+
+.warehouse-card-icon-offers {
+    background: #f59e0b;
 }
 
 .warehouse-card-content {
@@ -99,6 +154,10 @@
 }
 
 @media (max-width: 768px) {
+    .warehouse-card-link {
+        flex: 1 1 100%;
+    }
+
     .warehouse-card {
         min-width: 100%;
         max-width: 100%;

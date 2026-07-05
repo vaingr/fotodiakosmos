@@ -26,10 +26,16 @@
         </div>
         
         <div class="customer-info">
+            <p><strong>Τύπος:</strong> {{ customer.get_type_display_label }}</p>
+            {% if customer.is_individual %}
             <p><strong>Επώνυμο:</strong> {{ customer.last_name }}</p>
             <p><strong>Όνομα:</strong> {{ customer.first_name }}</p>
-            <p><strong>Τηλέφωνο:</strong> {{ customer.phone }}</p>
-            <p><strong>Email:</strong> {{ customer.email }}</p>
+            {% else %}
+            <p><strong>Όνομα εταιρείας / Δήμου:</strong> {{ customer.company_name }}</p>
+            <p><strong>Υπεύθυνος επικοινωνίας:</strong> {{ customer.contact_person|default:"—" }}</p>
+            {% endif %}
+            <p><strong>Τηλέφωνο:</strong> {{ customer.phone|default:"—" }}</p>
+            <p><strong>Email:</strong> {{ customer.email|default:"—" }}</p>
         </div>
         
         <div class="warning-message">

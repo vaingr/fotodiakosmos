@@ -1,12 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
+from warehouse.decorators import require_module_perm
 from .models import Customer
 from .forms import CustomerForm
 from .sms_utils import send_sms
 
-@login_required
+@require_module_perm('perm_customers')
 def customer_list(request):
     """List all customers with smart search functionality"""
     customers = Customer.objects.all().order_by('-created_at')
@@ -28,8 +28,12 @@ def customer_list(request):
                 customers = customers.filter(
                     Q(first_name__icontains=search_query) |
                     Q(last_name__icontains=search_query) |
+                    Q(company_name__icontains=search_query) |
                     Q(phone__icontains=search_query) |
-                    Q(email__icontains=search_query)
+                    Q(email__icontains=search_query) |
+                    Q(contact_person__icontains=search_query) |
+                    Q(contact_phone__icontains=search_query) |
+                    Q(contact_email__icontains=search_query)
                 )
         else:
             # Normal search for names, phones, etc. (case-insensitive)
@@ -38,8 +42,12 @@ def customer_list(request):
             customers = customers.filter(
                 Q(first_name__icontains=search_query) |
                 Q(last_name__icontains=search_query) |
+                Q(company_name__icontains=search_query) |
                 Q(phone__icontains=search_query) |
-                Q(email__icontains=search_query)
+                Q(email__icontains=search_query) |
+                Q(contact_person__icontains=search_query) |
+                Q(contact_phone__icontains=search_query) |
+                Q(contact_email__icontains=search_query)
             )
     
     # Pagination
@@ -52,7 +60,7 @@ def customer_list(request):
         'customers': page_obj
     })
 
-@login_required
+@require_module_perm('perm_customers')
 def customer_create(request):
     """Create a new customer"""
     if request.method == 'POST':
@@ -69,7 +77,7 @@ def customer_create(request):
         'title': 'Νέος Πελάτης'
     })
 
-@login_required
+@require_module_perm('perm_customers')
 def customer_edit(request, pk):
     """Edit existing customer"""
     customer = get_object_or_404(Customer, pk=pk)
@@ -87,7 +95,7 @@ def customer_edit(request, pk):
         'title': f'Επεξεργασία Πελάτη: {customer.full_name()}'
     })
 
-@login_required
+@require_module_perm('perm_customers')
 def customer_detail(request, pk):
     """View customer details"""
     customer = get_object_or_404(Customer, pk=pk)
@@ -95,7 +103,7 @@ def customer_detail(request, pk):
         'customer': customer
     })
 
-@login_required
+@require_module_perm('perm_customers')
 def delete_customer(request, customer_id):
     """Delete customer"""
     customer = get_object_or_404(Customer, id=customer_id)
@@ -110,7 +118,7 @@ def delete_customer(request, customer_id):
         'customer': customer
     })
 
-@login_required
+@require_module_perm('perm_customers')
 def send_sms_to_customer(request, customer_id):
     """Send SMS to a customer"""
     customer = get_object_or_404(Customer, id=customer_id)

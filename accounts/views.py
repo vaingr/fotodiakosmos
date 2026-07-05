@@ -302,34 +302,11 @@ def manage_partner_name(request):
 
 @superuser_required
 def manage_email_settings(request):
-    # Διάβασε τα τρέχοντα settings από το .env αρχείο
-    email_settings = {
-        'smtp_server': '',
-        'smtp_port': '',
-        'smtp_username': '',
-        'smtp_password': '',
-        'smtp_use_tls': False,
-        'smtp_use_ssl': False,
-        'from_email': '',
-        'from_name': ''
-    }
-    
-    try:
-        with open('.env', 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith('#'):
-                    if '=' in line:
-                        key, value = line.split('=', 1)
-                        key = key.strip()
-                        value = value.strip().strip('"').strip("'")
-                        if key in email_settings:
-                            email_settings[key] = value
-    except FileNotFoundError:
-        pass
-    
+    from env_file_utils import load_email_settings, save_email_settings
+
+    email_settings = load_email_settings()
+
     if request.method == 'POST':
-        # Λάβε τα δεδομένα από τη φόρμα
         email_settings['smtp_server'] = request.POST.get('smtp_server', '').strip()
         email_settings['smtp_port'] = request.POST.get('smtp_port', '').strip()
         email_settings['smtp_username'] = request.POST.get('smtp_username', '').strip()
@@ -338,24 +315,13 @@ def manage_email_settings(request):
         email_settings['smtp_use_ssl'] = request.POST.get('smtp_use_ssl') == 'on'
         email_settings['from_email'] = request.POST.get('from_email', '').strip()
         email_settings['from_name'] = request.POST.get('from_name', '').strip()
-        
-        # Αποθήκευση στο .env αρχείο
+
         try:
-            with open('.env', 'w', encoding='utf-8') as f:
-                f.write("# Email Settings\n")
-                f.write(f"SMTP_SERVER={email_settings['smtp_server']}\n")
-                f.write(f"SMTP_PORT={email_settings['smtp_port']}\n")
-                f.write(f"SMTP_USERNAME={email_settings['smtp_username']}\n")
-                f.write(f"SMTP_PASSWORD={email_settings['smtp_password']}\n")
-                f.write(f"SMTP_USE_TLS={str(email_settings['smtp_use_tls']).lower()}\n")
-                f.write(f"SMTP_USE_SSL={str(email_settings['smtp_use_ssl']).lower()}\n")
-                f.write(f"FROM_EMAIL={email_settings['from_email']}\n")
-                f.write(f"FROM_NAME={email_settings['from_name']}\n")
-            
+            save_email_settings(email_settings)
             messages.success(request, 'Οι ρυθμίσεις email αποθηκεύτηκαν επιτυχώς!')
         except Exception as e:
             messages.error(request, f'Σφάλμα κατά την αποθήκευση: {str(e)}')
-    
+
     return render(request, 'accounts/manage_email_settings.html', {'email_settings': email_settings})
 
 @superuser_required
@@ -528,7 +494,7 @@ def manage_customers_module(request):
     })
 
 
-@login_required
+@superuser_required
 def send_sms_view(request):
     """View for sending SMS"""
     if not send_sms:
@@ -582,7 +548,7 @@ def send_sms_view(request):
     })
 
 
-@login_required
+@superuser_required
 def send_bulk_sms_view(request):
     """View for sending bulk SMS"""
     if not send_bulk_sms:
@@ -649,7 +615,7 @@ def send_bulk_sms_view(request):
     })
 
 
-@login_required
+@superuser_required
 def check_sms_balance(request):
     """AJAX view to check SMS account balance"""
     if not check_account_balance:
@@ -674,7 +640,7 @@ def check_sms_balance(request):
         })
 
 
-@login_required
+@superuser_required
 def get_sms_history_view(request):
     """AJAX view to get SMS history"""
     if not get_sms_history:
@@ -722,7 +688,7 @@ def get_sms_history_view(request):
         })
 
 
-@login_required
+@superuser_required
 def sms_dashboard(request):
     """SMS Dashboard with balance, send SMS, and reports"""
     balance_info = None

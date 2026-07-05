@@ -6,9 +6,6 @@
 <div class="page-header">
     <h1><i class="fas fa-user"></i> Λεπτομέρειες Πελάτη</h1>
     <div class="header-actions">
-        <a href="{% url 'customers:customer_edit' customer.id %}" class="btn btn-warning">
-            <i class="fas fa-edit"></i> Επεξεργασία
-        </a>
         <a href="{% url 'customers:customer_list' %}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Επιστροφή
         </a>
@@ -32,6 +29,11 @@
         
         <div class="customer-details">
             <div class="detail-row">
+                <span class="label">Τύπος:</span>
+                <span class="value">{{ customer.get_type_display_label }}</span>
+            </div>
+            {% if customer.is_individual %}
+            <div class="detail-row">
                 <span class="label">Επώνυμο:</span>
                 <span class="value">{{ customer.last_name }}</span>
             </div>
@@ -39,6 +41,16 @@
                 <span class="label">Όνομα:</span>
                 <span class="value">{{ customer.first_name }}</span>
             </div>
+            {% else %}
+            <div class="detail-row">
+                <span class="label">Όνομα εταιρείας / Δήμου:</span>
+                <span class="value">{{ customer.company_name }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Υπεύθυνος επικοινωνίας:</span>
+                <span class="value">{{ customer.contact_person|default:"Δεν έχει καταχωρηθεί" }}</span>
+            </div>
+            {% endif %}
             <div class="detail-row">
                 <span class="label">Τηλέφωνο:</span>
                 <span class="value">{{ customer.phone|default:"Δεν έχει καταχωρηθεί" }}</span>
@@ -58,11 +70,6 @@
         </div>
         
         <div class="customer-actions">
-            {% if customer.phone %}
-            <a href="{% url 'customers:send_sms' customer.id %}" class="btn btn-info">
-                <i class="fas fa-sms"></i> Αποστολή SMS
-            </a>
-            {% endif %}
             <a href="{% url 'customers:customer_edit' customer.id %}" class="btn btn-warning">
                 <i class="fas fa-edit"></i> Επεξεργασία
             </a>

@@ -15,6 +15,8 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from accounts.views import dashboard, create_user, CustomLoginView, manage_subscriptions, manage_users, database_backup, database_restore, database_management, manage_client_name, manage_app_name, manage_partner_name, manage_email_settings, manage_sms_settings, send_sms_view, send_bulk_sms_view, check_sms_balance, sms_dashboard, get_sms_history_view, manage_customers_module
@@ -41,5 +43,9 @@ urlpatterns = [
     path('check-sms-balance/', check_sms_balance, name='check_sms_balance'),
     path('get-sms-history/', get_sms_history_view, name='get_sms_history'),
     path('customers/', include('customers.urls')),
+    path('products/', include('products.urls')),
     path('warehouse/', include('warehouse.urls')),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

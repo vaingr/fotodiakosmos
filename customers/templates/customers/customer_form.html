@@ -12,27 +12,82 @@
     </div>
 
     <div class="form-card">
-        <form method="post" class="customer-form" autocomplete="off">
+        <form method="post" class="customer-form" id="customerForm" autocomplete="off">
             {% csrf_token %}
-            
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
-                    {{ form.first_name }}
-                    {% if form.first_name.errors %}
-                    <div class="error-message">{{ form.first_name.errors.0 }}</div>
-                    {% endif %}
+
+            <div class="form-group customer-type-group">
+                <label>{{ form.customer_type.label }}</label>
+                <div class="customer-type-options">
+                    {% for radio in form.customer_type %}
+                    <label class="customer-type-option">
+                        {{ radio.tag }}
+                        <span>{{ radio.choice_label }}</span>
+                    </label>
+                    {% endfor %}
                 </div>
-                
-                <div class="form-group">
-                    <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
-                    {{ form.last_name }}
-                    {% if form.last_name.errors %}
-                    <div class="error-message">{{ form.last_name.errors.0 }}</div>
-                    {% endif %}
+                {% if form.customer_type.errors %}
+                <div class="error-message">{{ form.customer_type.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div id="individual-fields" class="customer-fields-section"{% if form.customer_type.value == 'company' %} hidden{% endif %}>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                        <div class="error-message">{{ form.last_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                        <div class="error-message">{{ form.first_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-            
+
+            <div id="company-fields" class="customer-fields-section"{% if form.customer_type.value != 'company' %} hidden{% endif %}>
+                <div class="form-row">
+                    <div class="form-group form-group-full">
+                        <label for="{{ form.company_name.id_for_label }}">{{ form.company_name.label }}</label>
+                        {{ form.company_name }}
+                        {% if form.company_name.errors %}
+                        <div class="error-message">{{ form.company_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group form-group-full">
+                        <label for="{{ form.contact_person.id_for_label }}">{{ form.contact_person.label }}</label>
+                        <div class="contact-person-field">
+                            <div class="contact-person-gender">
+                                <span class="contact-person-gender-label">{{ form.contact_person_gender.label }}</span>
+                                <div class="contact-person-gender-options">
+                                    {% for radio in form.contact_person_gender %}
+                                    <label class="contact-person-gender-option">
+                                        {{ radio.tag }}
+                                        <span>{{ radio.choice_label }}</span>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                                {% if form.contact_person_gender.errors %}
+                                <div class="error-message">{{ form.contact_person_gender.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            {{ form.contact_person }}
+                        </div>
+                        {% if form.contact_person.errors %}
+                        <div class="error-message">{{ form.contact_person.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
             <div class="form-row">
                 <div class="form-group">
                     <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }} (προαιρετικό)</label>
@@ -41,7 +96,7 @@
                     <div class="error-message">{{ form.phone.errors.0 }}</div>
                     {% endif %}
                 </div>
-                
+
                 <div class="form-group">
                     <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
                     {{ form.email }}
@@ -50,7 +105,7 @@
                     {% endif %}
                 </div>
             </div>
-            
+
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save"></i> Αποθήκευση
@@ -98,10 +153,81 @@
     gap: 1.5rem;
 }
 
+.customer-type-group {
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--bg-secondary);
+}
+
+.customer-type-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+.customer-type-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-weight: 600;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.customer-type-option:has(input:checked) {
+    border-color: var(--accent);
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.customer-type-option input {
+    accent-color: var(--accent);
+}
+
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
+}
+
+.form-group-full {
+    grid-column: 1 / -1;
+}
+
+.contact-person-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.contact-person-gender-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.35rem;
+}
+
+.contact-person-gender-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.contact-person-gender-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+}
+
+.contact-person-gender-option input {
+    margin: 0;
 }
 
 .form-group {
@@ -115,7 +241,8 @@
     color: var(--text-primary);
 }
 
-.form-group input {
+.form-group input[type="text"],
+.form-group input[type="email"] {
     padding: 1rem;
     border: 2px solid var(--bg-secondary);
     border-radius: 4px;
@@ -125,7 +252,8 @@
     transition: border-color 0.3s ease;
 }
 
-.form-group input:focus {
+.form-group input[type="text"]:focus,
+.form-group input[type="email"]:focus {
     outline: none;
     border-color: var(--accent);
 }
@@ -182,15 +310,19 @@
         gap: 1rem;
         text-align: center;
     }
-    
+
     .form-row {
         grid-template-columns: 1fr;
     }
-    
+
+    .customer-type-options {
+        flex-direction: column;
+    }
+
     .form-actions {
         flex-direction: column;
     }
-    
+
     .btn {
         justify-content: center;
     }
@@ -199,124 +331,106 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('customerForm');
+    const individualFields = document.getElementById('individual-fields');
+    const companyFields = document.getElementById('company-fields');
+    const typeRadios = form.querySelectorAll('input[name="customer_type"]');
+
     const firstNameInput = document.getElementById('{{ form.first_name.id_for_label }}');
     const lastNameInput = document.getElementById('{{ form.last_name.id_for_label }}');
+    const companyNameInput = document.getElementById('{{ form.company_name.id_for_label }}');
+    const contactPersonInput = document.getElementById('{{ form.contact_person.id_for_label }}');
     const phoneInput = document.getElementById('{{ form.phone.id_for_label }}');
     const emailInput = document.getElementById('{{ form.email.id_for_label }}');
-    
-    // Function to convert name inputs to uppercase
+
+    function getSelectedType() {
+        const selected = form.querySelector('input[name="customer_type"]:checked');
+        return selected ? selected.value : 'company';
+    }
+
+    function setFieldDisabled(section, disabled) {
+        section.querySelectorAll('input, select, textarea').forEach(function(input) {
+            if (input.type === 'radio' && input.name === 'customer_type') {
+                return;
+            }
+            input.disabled = disabled;
+        });
+    }
+
+    function updateCustomerTypeView() {
+        const isCompany = getSelectedType() === 'company';
+        individualFields.hidden = isCompany;
+        companyFields.hidden = !isCompany;
+        setFieldDisabled(individualFields, isCompany);
+        setFieldDisabled(companyFields, !isCompany);
+    }
+
     function convertNameToUppercase(input) {
-        let value = input.value.trim();
-        // Convert to uppercase
-        value = value.toUpperCase();
+        if (!input || input.disabled) return;
+        const value = input.value.toUpperCase();
         if (input.value !== value) {
             input.value = value;
         }
     }
-    
-    // Function to format phone number
+
     function formatPhoneNumber(input) {
-        let value = input.value;
-        // Remove all non-digit characters
-        value = value.replace(/[^\d]/g, '');
+        if (!input || input.disabled) return;
+        const value = input.value.replace(/[^\d]/g, '');
         if (input.value !== value) {
             input.value = value;
         }
     }
-    
-    // Function to convert email to lowercase
+
     function convertEmailToLowercase(input) {
-        let value = input.value.trim();
-        // Convert to lowercase
-        value = value.toLowerCase();
+        if (!input || input.disabled) return;
+        const value = input.value.toLowerCase();
         if (input.value !== value) {
             input.value = value;
         }
     }
-    
-    // Handle first name input
-    if (firstNameInput) {
-        firstNameInput.addEventListener('input', function() {
+
+    function bindUppercaseInput(input) {
+        if (!input) return;
+        input.addEventListener('input', function() {
             convertNameToUppercase(this);
         });
-        
-        firstNameInput.addEventListener('keyup', function(e) {
-            // Skip for special keys
-            if (e.key === 'Enter' || e.key === 'Tab' || e.key === 'Escape') {
-                return;
-            }
-            // Convert to uppercase
-            this.value = this.value.toUpperCase();
-        });
-        
-        firstNameInput.addEventListener('paste', function(e) {
-            setTimeout(() => {
-                convertNameToUppercase(this);
-            }, 0);
+        input.addEventListener('paste', function() {
+            setTimeout(() => convertNameToUppercase(input), 0);
         });
     }
-    
-    // Handle last name input
-    if (lastNameInput) {
-        lastNameInput.addEventListener('input', function() {
-            convertNameToUppercase(this);
-        });
-        
-        lastNameInput.addEventListener('keyup', function(e) {
-            // Skip for special keys
-            if (e.key === 'Enter' || e.key === 'Tab' || e.key === 'Escape') {
-                return;
-            }
-            // Convert to uppercase
-            this.value = this.value.toUpperCase();
-        });
-        
-        lastNameInput.addEventListener('paste', function(e) {
-            setTimeout(() => {
-                convertNameToUppercase(this);
-            }, 0);
-        });
-    }
-    
-    // Handle phone input
-    if (phoneInput) {
-        phoneInput.addEventListener('input', function() {
+
+    function bindPhoneInput(input) {
+        if (!input) return;
+        input.addEventListener('input', function() {
             formatPhoneNumber(this);
         });
-        
-        phoneInput.addEventListener('paste', function(e) {
-            setTimeout(() => {
-                formatPhoneNumber(this);
-            }, 0);
+        input.addEventListener('paste', function() {
+            setTimeout(() => formatPhoneNumber(input), 0);
         });
-        
-        // Set input mode to numeric
-        phoneInput.setAttribute('inputmode', 'numeric');
-        phoneInput.setAttribute('autocomplete', 'off');
-        phoneInput.setAttribute('spellcheck', 'false');
+        input.setAttribute('inputmode', 'numeric');
+        input.setAttribute('autocomplete', 'off');
+        input.setAttribute('spellcheck', 'false');
     }
-    
-    // Handle email input
-    if (emailInput) {
-        emailInput.addEventListener('input', function() {
+
+    function bindEmailInput(input) {
+        if (!input) return;
+        input.addEventListener('input', function() {
             convertEmailToLowercase(this);
         });
-        
-        emailInput.addEventListener('keyup', function(e) {
-            // Skip for special keys
-            if (e.key === 'Enter' || e.key === 'Tab' || e.key === 'Escape') {
-                return;
-            }
-            // Convert to lowercase
-            this.value = this.value.toLowerCase();
-        });
-        
-        emailInput.addEventListener('paste', function(e) {
-            setTimeout(() => {
-                convertEmailToLowercase(this);
-            }, 0);
+        input.addEventListener('paste', function() {
+            setTimeout(() => convertEmailToLowercase(input), 0);
         });
     }
+
+    typeRadios.forEach(function(radio) {
+        radio.addEventListener('change', updateCustomerTypeView);
+    });
+
+    [firstNameInput, lastNameInput, companyNameInput, contactPersonInput].forEach(bindUppercaseInput);
+    bindPhoneInput(phoneInput);
+    bindEmailInput(emailInput);
+
+    updateCustomerTypeView();
 });
 </script>
-{% endblock %} 
+{% endblock %}

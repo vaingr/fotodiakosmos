@@ -8,6 +8,7 @@ from .permissions import (
     has_warehouse_perm,
     is_warehouse_admin,
     has_any_warehouse_access,
+    has_module_perm,
     get_warehouse_home_url_name,
     can_access_warehouse_dashboard,
 )
@@ -57,3 +58,16 @@ def require_warehouse_admin(view_func):
             return redirect('warehouse:settings')
         return view_func(request, *args, **kwargs)
     return _wrapped
+
+
+def require_module_perm(perm_key):
+    def decorator(view_func):
+        @login_required
+        @wraps(view_func)
+        def _wrapped(request, *args, **kwargs):
+            if not has_module_perm(request.user, perm_key):
+                messages.error(request, 'Δεν έχετε πρόσβαση σε αυτή την ενότητα.')
+                return redirect('dashboard')
+            return view_func(request, *args, **kwargs)
+        return _wrapped
+    return decorator

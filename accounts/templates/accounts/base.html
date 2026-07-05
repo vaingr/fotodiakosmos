@@ -209,6 +209,21 @@
             color: #10b981;
         }
 
+        /* Products */
+        .sidebar-menu a[href*="/products/"]:not([href*="/products/warehouse"]) i {
+            color: #06b6d4;
+        }
+
+        /* Product warehouse */
+        .sidebar-menu a[href*="/products/warehouse"] i {
+            color: #ec4899;
+        }
+
+        /* Offers */
+        .sidebar-menu a[href*="/products/offers"] i {
+            color: #f59e0b;
+        }
+
         /* Warehouse */
         .sidebar-menu a[href*="warehouse"] i {
             color: #f59e0b;
@@ -454,13 +469,22 @@
     <div class="sidebar" id="sidebar">
         <ul class="sidebar-menu">
             <li><a href="{% url 'dashboard' %}"><i class="fas fa-home"></i> Αρχική</a></li>
-            {% if customers_enabled or user.is_superuser %}
+            {% if user.is_superuser or customers_enabled and wh_perms.perm_customers %}
             <li><a href="{% url 'customers:customer_list' %}"><i class="fas fa-users"></i> Πελάτες</a></li>
             {% endif %}
-            {% if wh_has_access %}
-            <li><a href="{% url wh_home_url %}"><i class="fas fa-warehouse"></i> Αποθήκη</a></li>
+            {% if wh_perms.perm_products %}
+            <li><a href="{% url 'products:product_list' %}"><i class="fas fa-box"></i> Προϊόντα</a></li>
             {% endif %}
-            {% if sms_enabled or user.is_superuser %}
+            {% if wh_has_access %}
+            <li><a href="{% url wh_home_url %}"><i class="fas fa-warehouse"></i> Αποθήκη Υλικών</a></li>
+            {% endif %}
+            {% if wh_perms.perm_finished_products_warehouse %}
+            <li><a href="{% url 'products:product_warehouse' %}"><i class="fas fa-boxes-stacked"></i> Αποθήκη Έτοιμων Προϊόντων</a></li>
+            {% endif %}
+            {% if wh_perms.perm_offers %}
+            <li><a href="{% url 'products:offers' %}"><i class="fas fa-file-invoice"></i> Προσφορές</a></li>
+            {% endif %}
+            {% if user.is_superuser %}
             <li><a href="{% url 'sms_dashboard' %}" id="sms-link"><i class="fas fa-sms" id="sms-icon"></i> <span id="sms-text">SMS</span></a></li>
             {% endif %}
             {% if user.is_superuser %}

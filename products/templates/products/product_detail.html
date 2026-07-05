@@ -1,0 +1,157 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-box"></i> Λεπτομέρειες Προϊόντος</h1>
+    <div class="header-actions">
+        <a href="{% url 'products:product_edit' product.id %}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> Επεξεργασία
+        </a>
+        <a href="{% url 'products:product_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Επιστροφή
+        </a>
+    </div>
+</div>
+
+<div class="detail-card">
+    <div class="detail-section product-overview">
+        {% if product.photo %}
+        <div class="product-photo-wrap">
+            <img src="{{ product.photo.url }}" alt="{{ product.name }}" class="product-photo">
+        </div>
+        {% endif %}
+        <div class="product-overview-content">
+        <h2>{{ product.name }}</h2>
+        <div class="detail-row">
+            <span class="label">Κωδικός:</span>
+            <span class="value">{{ product.code }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="label">Περιγραφή:</span>
+            <span class="value">{{ product.description|default:"—" }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="label">Ημ/νία Δημιουργίας:</span>
+            <span class="value">{{ product.created_at|date:"d/m/Y H:i" }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="label">Τελευταία Ενημέρωση:</span>
+            <span class="value">{{ product.updated_at|date:"d/m/Y H:i" }}</span>
+        </div>
+        </div>
+    </div>
+
+    <div class="detail-section">
+        <h3><i class="fas fa-cubes"></i> Υλικά κατασκευής</h3>
+        {% if product.materials.all %}
+        <table class="materials-table">
+            <thead>
+                <tr>
+                    <th>Κωδικός</th>
+                    <th>Υλικό</th>
+                    <th>Ποσότητα</th>
+                    <th>Διαθέσιμο απόθεμα</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in product.materials.all %}
+                <tr>
+                    <td>{{ item.material.code }}</td>
+                    <td>{{ item.material.name }}</td>
+                    <td>{{ item.quantity_display }}</td>
+                    <td>{{ item.material.quantity_display }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-message">Δεν έχουν καταχωρηθεί υλικά για αυτό το προϊόν.</p>
+        {% endif %}
+    </div>
+
+    <div class="detail-actions">
+        <a href="{% url 'products:product_edit' product.id %}" class="btn btn-warning">
+            <i class="fas fa-edit"></i> Επεξεργασία
+        </a>
+        <a href="{% url 'products:product_delete' product.id %}" class="btn btn-danger">
+            <i class="fas fa-trash"></i> Διαγραφή
+        </a>
+    </div>
+</div>
+
+<style>
+.page-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1.5rem; padding: 1.5rem; background: var(--card-bg);
+    border-radius: 8px; box-shadow: 0 2px 4px var(--shadow);
+}
+.page-header h1 { margin: 0; color: var(--text-primary); }
+.header-actions { display: flex; gap: 0.75rem; }
+.detail-card {
+    background: var(--card-bg); border-radius: 8px; padding: 2rem;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+.detail-section + .detail-section {
+    margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--bg-secondary);
+}
+.detail-section h2, .detail-section h3 { margin: 0 0 1rem; color: var(--text-primary); }
+.product-overview {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+.product-photo-wrap {
+    flex-shrink: 0;
+    width: 220px;
+    max-width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--bg-secondary);
+    border-radius: 8px;
+    background: var(--bg-primary);
+}
+.product-photo {
+    display: block;
+    width: 100%;
+    max-height: 280px;
+    object-fit: contain;
+    border-radius: 6px;
+}
+.product-overview-content {
+    flex: 1;
+    min-width: 0;
+}
+.detail-row {
+    display: flex; gap: 1rem; padding: 0.5rem 0; color: var(--text-primary);
+}
+.detail-row .label { font-weight: bold; min-width: 180px; }
+.materials-table {
+    width: 100%; border-collapse: collapse;
+}
+.materials-table th, .materials-table td {
+    padding: 0.875rem 1rem; border-bottom: 1px solid var(--bg-secondary);
+    text-align: left; color: var(--text-primary);
+}
+.materials-table th {
+    background: var(--bg-secondary); font-size: 0.85rem; text-transform: uppercase;
+}
+.empty-message { color: var(--text-secondary); }
+.detail-actions {
+    display: flex; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem;
+    border-top: 1px solid var(--bg-secondary);
+}
+.btn {
+    padding: 0.75rem 1.25rem; border: none; border-radius: 6px;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;
+}
+.btn-warning { background: #ffc107; color: #212529; }
+.btn-secondary { background: var(--bg-secondary); color: var(--text-primary); }
+.btn-danger { background: #dc3545; color: white; }
+
+@media (max-width: 768px) {
+    .product-overview { flex-direction: column; }
+    .product-photo-wrap { width: 100%; }
+}
+</style>
+{% endblock %}

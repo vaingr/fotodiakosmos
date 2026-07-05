@@ -1,0 +1,141 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Ρυθμίσεις Προσφορών{% endblock %}
+
+{% block content %}
+<style>
+    .content-wrapper { border: none !important; }
+</style>
+
+<div class="page-header">
+    <h1><i class="fas fa-cog"></i> Ρυθμίσεις Προσφορών</h1>
+    <a href="{% url 'products:offers' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Επιστροφή
+    </a>
+</div>
+
+<div class="settings-card">
+    <h2><i class="fas fa-image"></i> Λογότυπο προσφοράς</h2>
+    <p class="settings-description">
+        Το λογότυπο εμφανίζεται στην εκτύπωση της προσφοράς, πάνω από τα στοιχεία του πελάτη.
+    </p>
+
+    {% if settings.logo %}
+    <div class="logo-preview">
+        <img src="{{ settings.logo.url }}" alt="Τρέχον λογότυπο">
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="settings-form">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="{{ form.logo.id_for_label }}">{{ form.logo.label }}</label>
+            {{ form.logo }}
+            {% if form.logo.errors %}
+            <div class="error-message">{{ form.logo.errors.0 }}</div>
+            {% endif %}
+            <p class="field-hint">PNG, JPG ή WEBP · μέγιστο 2 MB</p>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Αποθήκευση
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+    flex-wrap: wrap;
+}
+.page-header h1 {
+    margin: 0;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.settings-card {
+    max-width: 640px;
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+.settings-card h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.settings-description {
+    margin: 0 0 1.25rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+.logo-preview {
+    margin-bottom: 1.25rem;
+    padding: 1rem;
+    border: 1px dashed var(--bg-secondary);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    text-align: center;
+}
+.logo-preview img {
+    max-width: 100%;
+    max-height: 120px;
+    object-fit: contain;
+}
+.form-group {
+    margin-bottom: 1.25rem;
+}
+.form-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+.offer-logo-input {
+    width: 100%;
+    color: var(--text-primary);
+}
+.field-hint {
+    margin: 0.5rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+.error-message {
+    margin-top: 0.5rem;
+    color: #dc3545;
+    font-size: 0.875rem;
+}
+.form-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.9375rem;
+}
+.btn-primary { background: var(--accent); color: white; }
+.btn-secondary { background: var(--bg-secondary); color: var(--text-primary); }
+</style>
+{% endblock %}

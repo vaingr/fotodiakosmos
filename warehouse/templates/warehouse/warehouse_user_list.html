@@ -47,7 +47,11 @@
                         {% if profile.perm_delete_products %}Διαγραφή · {% endif %}
                         {% if profile.perm_add_quantity %}+Ποσότητα · {% endif %}
                         {% if profile.perm_remove_quantity %}-Ποσότητα · {% endif %}
-                        {% if profile.perm_measurement_units %}Ρυθμίσεις{% endif %}
+                        {% if profile.perm_measurement_units %}Ρυθμίσεις · {% endif %}
+                        {% if profile.perm_products %}Προϊόντα · {% endif %}
+                        {% if profile.perm_finished_products_warehouse %}Έτοιμα Προϊόντα · {% endif %}
+                        {% if profile.perm_offers %}Προσφορές · {% endif %}
+                        {% if profile.perm_customers %}Πελάτες{% endif %}
                         {% endif %}
                     </td>
                     <td>

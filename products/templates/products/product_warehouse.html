@@ -1,0 +1,979 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}Αποθήκη Έτοιμων Προϊόντων{% endblock %}
+
+{% block content %}
+<style>
+    .content-wrapper { border: none !important; }
+</style>
+
+<div class="page-header">
+    <h1><i class="fas fa-boxes-stacked"></i> Αποθήκη Έτοιμων Προϊόντων</h1>
+</div>
+
+<div class="dashboard-actions">
+    <div class="action-card action-card-form">
+        <div class="action-icon" style="background: #20c997;">
+            <i class="fas fa-plus"></i>
+        </div>
+        <div class="action-content">
+            <h3>Προσθήκη Προϊόντος</h3>
+            <p>Επιλέξτε προϊόν από τον κατάλογο και καταχωρήστε ποσότητα</p>
+
+            {% if catalog_products %}
+            <form method="post" class="add-product-form" id="addProductForm" autocomplete="off">
+                {% csrf_token %}
+                <input type="hidden" name="warehouse_action" value="add">
+                <div class="product-picker" data-product-picker>
+                    <input type="text"
+                           class="product-search-input"
+                           id="warehouseProductSearch"
+                           placeholder="Αναζήτηση με κωδικό ή όνομα..."
+                           autocomplete="off"
+                           autocorrect="off"
+                           autocapitalize="off"
+                           spellcheck="false">
+                    <div class="product-results" hidden></div>
+                    <div class="product-select-hidden">
+                        {{ add_form.product }}
+                    </div>
+                </div>
+                {% if add_form.product.errors %}
+                <div class="error-message">{{ add_form.product.errors.0 }}</div>
+                {% endif %}
+
+                <div class="quantity-row">
+                    <label for="{{ add_form.quantity.id_for_label }}">{{ add_form.quantity.label }}</label>
+                    {{ add_form.quantity }}
+                </div>
+                {% if add_form.quantity.errors %}
+                <div class="error-message">{{ add_form.quantity.errors.0 }}</div>
+                {% endif %}
+                {% if add_form.non_field_errors %}
+                <div class="error-message">{{ add_form.non_field_errors.0 }}</div>
+                {% endif %}
+
+                <p class="selected-stock-note is-hidden" id="selectedStockNote"></p>
+
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> Προσθήκη στην αποθήκη
+                </button>
+            </form>
+            {% else %}
+            <p class="form-note">Δεν υπάρχουν προϊόντα στον κατάλογο.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="action-card action-card-form">
+        <div class="action-icon" style="background: #dc3545;">
+            <i class="fas fa-minus"></i>
+        </div>
+        <div class="action-content">
+            <h3>Αφαίρεση Προϊόντος</h3>
+            <p>Επιλέξτε προϊόν από την αποθήκη και καταχωρήστε ποσότητα αφαίρεσης</p>
+
+            {% if warehouse_products %}
+            <form method="post" class="add-product-form" id="removeProductForm" autocomplete="off">
+                {% csrf_token %}
+                <input type="hidden" name="warehouse_action" value="remove">
+                <div class="product-picker" data-product-picker="remove">
+                    <input type="text"
+                           class="product-search-input"
+                           id="removeWarehouseProductSearch"
+                           placeholder="Αναζήτηση με κωδικό ή όνομα..."
+                           autocomplete="off"
+                           autocorrect="off"
+                           autocapitalize="off"
+                           spellcheck="false">
+                    <div class="product-results" hidden></div>
+                    <div class="product-select-hidden">
+                        {{ remove_form.product }}
+                    </div>
+                </div>
+                {% if remove_form.product.errors %}
+                <div class="error-message">{{ remove_form.product.errors.0 }}</div>
+                {% endif %}
+
+                <div class="quantity-row">
+                    <label for="{{ remove_form.quantity.id_for_label }}">{{ remove_form.quantity.label }}</label>
+                    {{ remove_form.quantity }}
+                </div>
+                {% if remove_form.quantity.errors %}
+                <div class="error-message">{{ remove_form.quantity.errors.0 }}</div>
+                {% endif %}
+                {% if remove_form.non_field_errors %}
+                <div class="error-message">{{ remove_form.non_field_errors.0 }}</div>
+                {% endif %}
+
+                <p class="selected-stock-note is-hidden" id="removeSelectedStockNote"></p>
+
+                <button type="submit" class="btn btn-danger btn-sm">
+                    <i class="fas fa-minus"></i> Αφαίρεση από την αποθήκη
+                </button>
+            </form>
+            {% else %}
+            <p class="form-note">Δεν υπάρχουν προϊόντα στην αποθήκη.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="warehouse-stock-section">
+    <div class="warehouse-stock-header">
+        <h2><i class="fas fa-clipboard-list"></i> Προϊόντα στην αποθήκη</h2>
+        {% if warehouse_items %}
+        <div class="warehouse-stock-actions">
+            <button type="button" class="btn btn-secondary btn-sm" id="printWarehouseBtn" title="Εκτύπωση λίστας">
+                <i class="fas fa-print"></i> Εκτύπωση
+            </button>
+            {% if customers_enabled %}
+            <button type="button" class="btn btn-secondary btn-sm" id="emailWarehouseBtn" title="Αποστολή PDF σε email">
+                <i class="fas fa-envelope"></i> Email
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% if warehouse_items %}
+    <div class="table-wrapper">
+        <table class="warehouse-stock-table">
+            <thead>
+                <tr>
+                    <th class="photo-col">Φωτο</th>
+                    <th>Κωδικός</th>
+                    <th>Όνομα</th>
+                    <th>Ποσότητα</th>
+                    <th>Ημ/νία Προσθήκης</th>
+                    <th>Προστέθηκε από</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in warehouse_items %}
+                <tr>
+                    <td class="photo-col">
+                        {% if item.product.photo %}
+                        <img src="{{ item.product.photo.url }}" alt="{{ item.product.name }}" class="product-thumb">
+                        {% else %}
+                        <div class="product-thumb-placeholder"><i class="fas fa-image"></i></div>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.product.code }}</td>
+                    <td>{{ item.product.name }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>{{ item.created_at|date:"d/m/Y H:i" }}</td>
+                    <td>{{ item.added_by_username|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-box-open"></i>
+        <p>Δεν υπάρχουν προϊόντα στην αποθήκη ακόμα.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% if customers_enabled and warehouse_items %}
+<div class="email-modal-overlay" id="emailModal" hidden>
+    <div class="email-modal" role="dialog" aria-labelledby="emailModalTitle" aria-modal="true">
+        <div class="email-modal-header">
+            <h3 id="emailModalTitle"><i class="fas fa-envelope"></i> Αποστολή σε Email</h3>
+            <button type="button" class="email-modal-close" id="closeEmailModal" aria-label="Κλείσιμο">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        {% if not email_configured %}
+        <p class="email-modal-warning">
+            Οι ρυθμίσεις email δεν έχουν ολοκληρωθεί. Ρυθμίστε τον SMTP server από τις ρυθμίσεις συστήματος.
+        </p>
+        {% elif not customers_email_data %}
+        <p class="email-modal-warning">
+            Δεν υπάρχουν πελάτες με καταχωρημένο email.
+        </p>
+        {% else %}
+        <form method="post" action="{% url 'products:product_warehouse_email' %}" id="emailWarehouseForm" autocomplete="off">
+            {% csrf_token %}
+            <p class="email-modal-description">
+                Επιλέξτε παραλήπτη από τη λίστα πελατών. Θα σταλεί PDF με τα προϊόντα της αποθήκης.
+            </p>
+
+            <div class="product-picker" data-product-picker="email">
+                <label for="emailCustomerSearch">Παραλήπτης</label>
+                <input type="text"
+                       class="product-search-input"
+                       id="emailCustomerSearch"
+                       name="warehouse_email_customer_q"
+                       placeholder="Αναζήτηση πελάτη με όνομα ή email..."
+                       autocomplete="off"
+                       autocorrect="off"
+                       autocapitalize="off"
+                       spellcheck="false"
+                       data-lpignore="true"
+                       data-1p-ignore
+                       readonly>
+                <div class="product-results" hidden></div>
+                <div class="product-select-hidden">
+                    {{ email_form.customer }}
+                </div>
+            </div>
+            {% if email_form.customer.errors %}
+            <div class="error-message">{{ email_form.customer.errors.0 }}</div>
+            {% endif %}
+
+            <div class="email-message-row">
+                <label for="{{ email_form.message.id_for_label }}">{{ email_form.message.label }}</label>
+                {{ email_form.message }}
+            </div>
+
+            <div class="email-modal-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="cancelEmailModal">Ακύρωση</button>
+                <button type="submit" class="btn btn-primary btn-sm" id="emailWarehouseSubmitBtn">
+                    <i class="fas fa-paper-plane"></i> Αποστολή
+                </button>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<div class="email-sending-overlay" id="emailSendingOverlay" hidden aria-live="polite" aria-busy="true">
+    <div class="email-sending-modal">
+        <i class="fas fa-spinner fa-spin email-sending-spinner"></i>
+        <p>Παρακαλώ περιμένετε, γίνεται αποστολή</p>
+    </div>
+</div>
+
+{{ catalog_products|json_script:"catalog-products-data" }}
+{{ warehouse_products|json_script:"warehouse-products-data" }}
+{% if customers_email_data %}{{ customers_email_data|json_script:"customers-email-data" }}{% endif %}
+
+<style>
+.page-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+.page-header h1 { margin: 0; color: var(--text-primary); }
+
+.dashboard-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+.action-card {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow);
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    color: var(--text-primary);
+}
+.action-card-form { align-items: flex-start; }
+.action-icon {
+    width: 50px;
+    height: 50px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+.action-content { flex: 1; min-width: 0; }
+.action-content h3 { margin: 0 0 0.25rem 0; font-size: 1.1rem; }
+.action-content p {
+    margin: 0 0 1rem 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+.add-product-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.quantity-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 180px;
+}
+.quantity-row label {
+    font-weight: bold;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+.warehouse-quantity-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    box-sizing: border-box;
+}
+.warehouse-quantity-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+.selected-stock-note {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+.selected-stock-note.is-hidden {
+    display: none;
+}
+.product-picker { position: relative; min-width: 0; }
+.product-search-input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    box-sizing: border-box;
+    text-transform: uppercase;
+}
+.product-search-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+.product-results {
+    position: fixed;
+    max-height: 240px;
+    overflow-y: auto;
+    background: var(--card-bg);
+    border: 2px solid var(--accent);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px var(--shadow);
+    z-index: 1000;
+}
+.product-result-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-bottom: 1px solid var(--bg-secondary);
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+.product-result-item:hover,
+.product-result-item.is-active { background: rgba(59, 130, 246, 0.15); }
+.product-result-item.is-empty {
+    cursor: default;
+    color: var(--text-secondary);
+}
+.product-select-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+}
+.warehouse-product-select { display: none; }
+.error-message { color: #dc3545; font-size: 0.9rem; }
+.form-note { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.95rem;
+}
+.btn-sm { padding: 0.625rem 0.875rem; font-size: 0.875rem; }
+.btn-primary { background: var(--accent); color: white; }
+.btn-secondary { background: var(--bg-secondary); color: var(--text-primary); }
+.btn-secondary:hover { background: var(--bg-primary); }
+.btn-danger { background: #dc3545; color: white; }
+.btn-danger:hover { background: #c82333; }
+
+.warehouse-stock-section {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+.warehouse-stock-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+.warehouse-stock-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.warehouse-stock-section h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.table-wrapper { overflow-x: auto; }
+.warehouse-stock-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.warehouse-stock-table th,
+.warehouse-stock-table td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--bg-secondary);
+    text-align: left;
+    color: var(--text-primary);
+}
+.warehouse-stock-table th {
+    background: var(--bg-secondary);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+.photo-col { width: 72px; text-align: center; }
+.product-thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--bg-secondary);
+}
+.product-thumb-placeholder {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    border: 1px dashed var(--bg-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+}
+.empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-secondary);
+}
+.empty-state i {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+    display: block;
+    color: var(--accent);
+}
+
+.email-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 1100;
+}
+.email-modal-overlay[hidden] {
+    display: none;
+}
+.email-modal {
+    width: 100%;
+    max-width: 520px;
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 12px 32px var(--shadow);
+    padding: 1.5rem;
+    color: var(--text-primary);
+}
+.email-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.email-modal-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.email-modal-close {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0.25rem;
+}
+.email-modal-description,
+.email-modal-warning {
+    margin: 0 0 1rem 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+.email-modal-warning {
+    color: #dc3545;
+}
+.email-message-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+.email-message-row label {
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+.warehouse-email-message {
+    width: 100%;
+    min-height: 90px;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    box-sizing: border-box;
+    resize: vertical;
+    font-family: inherit;
+}
+.warehouse-email-message:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+.email-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+[data-product-picker="email"] label {
+    display: block;
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.email-sending-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 2000;
+}
+.email-sending-overlay[hidden] {
+    display: none;
+}
+.email-sending-modal {
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border-radius: 8px;
+    box-shadow: 0 12px 32px var(--shadow);
+    padding: 2rem 2.5rem;
+    text-align: center;
+    min-width: 280px;
+    max-width: 420px;
+}
+.email-sending-spinner {
+    font-size: 2rem;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    display: block;
+}
+.email-sending-modal p {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+body.email-sending-active {
+    overflow: hidden;
+    pointer-events: none;
+}
+body.email-sending-active .email-sending-overlay {
+    pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+    .action-card { flex-direction: column; }
+}
+</style>
+
+{% if catalog_products or warehouse_products or customers_email_data %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const printWarehouseBtn = document.getElementById('printWarehouseBtn');
+    if (printWarehouseBtn) {
+        printWarehouseBtn.addEventListener('click', function() {
+            window.open("{% url 'products:product_warehouse_print' %}", '_blank');
+        });
+    }
+
+    function initProductPicker(config) {
+        const picker = document.querySelector(config.pickerSelector);
+        const searchInput = document.getElementById(config.searchInputId);
+        const productSelect = document.getElementById(config.productSelectId);
+        const quantityInput = document.getElementById(config.quantityInputId);
+        const selectedStockNote = config.stockNoteId
+            ? document.getElementById(config.stockNoteId)
+            : null;
+        const form = document.getElementById(config.formId);
+        const results = picker ? picker.querySelector('.product-results') : null;
+        const dataElement = document.getElementById(config.productsDataId);
+        const productsData = dataElement
+            ? JSON.parse(dataElement.textContent)
+            : [];
+
+        if (!picker || !searchInput || !productSelect || !results || !form) return;
+
+        function getProductById(id) {
+            return productsData.find(function(item) {
+                return String(item.id) === String(id);
+            });
+        }
+
+        function updateSelectedStockNote() {
+            if (!selectedStockNote) return;
+            const product = getProductById(productSelect.value);
+            if (!product) {
+                selectedStockNote.classList.add('is-hidden');
+                selectedStockNote.textContent = '';
+                return;
+            }
+            if (config.mode === 'add') {
+                if (product.in_warehouse) {
+                    selectedStockNote.textContent = 'Τρέχον απόθεμα: ' + product.stock_quantity + ' — η ποσότητα θα προστεθεί.';
+                } else {
+                    selectedStockNote.textContent = 'Το προϊόν δεν υπάρχει ακόμα στην αποθήκη — θα δημιουργηθεί νέα εγγραφή.';
+                }
+            } else {
+                selectedStockNote.textContent = 'Διαθέσιμο απόθεμα: ' + product.stock_quantity;
+                if (quantityInput && product.stock_quantity) {
+                    quantityInput.max = product.stock_quantity;
+                }
+            }
+            selectedStockNote.classList.remove('is-hidden');
+        }
+
+        function filterProducts(query) {
+            const normalized = (query || '').trim().toUpperCase();
+            if (!normalized) return productsData.slice(0, 30);
+            return productsData.filter(function(item) {
+                return item.code.toUpperCase().includes(normalized)
+                    || item.name.toUpperCase().includes(normalized)
+                    || item.label.toUpperCase().includes(normalized);
+            }).slice(0, 30);
+        }
+
+        function positionResults() {
+            if (results.hidden) return;
+            const rect = searchInput.getBoundingClientRect();
+            results.style.top = (rect.bottom + 4) + 'px';
+            results.style.left = rect.left + 'px';
+            results.style.width = rect.width + 'px';
+        }
+
+        function selectProduct(item) {
+            productSelect.value = String(item.id);
+            searchInput.value = item.label;
+            results.hidden = true;
+            updateSelectedStockNote();
+        }
+
+        function renderResults(items) {
+            results.innerHTML = '';
+            if (!items.length) {
+                const empty = document.createElement('div');
+                empty.className = 'product-result-item is-empty';
+                empty.textContent = 'Δεν βρέθηκαν προϊόντα';
+                results.appendChild(empty);
+            } else {
+                items.forEach(function(item) {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'product-result-item';
+                    button.textContent = item.label;
+                    button.addEventListener('click', function() {
+                        selectProduct(item);
+                    });
+                    results.appendChild(button);
+                });
+            }
+            results.hidden = false;
+            positionResults();
+        }
+
+        searchInput.addEventListener('input', function() {
+            searchInput.value = searchInput.value.toUpperCase();
+            if (!searchInput.value.trim()) {
+                productSelect.value = '';
+                updateSelectedStockNote();
+            }
+            renderResults(filterProducts(searchInput.value));
+        });
+
+        searchInput.addEventListener('focus', function() {
+            renderResults(filterProducts(searchInput.value));
+        });
+
+        document.addEventListener('click', function(event) {
+            if (!picker.contains(event.target)) {
+                results.hidden = true;
+            }
+        });
+
+        window.addEventListener('resize', positionResults);
+        window.addEventListener('scroll', positionResults, true);
+
+        form.addEventListener('submit', function(event) {
+            if (!productSelect.value) {
+                event.preventDefault();
+                alert('Επιλέξτε προϊόν από τη λίστα.');
+                return;
+            }
+            if (!quantityInput) {
+                return;
+            }
+            const quantity = parseInt(quantityInput.value, 10);
+            if (!quantity || quantity < 1) {
+                event.preventDefault();
+                alert('Η ποσότητα πρέπει να είναι τουλάχιστον 1.');
+                return;
+            }
+            if (config.mode === 'remove') {
+                const product = getProductById(productSelect.value);
+                if (product && quantity > product.stock_quantity) {
+                    event.preventDefault();
+                    alert('Η ποσότητα δεν μπορεί να υπερβαίνει το διαθέσιμο απόθεμα (' + product.stock_quantity + ').');
+                }
+            }
+        });
+
+        if (quantityInput) {
+            quantityInput.addEventListener('input', function() {
+                quantityInput.value = quantityInput.value.replace(/[^\d]/g, '');
+            });
+        }
+
+        if (productSelect.value) {
+            const selected = getProductById(productSelect.value);
+            if (selected) {
+                searchInput.value = selected.label;
+                updateSelectedStockNote();
+            }
+        }
+    }
+
+    if (document.getElementById('catalog-products-data')) {
+        initProductPicker({
+            pickerSelector: '[data-product-picker]:not([data-product-picker="remove"])',
+            searchInputId: 'warehouseProductSearch',
+            productSelectId: 'id_warehouse_product',
+            quantityInputId: 'id_warehouse_quantity',
+            stockNoteId: 'selectedStockNote',
+            formId: 'addProductForm',
+            productsDataId: 'catalog-products-data',
+            mode: 'add',
+        });
+    }
+
+    if (document.getElementById('warehouse-products-data')) {
+        initProductPicker({
+            pickerSelector: '[data-product-picker="remove"]',
+            searchInputId: 'removeWarehouseProductSearch',
+            productSelectId: 'id_remove_warehouse_product',
+            quantityInputId: 'id_remove_warehouse_quantity',
+            stockNoteId: 'removeSelectedStockNote',
+            formId: 'removeProductForm',
+            productsDataId: 'warehouse-products-data',
+            mode: 'remove',
+        });
+    }
+
+    const emailModal = document.getElementById('emailModal');
+    const emailWarehouseBtn = document.getElementById('emailWarehouseBtn');
+    const closeEmailModalBtn = document.getElementById('closeEmailModal');
+    const cancelEmailModalBtn = document.getElementById('cancelEmailModal');
+    const emailWarehouseForm = document.getElementById('emailWarehouseForm');
+
+    function closeEmailModal() {
+        if (emailModal) {
+            emailModal.hidden = true;
+        }
+    }
+
+    function resetEmailCustomerSearch() {
+        const emailSearchInput = document.getElementById('emailCustomerSearch');
+        const emailCustomerSelect = document.getElementById('id_email_customer');
+        const emailResults = document.querySelector('[data-product-picker="email"] .product-results');
+        if (emailSearchInput) {
+            emailSearchInput.value = '';
+            emailSearchInput.setAttribute('readonly', 'readonly');
+        }
+        if (emailCustomerSelect) {
+            emailCustomerSelect.value = '';
+        }
+        if (emailResults) {
+            emailResults.hidden = true;
+        }
+    }
+
+    if (emailWarehouseBtn) {
+        emailWarehouseBtn.addEventListener('click', function() {
+            resetEmailCustomerSearch();
+            if (emailModal) {
+                emailModal.hidden = false;
+            }
+        });
+    }
+    if (closeEmailModalBtn) {
+        closeEmailModalBtn.addEventListener('click', closeEmailModal);
+    }
+    if (cancelEmailModalBtn) {
+        cancelEmailModalBtn.addEventListener('click', closeEmailModal);
+    }
+    if (emailModal) {
+        emailModal.addEventListener('click', function(event) {
+            if (event.target === emailModal) {
+                closeEmailModal();
+            }
+        });
+    }
+
+    function showEmailSendingOverlay() {
+        const overlay = document.getElementById('emailSendingOverlay');
+        if (overlay) {
+            overlay.hidden = false;
+        }
+        document.body.classList.add('email-sending-active');
+    }
+
+    if (emailWarehouseForm) {
+        emailWarehouseForm.addEventListener('submit', function(event) {
+            const emailCustomerSelect = document.getElementById('id_email_customer');
+            if (!emailCustomerSelect || !emailCustomerSelect.value) {
+                event.preventDefault();
+                alert('Επιλέξτε πελάτη από τη λίστα.');
+                return;
+            }
+            showEmailSendingOverlay();
+        });
+    }
+
+    if (document.getElementById('customers-email-data') && emailWarehouseForm) {
+        const emailPicker = document.querySelector('[data-product-picker="email"]');
+        const emailSearchInput = document.getElementById('emailCustomerSearch');
+        const emailCustomerSelect = document.getElementById('id_email_customer');
+        const emailResults = emailPicker ? emailPicker.querySelector('.product-results') : null;
+        const customersData = JSON.parse(
+            document.getElementById('customers-email-data').textContent
+        );
+
+        if (emailPicker && emailSearchInput && emailCustomerSelect && emailResults) {
+            emailSearchInput.addEventListener('focus', function() {
+                emailSearchInput.removeAttribute('readonly');
+            });
+
+            function getCustomerById(id) {
+                return customersData.find(function(item) {
+                    return String(item.id) === String(id);
+                });
+            }
+
+            function filterCustomers(query) {
+                const normalized = (query || '').trim().toUpperCase();
+                if (!normalized) return customersData.slice(0, 30);
+                return customersData.filter(function(item) {
+                    return item.name.toUpperCase().includes(normalized)
+                        || item.email.toUpperCase().includes(normalized)
+                        || item.label.toUpperCase().includes(normalized);
+                }).slice(0, 30);
+            }
+
+            function positionEmailResults() {
+                if (emailResults.hidden) return;
+                const rect = emailSearchInput.getBoundingClientRect();
+                emailResults.style.top = (rect.bottom + 4) + 'px';
+                emailResults.style.left = rect.left + 'px';
+                emailResults.style.width = rect.width + 'px';
+            }
+
+            function selectCustomer(item) {
+                emailCustomerSelect.value = String(item.id);
+                emailSearchInput.value = item.label;
+                emailResults.hidden = true;
+            }
+
+            function renderEmailResults(items) {
+                emailResults.innerHTML = '';
+                if (!items.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'product-result-item is-empty';
+                    empty.textContent = 'Δεν βρέθηκαν πελάτες';
+                    emailResults.appendChild(empty);
+                } else {
+                    items.forEach(function(item) {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = 'product-result-item';
+                        button.textContent = item.label;
+                        button.addEventListener('click', function() {
+                            selectCustomer(item);
+                        });
+                        emailResults.appendChild(button);
+                    });
+                }
+                emailResults.hidden = false;
+                positionEmailResults();
+            }
+
+            emailSearchInput.addEventListener('input', function() {
+                if (!emailSearchInput.value.trim()) {
+                    emailCustomerSelect.value = '';
+                }
+                renderEmailResults(filterCustomers(emailSearchInput.value));
+            });
+
+            emailSearchInput.addEventListener('focus', function() {
+                renderEmailResults(filterCustomers(emailSearchInput.value));
+            });
+
+            document.addEventListener('click', function(event) {
+                if (!emailPicker.contains(event.target)) {
+                    emailResults.hidden = true;
+                }
+            });
+
+            window.addEventListener('resize', positionEmailResults);
+            window.addEventListener('scroll', positionEmailResults, true);
+        }
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

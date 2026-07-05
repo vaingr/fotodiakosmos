@@ -1,3 +1,15 @@
+# Core framework
 Django==5.0.2
-python-dotenv==1.0.1
-requests==2.31.0 
+
+# HTTP client (SMS API – sms_utils.py, customers/sms_utils.py)
+requests==2.31.0
+
+# ImageField uploads (προϊόντα, λογότυπα προσφορών)
+Pillow==10.4.0
+
+# PDF αποθήκης έτοιμων προϊόντων (products/pdf_utils.py)
+reportlab==4.2.5
+
+# PDF προσφορών για email (products/pdf_utils.py)
+# Μετά το pip install, εκτελέστε επίσης: playwright install chromium
+playwright==1.49.1

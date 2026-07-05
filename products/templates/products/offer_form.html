@@ -1,0 +1,532 @@
+{% extends 'accounts/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1><i class="fas fa-file-invoice"></i> {{ page_title }}</h1>
+        <a href="{% url 'products:offers' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Επιστροφή
+        </a>
+    </div>
+
+    <div class="form-card">
+        <form method="post" id="offerForm" autocomplete="off">
+            {% csrf_token %}
+
+            <div class="form-section-title">Στοιχεία πελάτη</div>
+
+            <div class="form-group">
+                <label for="offerCustomerSearch">Πελάτης</label>
+                <div class="product-picker" data-customer-picker>
+                    <input type="text"
+                           class="product-search-input"
+                           id="offerCustomerSearch"
+                           name="offer_customer_q"
+                           placeholder="Αναζήτηση πελάτη με όνομα..."
+                           autocomplete="off"
+                           data-lpignore="true"
+                           readonly>
+                    <div class="product-results" hidden></div>
+                    <div class="product-select-hidden">
+                        {{ form.customer }}
+                    </div>
+                </div>
+                {% if form.customer.errors %}
+                <div class="error-message">{{ form.customer.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                {{ form.notes }}
+            </div>
+
+            <div class="form-section-title items-title">
+                <span>Προϊόντα προσφοράς</span>
+                <button type="button" class="btn btn-secondary btn-sm" id="addOfferRow">
+                    <i class="fas fa-plus"></i> Προσθήκη προϊόντος
+                </button>
+            </div>
+
+            {{ formset.management_form }}
+            <div id="offer-formset">
+                {% for item_form in formset %}
+                <div class="offer-row" data-form-row>
+                    <div class="offer-row-fields">
+                        <div class="form-group product-field">
+                            <label>{{ item_form.product.label }}</label>
+                            <div class="product-picker" data-product-picker>
+                                <input type="text"
+                                       class="product-search-input offer-product-search"
+                                       placeholder="Αναζήτηση με κωδικό ή όνομα..."
+                                       autocomplete="off"
+                                       readonly>
+                                <div class="product-results" hidden></div>
+                                {{ item_form.product }}
+                            </div>
+                            {% if item_form.product.errors %}
+                            <div class="error-message">{{ item_form.product.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group quantity-field">
+                            <label>{{ item_form.quantity.label }}</label>
+                            {{ item_form.quantity }}
+                        </div>
+                        <div class="form-group price-field">
+                            <label>{{ item_form.unit_price.label }}</label>
+                            {{ item_form.unit_price }}
+                        </div>
+                        <div class="form-group total-field">
+                            <label>Σύνολο γραμμής</label>
+                            <div class="line-total-display">0,00 €</div>
+                        </div>
+                        <div class="delete-field">
+                            <button type="button" class="btn btn-danger btn-sm remove-row-btn" title="Αφαίρεση">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+            {% if formset.non_form_errors %}
+            <div class="error-message">{{ formset.non_form_errors.0 }}</div>
+            {% endif %}
+
+            <div class="offer-grand-total">
+                <span>Συνολικό ποσό προσφοράς:</span>
+                <strong id="offerGrandTotal">0,00 €</strong>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    {% if is_edit %}Αποθήκευση αλλαγών{% else %}Αποθήκευση προσφοράς{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{ catalog_products|json_script:"catalog-products-data" }}
+{{ customers_data|json_script:"customers-data" }}
+
+<style>
+.content-wrapper { border: none !important; }
+.form-container { max-width: 1100px; }
+.form-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+.form-header h1 {
+    margin: 0;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.form-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px var(--shadow);
+}
+.form-section-title {
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+.items-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+.form-group { margin-bottom: 1rem; }
+.form-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+.form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    box-sizing: border-box;
+}
+.offer-row {
+    border: 1px solid var(--bg-secondary);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+.offer-row-fields {
+    display: grid;
+    grid-template-columns: 2fr 0.8fr 0.9fr 0.9fr auto;
+    gap: 1rem;
+    align-items: end;
+}
+.line-total-display {
+    padding: 0.75rem 1rem;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    font-weight: bold;
+    color: var(--text-primary);
+}
+.offer-grand-total {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 2px solid var(--bg-secondary);
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+.offer-grand-total strong {
+    font-size: 1.35rem;
+    color: var(--accent);
+}
+.form-actions { margin-top: 1.5rem; }
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.95rem;
+}
+.btn-sm { padding: 0.5rem 0.75rem; font-size: 0.875rem; }
+.btn-primary { background: var(--accent); color: white; }
+.btn-secondary { background: var(--bg-secondary); color: var(--text-primary); }
+.btn-danger { background: #dc3545; color: white; }
+.error-message { color: #dc3545; font-size: 0.9rem; margin-top: 0.25rem; }
+.product-picker { position: relative; }
+.product-search-input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    box-sizing: border-box;
+}
+.product-results {
+    position: fixed;
+    max-height: 240px;
+    overflow-y: auto;
+    background: var(--card-bg);
+    border: 2px solid var(--accent);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px var(--shadow);
+    z-index: 1000;
+}
+.product-result-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-bottom: 1px solid var(--bg-secondary);
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+.product-result-item:hover { background: rgba(59, 130, 246, 0.15); }
+.product-result-item.is-empty { cursor: default; color: var(--text-secondary); }
+.offer-product-select,
+.offer-customer-select {
+    display: none;
+}
+@media (max-width: 900px) {
+    .offer-row-fields {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const productsData = JSON.parse(document.getElementById('catalog-products-data').textContent);
+    const customersData = JSON.parse(document.getElementById('customers-data').textContent);
+    const formsetContainer = document.getElementById('offer-formset');
+    const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS');
+    const addButton = document.getElementById('addOfferRow');
+    const offerForm = document.getElementById('offerForm');
+
+    function formatMoney(value) {
+        return Number(value || 0).toLocaleString('el-GR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }) + ' €';
+    }
+
+    function updateLineTotal(row) {
+        const quantity = parseFloat(row.querySelector('.offer-quantity-input')?.value || 0);
+        const price = parseFloat(row.querySelector('.offer-price-input')?.value || 0);
+        const display = row.querySelector('.line-total-display');
+        if (display) {
+            display.textContent = formatMoney(quantity * price);
+        }
+        updateGrandTotal();
+    }
+
+    function updateGrandTotal() {
+        let total = 0;
+        formsetContainer.querySelectorAll('[data-form-row]').forEach(function(row) {
+            if (row.style.display === 'none') return;
+            const quantity = parseFloat(row.querySelector('.offer-quantity-input')?.value || 0);
+            const price = parseFloat(row.querySelector('.offer-price-input')?.value || 0);
+            total += quantity * price;
+        });
+        document.getElementById('offerGrandTotal').textContent = formatMoney(total);
+    }
+
+    function bindTotals(row) {
+        row.querySelectorAll('.offer-quantity-input, .offer-price-input').forEach(function(input) {
+            input.addEventListener('input', function() {
+                updateLineTotal(row);
+            });
+        });
+        updateLineTotal(row);
+    }
+
+    function initPicker(picker, data, selectClass, emptyText) {
+        const searchInput = picker.querySelector('.product-search-input');
+        const select = picker.querySelector('select');
+        const results = picker.querySelector('.product-results');
+        if (!searchInput || !select || !results) return;
+
+        function filterItems(query) {
+            const normalized = (query || '').trim().toUpperCase();
+            if (!normalized) return data.slice(0, 30);
+            return data.filter(function(item) {
+                return (item.code && item.code.toUpperCase().includes(normalized))
+                    || (item.name && item.name.toUpperCase().includes(normalized))
+                    || item.label.toUpperCase().includes(normalized);
+            }).slice(0, 30);
+        }
+
+        function positionResults() {
+            if (results.hidden) return;
+            const rect = searchInput.getBoundingClientRect();
+            results.style.top = (rect.bottom + 4) + 'px';
+            results.style.left = rect.left + 'px';
+            results.style.width = rect.width + 'px';
+        }
+
+        function selectItem(item) {
+            select.value = String(item.id);
+            searchInput.value = item.label;
+            results.hidden = true;
+        }
+
+        function renderResults(items) {
+            results.innerHTML = '';
+            if (!items.length) {
+                const empty = document.createElement('div');
+                empty.className = 'product-result-item is-empty';
+                empty.textContent = emptyText;
+                results.appendChild(empty);
+            } else {
+                items.forEach(function(item) {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'product-result-item';
+                    button.textContent = item.label;
+                    button.addEventListener('click', function() {
+                        selectItem(item);
+                    });
+                    results.appendChild(button);
+                });
+            }
+            results.hidden = false;
+            positionResults();
+        }
+
+        searchInput.addEventListener('focus', function() {
+            searchInput.removeAttribute('readonly');
+            renderResults(filterItems(searchInput.value));
+        });
+
+        searchInput.addEventListener('input', function() {
+            if (!searchInput.value.trim()) {
+                select.value = '';
+            }
+            renderResults(filterItems(searchInput.value));
+        });
+
+        document.addEventListener('click', function(event) {
+            if (!picker.contains(event.target)) {
+                results.hidden = true;
+            }
+        });
+
+        window.addEventListener('resize', positionResults);
+        window.addEventListener('scroll', positionResults, true);
+
+        if (select.value) {
+            const item = data.find(function(entry) {
+                return String(entry.id) === select.value;
+            });
+            if (item) {
+                searchInput.value = item.label;
+            } else {
+                const option = select.options[select.selectedIndex];
+                if (option && option.value) {
+                    searchInput.value = option.textContent.trim();
+                }
+            }
+        }
+    }
+
+    function initCustomerPicker() {
+        const picker = document.querySelector('[data-customer-picker]');
+        if (picker) {
+            initPicker(picker, customersData, 'offer-customer-select', 'Δεν βρέθηκαν πελάτες');
+        }
+    }
+
+    function initProductPickers(scope) {
+        (scope || document).querySelectorAll('[data-product-picker]').forEach(function(picker) {
+            initPicker(picker, productsData, 'offer-product-select', 'Δεν βρέθηκαν προϊόντα');
+        });
+    }
+
+    function reindexFormset() {
+        const rows = formsetContainer.querySelectorAll('[data-form-row]');
+        rows.forEach(function(row, index) {
+            row.querySelectorAll('[name^="items-"], [id^="id_items-"]').forEach(function(field) {
+                if (field.name) {
+                    field.name = field.name.replace(/items-\d+-/, 'items-' + index + '-');
+                }
+                if (field.id) {
+                    field.id = field.id.replace(/id_items-\d+-/, 'id_items-' + index + '-');
+                }
+            });
+        });
+        totalFormsInput.value = rows.length;
+    }
+
+    function bindRemoveButtons(scope) {
+        (scope || document).querySelectorAll('.remove-row-btn').forEach(function(button) {
+            if (button.dataset.bound) return;
+            button.dataset.bound = '1';
+            button.addEventListener('click', function() {
+                const row = button.closest('[data-form-row]');
+                const visibleRows = Array.from(
+                    formsetContainer.querySelectorAll('[data-form-row]'),
+                ).filter(function(existingRow) {
+                    return existingRow.style.display !== 'none';
+                });
+                if (visibleRows.length <= 1) {
+                    alert('Πρέπει να υπάρχει τουλάχιστον ένα προϊόν.');
+                    return;
+                }
+
+                const idField = row.querySelector('input[name$="-id"]');
+                const deleteField = row.querySelector('input[name$="-DELETE"]');
+                if (idField && idField.value && deleteField) {
+                    deleteField.checked = true;
+                    row.style.display = 'none';
+                } else {
+                    row.remove();
+                    reindexFormset();
+                }
+                updateGrandTotal();
+            });
+        });
+    }
+
+    function buildOfferRowHtml(index) {
+        const options = productsData.map(function(item) {
+            return '<option value="' + item.id + '">' + item.label + '</option>';
+        }).join('');
+
+        return `
+            <div class="offer-row" data-form-row>
+                <div class="offer-row-fields">
+                    <div class="form-group product-field">
+                        <label>Προϊόν</label>
+                        <div class="product-picker" data-product-picker>
+                            <input type="text" class="product-search-input offer-product-search"
+                                   placeholder="Αναζήτηση με κωδικό ή όνομα..." autocomplete="off" readonly>
+                            <div class="product-results" hidden></div>
+                            <select class="offer-product-select" name="items-${index}-product" id="id_items-${index}-product">
+                                <option value="">Επιλέξτε προϊόν...</option>
+                                ${options}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group quantity-field">
+                        <label>Ποσότητα</label>
+                        <input type="number" class="form-control offer-quantity-input" name="items-${index}-quantity"
+                               id="id_items-${index}-quantity" min="1" step="1" value="1">
+                    </div>
+                    <div class="form-group price-field">
+                        <label>Τιμή μονάδας (€)</label>
+                        <input type="number" class="form-control offer-price-input" name="items-${index}-unit_price"
+                               id="id_items-${index}-unit_price" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="form-group total-field">
+                        <label>Σύνολο γραμμής</label>
+                        <div class="line-total-display">0,00 €</div>
+                    </div>
+                    <div class="delete-field">
+                        <button type="button" class="btn btn-danger btn-sm remove-row-btn" title="Αφαίρεση">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <input type="hidden" name="items-${index}-id" id="id_items-${index}-id">
+                <input type="hidden" name="items-${index}-DELETE" id="id_items-${index}-DELETE">
+            </div>
+        `;
+    }
+
+    if (addButton) {
+        addButton.addEventListener('click', function() {
+            const index = parseInt(totalFormsInput.value, 10);
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = buildOfferRowHtml(index).trim();
+            const row = wrapper.firstElementChild;
+            formsetContainer.appendChild(row);
+            totalFormsInput.value = index + 1;
+            initProductPickers(row);
+            bindRemoveButtons(row);
+            bindTotals(row);
+        });
+    }
+
+    formsetContainer.querySelectorAll('[data-form-row]').forEach(bindTotals);
+    initCustomerPicker();
+    initProductPickers(formsetContainer);
+    bindRemoveButtons(formsetContainer);
+
+    offerForm.addEventListener('submit', function(event) {
+        const customerSelect = document.getElementById('id_offer_customer');
+        if (!customerSelect || !customerSelect.value) {
+            event.preventDefault();
+            alert('Επιλέξτε πελάτη από τη λίστα.');
+        }
+    });
+});
+</script>
+{% endblock %}

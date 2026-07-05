@@ -3,15 +3,31 @@ from .models import Customer
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ('last_name', 'first_name', 'phone', 'email', 'created_at')
-    list_filter = ('created_at',)
-    search_fields = ('last_name', 'first_name', 'phone', 'email')
-    ordering = ('last_name', 'first_name')
+    list_display = ('display_name', 'customer_type', 'phone', 'email', 'created_at')
+    list_filter = ('customer_type', 'created_at')
+    search_fields = (
+        'last_name', 'first_name', 'company_name', 'phone', 'email',
+        'contact_person', 'contact_phone', 'contact_email',
+    )
+    ordering = ('last_name', 'first_name', 'company_name')
     readonly_fields = ('created_at', 'updated_at')
+
+    @admin.display(description='Όνομα')
+    def display_name(self, obj):
+        return obj.display_name()
     
     fieldsets = (
-        ('Βασικά Στοιχεία', {
-            'fields': ('last_name', 'first_name', 'phone', 'email')
+        ('Τύπος πελάτη', {
+            'fields': ('customer_type',)
+        }),
+        ('Στοιχεία ιδιώτη', {
+            'fields': ('last_name', 'first_name')
+        }),
+        ('Στοιχεία εταιρείας / Δήμου', {
+            'fields': ('company_name', 'contact_person')
+        }),
+        ('Επικοινωνία', {
+            'fields': ('phone', 'email')
         }),
         ('Πληροφορίες Συστήματος', {
             'fields': ('created_at', 'updated_at'),

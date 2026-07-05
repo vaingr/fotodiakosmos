@@ -7,9 +7,20 @@ WAREHOUSE_PERMISSION_FIELDS = [
     ('perm_add_quantity', 'Προσθήκη Ποσότητας'),
     ('perm_remove_quantity', 'Αφαίρεση Ποσότητας'),
     ('perm_measurement_units', 'Μονάδες Μέτρησης'),
+    ('perm_products', 'Προϊόντα'),
+    ('perm_finished_products_warehouse', 'Αποθήκη Έτοιμων Προϊόντων'),
+    ('perm_offers', 'Προσφορές'),
+    ('perm_customers', 'Πελάτες'),
 ]
 
 WAREHOUSE_PERMISSION_KEYS = [key for key, _ in WAREHOUSE_PERMISSION_FIELDS]
+
+MODULE_PERMISSION_KEYS = frozenset({
+    'perm_products',
+    'perm_finished_products_warehouse',
+    'perm_offers',
+    'perm_customers',
+})
 
 
 def get_warehouse_profile(user):
@@ -44,6 +55,21 @@ def has_warehouse_perm(user, perm_key):
     return bool(getattr(profile, perm_key, False))
 
 
+def has_module_perm(user, perm_key):
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    profile = get_warehouse_profile(user)
+    if profile is None:
+        return True
+    if profile.role == profile.ROLE_ADMIN:
+        return True
+    if not profile.is_managed_user:
+        return True
+    return bool(getattr(profile, perm_key, False))
+
+
 def has_any_warehouse_access(user):
     if not user.is_authenticated:
         return False
@@ -58,7 +84,14 @@ def has_any_warehouse_access(user):
 
 
 def get_permissions_dict(user):
-    return {key: has_warehouse_perm(user, key) for key in WAREHOUSE_PERMISSION_KEYS}
+    return {
+        key: (
+            has_module_perm(user, key)
+            if key in MODULE_PERMISSION_KEYS
+            else has_warehouse_perm(user, key)
+        )
+        for key in WAREHOUSE_PERMISSION_KEYS
+    }
 
 
 def can_access_warehouse_dashboard(user):

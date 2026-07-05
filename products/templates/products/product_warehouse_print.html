@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Εκτύπωση Αποθήκης Έτοιμων Προϊόντων</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            color: #111;
+            background: #fff;
+            margin: 0;
+            padding: 1.5rem;
+        }
+        .print-toolbar {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .btn {
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.9375rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-primary { background: #2563eb; color: #fff; }
+        .btn-secondary { background: #e5e7eb; color: #111; }
+        .print-header { margin-bottom: 1.25rem; }
+        .print-header h1 {
+            margin: 0 0 0.5rem;
+            font-size: 1.5rem;
+        }
+        .print-meta {
+            color: #444;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+        .print-meta p { margin: 0.15rem 0; }
+        .print-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8125rem;
+        }
+        .print-table th,
+        .print-table td {
+            border: 1px solid #ccc;
+            padding: 0.5rem 0.625rem;
+            text-align: left;
+            vertical-align: top;
+        }
+        .print-table th {
+            background: #f3f4f6;
+            font-weight: 700;
+        }
+        .print-table tbody tr:nth-child(even) {
+            background: #fafafa;
+        }
+        .photo-col { width: 64px; text-align: center; }
+        .print-product-thumb {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            display: block;
+            margin: 0 auto;
+        }
+        .print-photo-empty {
+            color: #999;
+            font-size: 0.75rem;
+        }
+        .text-center { text-align: center; }
+        .print-footer {
+            margin-top: 1rem;
+            font-size: 0.8125rem;
+            color: #555;
+        }
+        @media print {
+            body { padding: 0; }
+            .print-toolbar { display: none !important; }
+            .print-table { font-size: 10pt; }
+            .print-table th,
+            .print-table td { padding: 0.35rem 0.45rem; }
+            .print-product-thumb {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            .print-toolbar { flex-direction: column; }
+            .btn { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-toolbar">
+        <button type="button" class="btn btn-primary" onclick="window.print()">Εκτύπωση</button>
+        <button type="button" class="btn btn-secondary" onclick="closePrintPage()">Κλείσιμο</button>
+    </div>
+
+    <div class="print-header">
+        <h1>Αποθήκη Έτοιμων Προϊόντων</h1>
+        <div class="print-meta">
+            <p>Ημερομηνία εκτύπωσης: {{ printed_at|date:"d/m/Y H:i" }}</p>
+            <p>Σύνολο προϊόντων: {{ total_count }}</p>
+        </div>
+    </div>
+
+    <table class="print-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th class="photo-col">Φωτο</th>
+                <th>Κωδικός</th>
+                <th>Όνομα</th>
+                <th class="text-center">Ποσότητα</th>
+                <th>Ημ/νία Προσθήκης</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in warehouse_items %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td class="photo-col">
+                    {% if item.product.photo %}
+                    <img src="{{ request.scheme }}://{{ request.get_host }}{{ item.product.photo.url }}"
+                         alt="{{ item.product.name }}"
+                         class="print-product-thumb">
+                    {% else %}
+                    <span class="print-photo-empty">—</span>
+                    {% endif %}
+                </td>
+                <td>{{ item.product.code }}</td>
+                <td>{{ item.product.name }}</td>
+                <td class="text-center">{{ item.quantity }}</td>
+                <td>{{ item.created_at|date:"d/m/Y H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">Δεν υπάρχουν προϊόντα στην αποθήκη.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="print-footer">
+        Σύνολο εγγραφών: {{ total_count }}
+    </div>
+
+    <script>
+    function closePrintPage() {
+        window.close();
+        setTimeout(function() {
+            window.location.href = "{% url 'products:product_warehouse' %}";
+        }, 150);
+    }
+    </script>
+</body>
+</html>
