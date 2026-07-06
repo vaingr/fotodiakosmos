@@ -14,35 +14,101 @@
     </a>
 </div>
 
-<div class="settings-card">
-    <h2><i class="fas fa-image"></i> Λογότυπο προσφοράς</h2>
-    <p class="settings-description">
-        Το λογότυπο εμφανίζεται στην εκτύπωση της προσφοράς, πάνω από τα στοιχεία του πελάτη.
-    </p>
+<form method="post" enctype="multipart/form-data" class="settings-form" id="offerSettingsForm">
+    {% csrf_token %}
 
-    {% if settings.logo %}
-    <div class="logo-preview">
-        <img src="{{ settings.logo.url }}" alt="Τρέχον λογότυπο">
-    </div>
-    {% endif %}
+    <div class="settings-accordion contact-accordion" id="logoSettingsAccordion">
+        <button type="button"
+                class="contact-accordion-toggle"
+                id="logoSettingsAccordionToggle"
+                aria-expanded="{% if logo_section_open %}true{% else %}false{% endif %}"
+                aria-controls="logoSettingsAccordionPanel">
+            <span class="contact-accordion-title">
+                <i class="fas fa-image"></i> Λογότυπο προσφοράς
+            </span>
+            <i class="fas fa-chevron-down contact-accordion-icon" aria-hidden="true"></i>
+        </button>
+        <div class="contact-accordion-panel"
+             id="logoSettingsAccordionPanel"
+             {% if not logo_section_open %}hidden{% endif %}>
+            <p class="settings-description">
+                Το λογότυπο εμφανίζεται στην εκτύπωση της προσφοράς, πάνω από τα στοιχεία του πελάτη.
+            </p>
 
-    <form method="post" enctype="multipart/form-data" class="settings-form">
-        {% csrf_token %}
-        <div class="form-group">
-            <label for="{{ form.logo.id_for_label }}">{{ form.logo.label }}</label>
-            {{ form.logo }}
-            {% if form.logo.errors %}
-            <div class="error-message">{{ form.logo.errors.0 }}</div>
+            {% if settings.logo %}
+            <div class="logo-preview">
+                <img src="{{ settings.logo.url }}" alt="Τρέχον λογότυπο">
+            </div>
             {% endif %}
-            <p class="field-hint">PNG, JPG ή WEBP · μέγιστο 2 MB</p>
+
+            <div class="form-group">
+                <label for="{{ form.logo.id_for_label }}">{{ form.logo.label }}</label>
+                {{ form.logo }}
+                {% if form.logo.errors %}
+                <div class="error-message">{{ form.logo.errors.0 }}</div>
+                {% endif %}
+                <p class="field-hint">PNG, JPG ή WEBP · μέγιστο 2 MB</p>
+            </div>
         </div>
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save"></i> Αποθήκευση
-            </button>
+    </div>
+
+    {% include 'products/_offer_bank_accounts_section.html' with section_id='companyBank' section_title='Τραπεζικοί Λογαριασμοί Εταιρίας' section_description='Λογαριασμοί εταιρίας που εμφανίζονται στην εκτύπωση προσφοράς όταν επιλέγεται ομάδα «Εταιρίας».' bank_formset=company_bank_formset section_open=company_bank_section_open formset_prefix='company_banks' formset_container_id='company-bank-formset' %}
+
+    {% include 'products/_offer_bank_accounts_section.html' with section_id='individualBank' section_title='Τραπεζικοί Λογαριασμοί Ατομικής' section_description='Λογαριασμοί ατομικής δραστηριότητας που εμφανίζονται στην εκτύπωση προσφοράς όταν επιλέγεται ομάδα «Ατομικής».' bank_formset=individual_bank_formset section_open=individual_bank_section_open formset_prefix='individual_banks' formset_container_id='individual-bank-formset' %}
+
+    <div class="settings-accordion contact-accordion settings-accordion-wide" id="termsSettingsAccordion">
+        <button type="button"
+                class="contact-accordion-toggle"
+                id="termsSettingsAccordionToggle"
+                aria-expanded="{% if terms_section_open %}true{% else %}false{% endif %}"
+                aria-controls="termsSettingsAccordionPanel">
+            <span class="contact-accordion-title">
+                <i class="fas fa-file-contract"></i> Πληροφορίες Προσφοράς
+            </span>
+            <i class="fas fa-chevron-down contact-accordion-icon" aria-hidden="true"></i>
+        </button>
+        <div class="contact-accordion-panel"
+             id="termsSettingsAccordionPanel"
+             {% if not terms_section_open %}hidden{% endif %}>
+            <p class="settings-description">
+                Οι πληροφορίες εμφανίζονται στον πίνακα όρων στην εκτύπωση της προσφοράς.
+            </p>
+            <div class="terms-fields-grid">
+                <div class="form-group">
+                    <label for="{{ form.delivery_time.id_for_label }}">{{ form.delivery_time.label }}</label>
+                    {{ form.delivery_time }}
+                    {% if form.delivery_time.errors %}<div class="error-message">{{ form.delivery_time.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.delivery_place.id_for_label }}">{{ form.delivery_place.label }}</label>
+                    {{ form.delivery_place }}
+                    {% if form.delivery_place.errors %}<div class="error-message">{{ form.delivery_place.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.delivery_method.id_for_label }}">{{ form.delivery_method.label }}</label>
+                    {{ form.delivery_method }}
+                    {% if form.delivery_method.errors %}<div class="error-message">{{ form.delivery_method.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.packaging.id_for_label }}">{{ form.packaging.label }}</label>
+                    {{ form.packaging }}
+                    {% if form.packaging.errors %}<div class="error-message">{{ form.packaging.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.payment_method.id_for_label }}">{{ form.payment_method.label }}</label>
+                    {{ form.payment_method }}
+                    {% if form.payment_method.errors %}<div class="error-message">{{ form.payment_method.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
         </div>
-    </form>
-</div>
+    </div>
+
+    <div class="settings-actions">
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Αποθήκευση
+        </button>
+    </div>
+</form>
 
 <style>
 .page-header {
@@ -64,20 +130,58 @@
     align-items: center;
     gap: 0.5rem;
 }
-.settings-card {
+.settings-accordion {
     max-width: 640px;
-    background: var(--card-bg);
-    border-radius: 8px;
-    padding: 1.5rem;
+    margin-bottom: 1rem;
     box-shadow: 0 2px 4px var(--shadow);
 }
-.settings-card h2 {
-    margin: 0 0 0.5rem;
-    font-size: 1.125rem;
-    color: var(--text-primary);
-    display: flex;
+.settings-accordion-wide {
+    max-width: 900px;
+}
+.contact-accordion-title {
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+}
+.contact-accordion {
+    border: 2px solid var(--bg-secondary);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--card-bg);
+}
+.contact-accordion-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.2s ease;
+}
+.contact-accordion-toggle:hover {
+    background: rgba(59, 130, 246, 0.08);
+}
+.contact-accordion-toggle[aria-expanded="true"] {
+    background: rgba(59, 130, 246, 0.1);
+    border-bottom: 1px solid var(--bg-secondary);
+}
+.contact-accordion-icon {
+    color: var(--text-secondary);
+    transition: transform 0.2s ease;
+}
+.contact-accordion-toggle[aria-expanded="true"] .contact-accordion-icon {
+    transform: rotate(180deg);
+    color: var(--accent);
+}
+.contact-accordion-panel {
+    padding: 1.25rem;
 }
 .settings-description {
     margin: 0 0 1.25rem;
@@ -98,7 +202,7 @@
     object-fit: contain;
 }
 .form-group {
-    margin-bottom: 1.25rem;
+    margin-bottom: 0;
 }
 .form-group label {
     display: block;
@@ -106,9 +210,20 @@
     margin-bottom: 0.5rem;
     color: var(--text-primary);
 }
+.form-control,
 .offer-logo-input {
     width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 6px;
+    background: var(--bg-primary);
     color: var(--text-primary);
+    box-sizing: border-box;
+    font-size: 1rem;
+}
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent);
 }
 .field-hint {
     margin: 0.5rem 0 0;
@@ -120,7 +235,47 @@
     color: #dc3545;
     font-size: 0.875rem;
 }
-.form-actions {
+.bank-row {
+    border: 1px solid var(--bg-secondary);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+}
+.bank-row-fields {
+    display: grid;
+    grid-template-columns: 1fr 2fr auto;
+    gap: 1rem;
+    align-items: end;
+}
+.delete-field {
+    display: flex;
+    align-items: center;
+    padding-bottom: 0.25rem;
+}
+.delete-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+.bank-add-row-wrap {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 0.5rem;
+}
+.bank-add-row-wrap .btn-success {
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.35);
+}
+.terms-fields-grid {
+    display: grid;
+    gap: 1rem;
+}
+.settings-actions {
+    max-width: 900px;
     display: flex;
     gap: 0.75rem;
 }
@@ -135,7 +290,140 @@
     text-decoration: none;
     font-size: 0.9375rem;
 }
+.btn-sm { padding: 0.5rem 0.75rem; font-size: 0.85rem; }
 .btn-primary { background: var(--accent); color: white; }
 .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); }
+.btn-success { background: #28a745; color: white; }
+.btn-success:hover { background: #218838; }
+.btn-danger { background: #dc3545; color: white; }
+@media (max-width: 768px) {
+    .bank-row-fields { grid-template-columns: 1fr; }
+}
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function initSettingsAccordion(toggleId, panelId) {
+        const toggle = document.getElementById(toggleId);
+        const panel = document.getElementById(panelId);
+        if (!toggle || !panel) return;
+
+        toggle.addEventListener('click', function() {
+            const isOpen = toggle.getAttribute('aria-expanded') === 'true';
+            toggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+            panel.hidden = isOpen;
+        });
+    }
+
+    initSettingsAccordion('logoSettingsAccordionToggle', 'logoSettingsAccordionPanel');
+    initSettingsAccordion('companyBankSettingsAccordionToggle', 'companyBankSettingsAccordionPanel');
+    initSettingsAccordion('individualBankSettingsAccordionToggle', 'individualBankSettingsAccordionPanel');
+    initSettingsAccordion('termsSettingsAccordionToggle', 'termsSettingsAccordionPanel');
+
+    function bindUppercaseInput(input) {
+        if (!input) return;
+        input.addEventListener('input', function() {
+            input.value = input.value.toUpperCase();
+        });
+        input.addEventListener('paste', function() {
+            setTimeout(function() {
+                input.value = input.value.toUpperCase();
+            }, 0);
+        });
+    }
+
+    function initBankFormset(formsetPrefix, containerId) {
+        const formsetContainer = document.getElementById(containerId);
+        const totalFormsInput = document.getElementById('id_' + formsetPrefix + '-TOTAL_FORMS');
+        if (!formsetContainer || !totalFormsInput) return;
+
+        function syncFormsetIndices() {
+            const rows = formsetContainer.querySelectorAll('[data-form-row]');
+            const namePattern = new RegExp(formsetPrefix + '-\\d+-');
+            const idPattern = new RegExp('id_' + formsetPrefix + '-\\d+-');
+            rows.forEach(function(row, index) {
+                row.querySelectorAll('[name^="' + formsetPrefix + '-"], [id^="id_' + formsetPrefix + '-"]').forEach(function(field) {
+                    if (field.name) {
+                        field.name = field.name.replace(namePattern, formsetPrefix + '-' + index + '-');
+                    }
+                    if (field.id) {
+                        field.id = field.id.replace(idPattern, 'id_' + formsetPrefix + '-' + index + '-');
+                    }
+                });
+            });
+            totalFormsInput.value = String(rows.length);
+            return rows.length;
+        }
+
+        function bindRemoveButtons(scope) {
+            (scope || formsetContainer).querySelectorAll('.remove-bank-btn').forEach(function(button) {
+                if (button.dataset.bound) return;
+                button.dataset.bound = '1';
+                button.addEventListener('click', function() {
+                    const row = button.closest('[data-form-row]');
+                    row.remove();
+                    syncFormsetIndices();
+                });
+            });
+        }
+
+        function bindInputs(scope) {
+            (scope || formsetContainer).querySelectorAll('.bank-name-input, .bank-iban-input').forEach(bindUppercaseInput);
+        }
+
+        function buildBankRowHtml(index) {
+            return `
+                <div class="bank-row" data-form-row>
+                    <div class="bank-row-fields">
+                        <div class="form-group">
+                            <label for="id_${formsetPrefix}-${index}-bank_name">Τράπεζα</label>
+                            <input type="text"
+                                   name="${formsetPrefix}-${index}-bank_name"
+                                   id="id_${formsetPrefix}-${index}-bank_name"
+                                   class="form-control bank-name-input"
+                                   placeholder="π.χ. ΕΘΝΙΚΗ"
+                                   autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="id_${formsetPrefix}-${index}-iban">IBAN</label>
+                            <input type="text"
+                                   name="${formsetPrefix}-${index}-iban"
+                                   id="id_${formsetPrefix}-${index}-iban"
+                                   class="form-control bank-iban-input"
+                                   placeholder="GR..."
+                                   autocomplete="off">
+                        </div>
+                        <div class="delete-field">
+                            <button type="button" class="btn btn-danger btn-sm remove-bank-btn" title="Αφαίρεση">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <input type="hidden" name="${formsetPrefix}-${index}-id" id="id_${formsetPrefix}-${index}-id" value="">
+                </div>
+            `;
+        }
+
+        document.querySelectorAll('.add-bank-row-btn[data-formset-prefix="' + formsetPrefix + '"]').forEach(function(addButton) {
+            addButton.addEventListener('click', function() {
+                const index = syncFormsetIndices();
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = buildBankRowHtml(index).trim();
+                const row = wrapper.firstElementChild;
+                formsetContainer.appendChild(row);
+                totalFormsInput.value = String(index + 1);
+                bindRemoveButtons(row);
+                bindInputs(row);
+                row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            });
+        });
+
+        bindRemoveButtons(formsetContainer);
+        bindInputs(formsetContainer);
+    }
+
+    initBankFormset('company_banks', 'company-bank-formset');
+    initBankFormset('individual_banks', 'individual-bank-formset');
+});
+</script>
 {% endblock %}

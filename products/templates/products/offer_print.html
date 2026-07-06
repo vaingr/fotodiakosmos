@@ -208,10 +208,22 @@
         .text-center { text-align: center; }
         .grand-total {
             margin-top: 0.35rem;
-            margin-bottom: 1.35rem;
+            margin-bottom: 0.35rem;
             text-align: right;
             font-size: 0.95rem;
             font-weight: bold;
+        }
+        .offer-totals {
+            margin-top: 0.35rem;
+            margin-bottom: 1.35rem;
+            text-align: right;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+        .offer-totals .grand-total {
+            margin-top: 0.25rem;
+            margin-bottom: 0;
+            font-size: 0.95rem;
         }
         .notes-box {
             margin-top: 0.5rem;
@@ -326,7 +338,7 @@
             <button type="submit"
                     class="btn btn-email"
                     id="offerEmailBtn"
-                    {% if not email_configured or not customer_email %}disabled title="{% if not email_configured %}Οι ρυθμίσεις email δεν έχουν ολοκληρωθεί{% else %}Ο πελάτης δεν έχει email{% endif %}"{% endif %}>
+                    {% if not email_configured or not can_send_offer_email %}disabled title="{% if not email_configured %}Οι ρυθμίσεις email δεν έχουν ολοκληρωθεί{% else %}Ο πελάτης δεν έχει email{% endif %}"{% endif %}>
                 <i class="fas fa-envelope"></i> Αποστολή σε mail
             </button>
         </form>
@@ -354,10 +366,10 @@
                     <div class="customer-box-main">
                         <h2>Στοιχεία Πελάτη</h2>
                         <p><strong>{{ offer.customer.display_name }}</strong></p>
-                        {% if offer.customer.phone %}<p>Τηλέφωνο: {{ offer.customer.phone }}</p>{% endif %}
-                        {% if offer.customer.email %}<p>Email: {{ offer.customer.email }}</p>{% endif %}
-                        {% if offer.customer.is_company and offer.customer.contact_person %}
-                        <p>Υπόψιν: {{ offer.customer.contact_person_display }}</p>
+                        {% if offer.customer.get_primary_phone %}<p>Τηλέφωνο: {{ offer.customer.get_primary_phone }}</p>{% endif %}
+                        {% if offer.customer.get_primary_email %}<p>Email: {{ offer.customer.get_primary_email }}</p>{% endif %}
+                        {% if offer.customer.is_company and attention_display %}
+                        <p>Υπόψιν: {{ attention_display }}</p>
                         {% endif %}
                     </div>
                     <div class="customer-box-meta">
@@ -411,8 +423,12 @@
         </table>
 
         <div class="content-block" data-block="total">
-            <div class="grand-total">
-                Συνολικό ποσό: {{ offer.total_amount|floatformat:2 }} €
+            <div class="offer-totals">
+                <div>Υποσύνολο: {{ offer.subtotal_amount|floatformat:2 }} €</div>
+                <div>ΦΠΑ ({{ offer.customer.get_vat_rate_label }}): {{ offer.vat_amount|floatformat:2 }} €</div>
+                <div class="grand-total">
+                    Συνολικό ποσό: {{ offer.grand_total_amount|floatformat:2 }} €
+                </div>
             </div>
         </div>
 
@@ -426,28 +442,22 @@
 
         <table class="offer-terms-table" data-block="terms" id="sourceTermsTable">
             <tbody>
-                <tr class="terms-row"><td>Χρόνος παράδοσης: Κατόπιν συνεννόησης</td></tr>
-                <tr class="terms-row"><td>Τόπος παράδοσης: Έδρα πελάτη</td></tr>
-                <tr class="terms-row"><td>Τρόπος παράδοσης: Κατόπιν συνεννόησης</td></tr>
-                <tr class="terms-row"><td>Συσκευασία: Δέματα</td></tr>
-                <tr class="terms-row"><td>Τρόπος πληρωμής:</td></tr>
+                {% for label, value in offer.get_offer_terms_rows %}
+                <tr class="terms-row"><td>{{ label }}:{% if value %} {{ value }}{% endif %}</td></tr>
+                {% endfor %}
             </tbody>
         </table>
 
         <div class="content-block" data-block="banks">
             <div class="bank-accounts">
+                {% for account in offer_bank_accounts %}
                 <p>
-                    <span class="bank-name">ΕΘΝΙΚΗ</span>
-                    <span class="bank-iban">GR4701103030000030301714256</span>
+                    <span class="bank-name">{{ account.bank_name }}</span>
+                    <span class="bank-iban">{{ account.iban }}</span>
                 </p>
-                <p>
-                    <span class="bank-name">ΠΕΙΡΑΙΩΣ</span>
-                    <span class="bank-iban">GR 5001712640006264170336444</span>
-                </p>
-                <p>
-                    <span class="bank-name">ALPHA</span>
-                    <span class="bank-iban">GR 8501402200220002002033741</span>
-                </p>
+                {% empty %}
+                <p>—</p>
+                {% endfor %}
             </div>
         </div>
 

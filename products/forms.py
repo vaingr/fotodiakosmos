@@ -1,13 +1,13 @@
 import re
 
 from django import forms
-from django.forms import inlineformset_factory
+from django.forms import BaseInlineFormSet, inlineformset_factory
 
 from warehouse.models import Product as WarehouseProduct
 
 from customers.models import Customer
 
-from .models import FinishedProduct, Offer, OfferItem, OfferSettings, ProductMaterial, ProductStock
+from .models import FinishedProduct, Offer, OfferItem, OfferBankAccount, OfferSettings, ProductMaterial, ProductStock
 
 
 class FinishedProductForm(forms.ModelForm):
@@ -220,9 +220,45 @@ class ProductWarehouseRemoveForm(forms.Form):
 
 
 def get_customer_delivery_email(customer):
+    return customer.get_primary_email()
+
+
+def get_offer_email_recipients(customer):
+    """Λίστα παραληπτών email προσφοράς με το σωστό πεδίο Υπόψιν ανά παραλήπτη."""
+    recipients = []
+
     if customer.is_company:
-        return (customer.contact_email or customer.email or '').strip()
-    return (customer.email or '').strip()
+        primary_email = (customer.contact_email or '').strip()
+        if primary_email:
+            recipients.append({
+                'email': primary_email,
+                'contact_recipient': '1',
+            })
+
+        second_email = (customer.contact_person_2_email or '').strip()
+        if second_email:
+            if not any(entry['email'].lower() == second_email.lower() for entry in recipients):
+                recipients.append({
+                    'email': second_email,
+                    'contact_recipient': '2',
+                })
+    else:
+        email = (customer.get_primary_email() or '').strip()
+        if email:
+            recipients.append({
+                'email': email,
+                'contact_recipient': None,
+            })
+
+    return recipients
+
+
+def get_offer_attention_display(customer, contact_recipient=None):
+    if not customer.is_company:
+        return ''
+    if contact_recipient == '2':
+        return customer.contact_person_2_display()
+    return customer.contact_person_display()
 
 
 class ProductWarehouseEmailForm(forms.Form):
@@ -275,11 +311,29 @@ class OfferForm(forms.ModelForm):
 
     class Meta:
         model = Offer
-        fields = ['customer', 'notes']
+        fields = [
+            'customer',
+            'bank_account_group',
+            'delivery_time',
+            'delivery_place',
+            'delivery_method',
+            'packaging',
+            'payment_method',
+            'notes',
+        ]
         labels = {
             'notes': 'Σημείωση',
+            'bank_account_group': 'Τραπεζικοί λογαριασμοί',
         }
         widgets = {
+            'bank_account_group': forms.RadioSelect(attrs={
+                'class': 'offer-bank-group-options',
+            }),
+            'delivery_time': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}),
+            'delivery_place': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}),
+            'delivery_method': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}),
+            'packaging': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}),
+            'payment_method': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}),
             'notes': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 2,
@@ -294,6 +348,14 @@ class OfferForm(forms.ModelForm):
         )
         self.fields['customer'].label_from_instance = lambda customer: customer.display_name()
         self.fields['notes'].required = False
+
+        if not self.instance.pk:
+            settings = OfferSettings.get_solo()
+            self.fields['delivery_time'].initial = settings.delivery_time
+            self.fields['delivery_place'].initial = settings.delivery_place
+            self.fields['delivery_method'].initial = settings.delivery_method
+            self.fields['packaging'].initial = settings.packaging
+            self.fields['payment_method'].initial = settings.payment_method
 
 
 class OfferItemForm(forms.ModelForm):
@@ -339,7 +401,14 @@ OfferItemFormSet = inlineformset_factory(
 class OfferSettingsForm(forms.ModelForm):
     class Meta:
         model = OfferSettings
-        fields = ['logo']
+        fields = [
+            'logo',
+            'delivery_time',
+            'delivery_place',
+            'delivery_method',
+            'packaging',
+            'payment_method',
+        ]
         labels = {
             'logo': 'Λογότυπο',
         }
@@ -348,6 +417,11 @@ class OfferSettingsForm(forms.ModelForm):
                 'class': 'offer-logo-input',
                 'accept': 'image/*',
             }),
+            'delivery_time': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}),
+            'delivery_place': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}),
+            'delivery_method': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}),
+            'packaging': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}),
+            'payment_method': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}),
         }
 
     def clean_logo(self):
@@ -363,3 +437,61 @@ class OfferSettingsForm(forms.ModelForm):
             raise forms.ValidationError('Επιτρέπονται μόνο αρχεία εικόνας.')
 
         return logo
+
+
+class OfferBankAccountForm(forms.ModelForm):
+    class Meta:
+        model = OfferBankAccount
+        fields = ['bank_name', 'iban']
+        labels = {
+            'bank_name': 'Τράπεζα',
+            'iban': 'IBAN',
+        }
+        widgets = {
+            'bank_name': forms.TextInput(attrs={
+                'class': 'form-control bank-name-input',
+                'placeholder': 'π.χ. ΕΘΝΙΚΗ',
+                'autocomplete': 'off',
+            }),
+            'iban': forms.TextInput(attrs={
+                'class': 'form-control bank-iban-input',
+                'placeholder': 'GR...',
+                'autocomplete': 'off',
+            }),
+        }
+
+    def clean_bank_name(self):
+        bank_name = self.cleaned_data.get('bank_name', '')
+        return bank_name.strip().upper()
+
+    def clean_iban(self):
+        iban = self.cleaned_data.get('iban', '')
+        return iban.strip().upper()
+
+
+def _build_bank_account_formset(account_group):
+    class BaseOfferBankAccountFormSet(BaseInlineFormSet):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            if self.instance.pk:
+                self.queryset = self.instance.bank_accounts.filter(account_group=account_group)
+
+        def save_new(self, form, commit=True):
+            instance = form.save(commit=False)
+            instance.account_group = account_group
+            if commit:
+                instance.save()
+            return instance
+
+    return inlineformset_factory(
+        OfferSettings,
+        OfferBankAccount,
+        form=OfferBankAccountForm,
+        formset=BaseOfferBankAccountFormSet,
+        extra=0,
+        can_delete=True,
+    )
+
+
+CompanyBankAccountFormSet = _build_bank_account_formset(OfferBankAccount.GROUP_COMPANY)
+IndividualBankAccountFormSet = _build_bank_account_formset(OfferBankAccount.GROUP_INDIVIDUAL)

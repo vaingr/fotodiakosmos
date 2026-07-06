@@ -48,6 +48,24 @@
                         {% endif %}
                     </div>
                 </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }} (προαιρετικό)</label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                        <div class="error-message">{{ form.phone.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                        <div class="error-message">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
 
             <div id="company-fields" class="customer-fields-section"{% if form.customer_type.value != 'company' %} hidden{% endif %}>
@@ -63,7 +81,7 @@
 
                 <div class="form-row">
                     <div class="form-group form-group-full">
-                        <label for="{{ form.contact_person.id_for_label }}">{{ form.contact_person.label }}</label>
+                        <div class="contact-section-title">1ος Υπεύθυνος επικοινωνίας</div>
                         <div class="contact-person-field">
                             <div class="contact-person-gender">
                                 <span class="contact-person-gender-label">{{ form.contact_person_gender.label }}</span>
@@ -79,31 +97,101 @@
                                 <div class="error-message">{{ form.contact_person_gender.errors.0 }}</div>
                                 {% endif %}
                             </div>
+                            <label for="{{ form.contact_person.id_for_label }}">{{ form.contact_person.label }}</label>
                             {{ form.contact_person }}
+                            {% if form.contact_person.errors %}
+                            <div class="error-message">{{ form.contact_person.errors.0 }}</div>
+                            {% endif %}
                         </div>
-                        {% if form.contact_person.errors %}
-                        <div class="error-message">{{ form.contact_person.errors.0 }}</div>
-                        {% endif %}
+                        <div class="form-row contact-details-row">
+                            <div class="form-group">
+                                <label for="{{ form.contact_phone.id_for_label }}">{{ form.contact_phone.label }}</label>
+                                {{ form.contact_phone }}
+                                {% if form.contact_phone.errors %}
+                                <div class="error-message">{{ form.contact_phone.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="form-group">
+                                <label for="{{ form.contact_email.id_for_label }}">{{ form.contact_email.label }}</label>
+                                {{ form.contact_email }}
+                                {% if form.contact_email.errors %}
+                                <div class="error-message">{{ form.contact_email.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group form-group-full">
+                        <div class="contact-accordion" id="secondContactAccordion">
+                            <button type="button"
+                                    class="contact-accordion-toggle"
+                                    id="secondContactAccordionToggle"
+                                    aria-expanded="{% if form.contact_person_2.value or form.contact_person_2_gender.value or form.contact_person_2_phone.value or form.contact_person_2_email.value or form.contact_person_2.errors or form.contact_person_2_gender.errors or form.contact_person_2_phone.errors or form.contact_person_2_email.errors %}true{% else %}false{% endif %}"
+                                    aria-controls="secondContactAccordionPanel">
+                                <span class="contact-accordion-title">2ος Υπεύθυνος επικοινωνίας (προαιρετικό)</span>
+                                <i class="fas fa-chevron-down contact-accordion-icon" aria-hidden="true"></i>
+                            </button>
+                            <div class="contact-accordion-panel"
+                                 id="secondContactAccordionPanel"
+                                 {% if not form.contact_person_2.value and not form.contact_person_2_gender.value and not form.contact_person_2_phone.value and not form.contact_person_2_email.value and not form.contact_person_2.errors and not form.contact_person_2_gender.errors and not form.contact_person_2_phone.errors and not form.contact_person_2_email.errors %}hidden{% endif %}>
+                                <div class="contact-person-field">
+                                    <div class="contact-person-gender">
+                                        <span class="contact-person-gender-label">{{ form.contact_person_2_gender.label }}</span>
+                                        <div class="contact-person-gender-options">
+                                            {% for radio in form.contact_person_2_gender %}
+                                            <label class="contact-person-gender-option">
+                                                {{ radio.tag }}
+                                                <span>{{ radio.choice_label }}</span>
+                                            </label>
+                                            {% endfor %}
+                                        </div>
+                                        {% if form.contact_person_2_gender.errors %}
+                                        <div class="error-message">{{ form.contact_person_2_gender.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <label for="{{ form.contact_person_2.id_for_label }}">{{ form.contact_person_2.label }}</label>
+                                    {{ form.contact_person_2 }}
+                                    {% if form.contact_person_2.errors %}
+                                    <div class="error-message">{{ form.contact_person_2.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="form-row contact-details-row">
+                                    <div class="form-group">
+                                        <label for="{{ form.contact_person_2_phone.id_for_label }}">{{ form.contact_person_2_phone.label }}</label>
+                                        {{ form.contact_person_2_phone }}
+                                        {% if form.contact_person_2_phone.errors %}
+                                        <div class="error-message">{{ form.contact_person_2_phone.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="{{ form.contact_person_2_email.id_for_label }}">{{ form.contact_person_2_email.label }}</label>
+                                        {{ form.contact_person_2_email }}
+                                        {% if form.contact_person_2_email.errors %}
+                                        <div class="error-message">{{ form.contact_person_2_email.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }} (προαιρετικό)</label>
-                    {{ form.phone }}
-                    {% if form.phone.errors %}
-                    <div class="error-message">{{ form.phone.errors.0 }}</div>
-                    {% endif %}
+            <div class="form-group vat-rate-group">
+                <label>{{ form.vat_rate.label }}</label>
+                <div class="vat-rate-options">
+                    {% for radio in form.vat_rate %}
+                    <label class="vat-rate-option">
+                        {{ radio.tag }}
+                        <span>{{ radio.choice_label }}</span>
+                    </label>
+                    {% endfor %}
                 </div>
-
-                <div class="form-group">
-                    <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
-                    {{ form.email }}
-                    {% if form.email.errors %}
-                    <div class="error-message">{{ form.email.errors.0 }}</div>
-                    {% endif %}
-                </div>
+                {% if form.vat_rate.errors %}
+                <div class="error-message">{{ form.vat_rate.errors.0 }}</div>
+                {% endif %}
             </div>
 
             <div class="form-actions">
@@ -187,6 +275,35 @@
     accent-color: var(--accent);
 }
 
+.vat-rate-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+.vat-rate-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-weight: 600;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.vat-rate-option:has(input:checked) {
+    border-color: var(--accent);
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.vat-rate-option input {
+    accent-color: var(--accent);
+}
+
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -201,6 +318,67 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.contact-section-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--bg-secondary);
+}
+
+.contact-details-row {
+    margin-top: 0.25rem;
+}
+
+.contact-accordion {
+    border: 2px solid var(--bg-secondary);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: var(--bg-primary);
+}
+
+.contact-accordion-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1rem;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.2s ease;
+}
+
+.contact-accordion-toggle:hover {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.contact-accordion-toggle[aria-expanded="true"] {
+    background: rgba(59, 130, 246, 0.1);
+    border-bottom: 1px solid var(--bg-secondary);
+}
+
+.contact-accordion-icon {
+    color: var(--text-secondary);
+    transition: transform 0.2s ease;
+}
+
+.contact-accordion-toggle[aria-expanded="true"] .contact-accordion-icon {
+    transform: rotate(180deg);
+    color: var(--accent);
+}
+
+.contact-accordion-panel {
+    padding: 1rem;
 }
 
 .contact-person-gender-label {
@@ -334,14 +512,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('customerForm');
     const individualFields = document.getElementById('individual-fields');
     const companyFields = document.getElementById('company-fields');
+    const secondContactAccordionToggle = document.getElementById('secondContactAccordionToggle');
+    const secondContactAccordionPanel = document.getElementById('secondContactAccordionPanel');
     const typeRadios = form.querySelectorAll('input[name="customer_type"]');
 
     const firstNameInput = document.getElementById('{{ form.first_name.id_for_label }}');
     const lastNameInput = document.getElementById('{{ form.last_name.id_for_label }}');
     const companyNameInput = document.getElementById('{{ form.company_name.id_for_label }}');
     const contactPersonInput = document.getElementById('{{ form.contact_person.id_for_label }}');
+    const contactPerson2Input = document.getElementById('{{ form.contact_person_2.id_for_label }}');
     const phoneInput = document.getElementById('{{ form.phone.id_for_label }}');
     const emailInput = document.getElementById('{{ form.email.id_for_label }}');
+    const contactPhoneInput = document.getElementById('{{ form.contact_phone.id_for_label }}');
+    const contactEmailInput = document.getElementById('{{ form.contact_email.id_for_label }}');
+    const contactPerson2PhoneInput = document.getElementById('{{ form.contact_person_2_phone.id_for_label }}');
+    const contactPerson2EmailInput = document.getElementById('{{ form.contact_person_2_email.id_for_label }}');
 
     function getSelectedType() {
         const selected = form.querySelector('input[name="customer_type"]:checked');
@@ -422,13 +607,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function setSecondContactAccordion(open) {
+        if (!secondContactAccordionToggle || !secondContactAccordionPanel) return;
+        secondContactAccordionToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        secondContactAccordionPanel.hidden = !open;
+    }
+
+    if (secondContactAccordionToggle && secondContactAccordionPanel) {
+        secondContactAccordionToggle.addEventListener('click', function() {
+            const isOpen = secondContactAccordionToggle.getAttribute('aria-expanded') === 'true';
+            setSecondContactAccordion(!isOpen);
+        });
+    }
+
     typeRadios.forEach(function(radio) {
         radio.addEventListener('change', updateCustomerTypeView);
     });
 
-    [firstNameInput, lastNameInput, companyNameInput, contactPersonInput].forEach(bindUppercaseInput);
-    bindPhoneInput(phoneInput);
-    bindEmailInput(emailInput);
+    [firstNameInput, lastNameInput, companyNameInput, contactPersonInput, contactPerson2Input].forEach(bindUppercaseInput);
+    [phoneInput, contactPhoneInput, contactPerson2PhoneInput].forEach(bindPhoneInput);
+    [emailInput, contactEmailInput, contactPerson2EmailInput].forEach(bindEmailInput);
 
     updateCustomerTypeView();
 });

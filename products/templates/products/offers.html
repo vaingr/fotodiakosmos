@@ -67,7 +67,7 @@
                     <th>Αριθμός</th>
                     <th>Πελάτης</th>
                     <th>Ημ/νία</th>
-                    <th>Σύνολο</th>
+                    <th>Σύνολο (με ΦΠΑ)</th>
                     <th>Δημιουργός</th>
                     <th>Ενέργειες</th>
                 </tr>
@@ -78,7 +78,7 @@
                     <td>{{ offer.offer_number }}</td>
                     <td>{{ offer.customer.display_name }}</td>
                     <td>{{ offer.created_at|date:"d/m/Y H:i" }}</td>
-                    <td>{{ offer.total_amount|floatformat:2 }} €</td>
+                    <td>{{ offer.grand_total_amount|floatformat:2 }} €</td>
                     <td>{{ offer.created_by.username|default:"—" }}</td>
                     <td>
                         <div class="table-actions">

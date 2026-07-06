@@ -1,3 +1,5 @@
+from decimal import Decimal, ROUND_HALF_UP
+
 from django.db import models
 
 # Create your models here.
@@ -45,6 +47,36 @@ class Customer(models.Model):
     contact_email = models.EmailField(
         blank=True, default='', verbose_name="Email υπεύθυνου"
     )
+    contact_person_2 = models.CharField(
+        max_length=200, blank=True, default='', verbose_name='2ος υπεύθυνος επικοινωνίας',
+    )
+    contact_person_2_gender = models.CharField(
+        max_length=10,
+        choices=CONTACT_GENDER_CHOICES,
+        blank=True,
+        default='',
+        verbose_name='Φύλο 2ου υπεύθυνου',
+    )
+    contact_person_2_phone = models.CharField(
+        max_length=20, blank=True, default='', verbose_name='Τηλέφωνο 2ου υπεύθυνου',
+    )
+    contact_person_2_email = models.EmailField(
+        blank=True, default='', verbose_name='Email 2ου υπεύθυνου',
+    )
+    VAT_RATE_24 = '24'
+    VAT_RATE_17 = '17'
+    VAT_RATE_0 = '0'
+    VAT_RATE_CHOICES = [
+        (VAT_RATE_24, '24%'),
+        (VAT_RATE_17, '17%'),
+        (VAT_RATE_0, 'Μηδενικό'),
+    ]
+    vat_rate = models.CharField(
+        max_length=5,
+        choices=VAT_RATE_CHOICES,
+        default=VAT_RATE_24,
+        verbose_name='ΦΠΑ',
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ημερομηνία Δημιουργίας")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Ημερομηνία Ενημέρωσης")
 
@@ -76,10 +108,37 @@ class Customer(models.Model):
         return dict(self.TYPE_CHOICES).get(self.customer_type, self.customer_type)
 
     def contact_person_display(self):
-        if not self.contact_person:
+        return self._format_contact_person_display(self.contact_person, self.contact_person_gender)
+
+    def contact_person_2_display(self):
+        return self._format_contact_person_display(self.contact_person_2, self.contact_person_2_gender)
+
+    def _format_contact_person_display(self, name, gender):
+        if not name:
             return ''
-        if self.contact_person_gender == self.CONTACT_GENDER_MALE:
-            return f'Κος {self.contact_person}'
-        if self.contact_person_gender == self.CONTACT_GENDER_FEMALE:
-            return f'Κα {self.contact_person}'
-        return self.contact_person
+        if gender == self.CONTACT_GENDER_MALE:
+            return f'Κος {name}'
+        if gender == self.CONTACT_GENDER_FEMALE:
+            return f'Κα {name}'
+        return name
+
+    def get_primary_phone(self):
+        if self.is_company:
+            return self.contact_phone or ''
+        return self.phone or ''
+
+    def get_primary_email(self):
+        if self.is_company:
+            return self.contact_email or ''
+        return self.email or ''
+
+    def get_vat_rate_label(self):
+        return dict(self.VAT_RATE_CHOICES).get(self.vat_rate, f'{self.vat_rate}%')
+
+    def calculate_vat_amount(self, net_amount):
+        rate = Decimal(self.vat_rate) / Decimal('100')
+        return (Decimal(net_amount) * rate).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+    def calculate_total_with_vat(self, net_amount):
+        net = Decimal(net_amount).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        return net + self.calculate_vat_amount(net)

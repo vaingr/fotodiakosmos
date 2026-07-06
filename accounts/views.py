@@ -590,8 +590,8 @@ def send_bulk_sms_view(request):
             for customer_id in destinations:
                 try:
                     customer = Customer.objects.get(pk=customer_id)
-                    if customer.phone:
-                        phone_numbers.append(customer.phone)
+                    if customer.get_primary_phone():
+                        phone_numbers.append(customer.get_primary_phone())
                 except Customer.DoesNotExist:
                     pass
             

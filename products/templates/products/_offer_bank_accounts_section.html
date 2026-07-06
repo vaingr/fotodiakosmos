@@ -1,0 +1,65 @@
+<div class="settings-accordion contact-accordion settings-accordion-wide" id="{{ section_id }}SettingsAccordion">
+    <button type="button"
+            class="contact-accordion-toggle"
+            id="{{ section_id }}SettingsAccordionToggle"
+            aria-expanded="{% if section_open %}true{% else %}false{% endif %}"
+            aria-controls="{{ section_id }}SettingsAccordionPanel">
+        <span class="contact-accordion-title">
+            <i class="fas fa-university"></i> {{ section_title }}
+        </span>
+        <i class="fas fa-chevron-down contact-accordion-icon" aria-hidden="true"></i>
+    </button>
+    <div class="contact-accordion-panel"
+         id="{{ section_id }}SettingsAccordionPanel"
+         {% if not section_open %}hidden{% endif %}>
+        <p class="settings-description">{{ section_description }}</p>
+
+        {% if bank_formset.non_form_errors %}
+        <div class="error-message">{{ bank_formset.non_form_errors.0 }}</div>
+        {% endif %}
+
+        {{ bank_formset.management_form }}
+        <div id="{{ formset_container_id }}" class="bank-formset" data-formset-prefix="{{ formset_prefix }}">
+            {% for bank_form in bank_formset %}
+            <div class="bank-row" data-form-row>
+                <div class="bank-row-fields">
+                    <div class="form-group">
+                        <label for="{{ bank_form.bank_name.id_for_label }}">{{ bank_form.bank_name.label }}</label>
+                        {{ bank_form.bank_name }}
+                        {% if bank_form.bank_name.errors %}
+                        <div class="error-message">{{ bank_form.bank_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ bank_form.iban.id_for_label }}">{{ bank_form.iban.label }}</label>
+                        {{ bank_form.iban }}
+                        {% if bank_form.iban.errors %}
+                        <div class="error-message">{{ bank_form.iban.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="delete-field">
+                        {% if bank_form.instance.pk %}
+                        <label class="delete-checkbox">
+                            {{ bank_form.DELETE }} Διαγραφή
+                        </label>
+                        {% else %}
+                        <button type="button" class="btn btn-danger btn-sm remove-bank-btn" title="Αφαίρεση">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% for hidden in bank_form.hidden_fields %}
+                    {% if hidden.name != 'DELETE' %}{{ hidden }}{% endif %}
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="bank-add-row-wrap">
+            <button type="button" class="btn btn-success add-bank-row-btn" data-formset-prefix="{{ formset_prefix }}" data-formset-container="{{ formset_container_id }}">
+                <i class="fas fa-plus"></i> Προσθήκη λογαριασμού
+            </button>
+        </div>
+    </div>
+</div>

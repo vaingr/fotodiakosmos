@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Q
+from django.db.models.deletion import ProtectedError
 from warehouse.decorators import require_module_perm
 from .models import Customer
 from .forms import CustomerForm
@@ -33,7 +34,10 @@ def customer_list(request):
                     Q(email__icontains=search_query) |
                     Q(contact_person__icontains=search_query) |
                     Q(contact_phone__icontains=search_query) |
-                    Q(contact_email__icontains=search_query)
+                    Q(contact_email__icontains=search_query) |
+                    Q(contact_person_2__icontains=search_query) |
+                    Q(contact_person_2_phone__icontains=search_query) |
+                    Q(contact_person_2_email__icontains=search_query)
                 )
         else:
             # Normal search for names, phones, etc. (case-insensitive)
@@ -47,7 +51,10 @@ def customer_list(request):
                 Q(email__icontains=search_query) |
                 Q(contact_person__icontains=search_query) |
                 Q(contact_phone__icontains=search_query) |
-                Q(contact_email__icontains=search_query)
+                Q(contact_email__icontains=search_query) |
+                Q(contact_person_2__icontains=search_query) |
+                Q(contact_person_2_phone__icontains=search_query) |
+                Q(contact_person_2_email__icontains=search_query)
             )
     
     # Pagination
@@ -107,15 +114,36 @@ def customer_detail(request, pk):
 def delete_customer(request, customer_id):
     """Delete customer"""
     customer = get_object_or_404(Customer, id=customer_id)
-    
+    offers_count = customer.offers.count()
+    has_offers = offers_count > 0
+
     if request.method == 'POST':
-        customer_name = customer.full_name()
-        customer.delete()
-        messages.success(request, f'Ο πελάτης {customer_name} διαγράφηκε επιτυχώς!')
-        return redirect('customers:customer_list')
-    
+        if has_offers:
+            messages.error(
+                request,
+                f'Ο πελάτης «{customer.display_name()}» έχει {offers_count} '
+                f'{"προσφορά" if offers_count == 1 else "προσφορές"} και δεν μπορεί να διαγραφεί. '
+                'Διαγράψτε πρώτα τις προσφορές του.',
+            )
+            return redirect('customers:customer_detail', pk=customer.id)
+
+        try:
+            customer_name = customer.full_name()
+            customer.delete()
+            messages.success(request, f'Ο πελάτης {customer_name} διαγράφηκε επιτυχώς!')
+            return redirect('customers:customer_list')
+        except ProtectedError:
+            messages.error(
+                request,
+                f'Ο πελάτης «{customer.display_name()}» συνδέεται με προσφορές και δεν μπορεί να διαγραφεί. '
+                'Διαγράψτε πρώτα τις προσφορές του.',
+            )
+            return redirect('customers:customer_detail', pk=customer.id)
+
     return render(request, 'customers/customer_confirm_delete.html', {
-        'customer': customer
+        'customer': customer,
+        'offers_count': offers_count,
+        'has_offers': has_offers,
     })
 
 @require_module_perm('perm_customers')
@@ -130,12 +158,12 @@ def send_sms_to_customer(request, customer_id):
             messages.error(request, 'Παρακαλώ εισάγετε ένα μήνυμα.')
             return redirect('customers:send_sms', customer_id=customer.id)
         
-        if not customer.phone:
+        if not customer.get_primary_phone():
             messages.error(request, 'Ο πελάτης δεν έχει καταχωρημένο αριθμό τηλεφώνου.')
             return redirect('customers:send_sms', customer_id=customer.id)
         
         # Αποστολή SMS
-        success, response_message = send_sms(customer.phone, message)
+        success, response_message = send_sms(customer.get_primary_phone(), message)
         
         if success:
             messages.success(request, response_message)

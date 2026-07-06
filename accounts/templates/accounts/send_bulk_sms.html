@@ -61,10 +61,10 @@
                         {% for customer in customers %}
                         <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer; border-radius: 4px; transition: background 0.2s;">
                             <input type="checkbox" name="destinations" value="{{ customer.id }}" 
-                                   class="customer-checkbox" {% if customer.phone %}data-phone="{{ customer.phone }}"{% endif %}>
+                                   class="customer-checkbox" {% if customer.get_primary_phone %}data-phone="{{ customer.get_primary_phone }}"{% endif %}>
                             <span>{{ customer.full_name }}</span>
-                            {% if customer.phone %}
-                            <span style="color: var(--text-secondary); font-size: 0.875rem;">({{ customer.phone }})</span>
+                            {% if customer.get_primary_phone %}
+                            <span style="color: var(--text-secondary); font-size: 0.875rem;">({{ customer.get_primary_phone }})</span>
                             {% else %}
                             <span style="color: #dc3545; font-size: 0.875rem;">(Χωρίς τηλέφωνο)</span>
                             {% endif %}

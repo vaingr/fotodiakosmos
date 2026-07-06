@@ -142,6 +142,48 @@ class Offer(models.Model):
         verbose_name='Πελάτης',
     )
     notes = models.TextField(blank=True, default='', verbose_name='Σημείωση')
+    BANK_GROUP_COMPANY = 'company'
+    BANK_GROUP_INDIVIDUAL = 'individual'
+    BANK_GROUP_CHOICES = [
+        (BANK_GROUP_COMPANY, 'Εταιρίας'),
+        (BANK_GROUP_INDIVIDUAL, 'Ατομικής'),
+    ]
+    bank_account_group = models.CharField(
+        max_length=20,
+        choices=BANK_GROUP_CHOICES,
+        default=BANK_GROUP_COMPANY,
+        verbose_name='Τραπεζικοί λογαριασμοί',
+    )
+    delivery_time = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        verbose_name='Χρόνος παράδοσης',
+    )
+    delivery_place = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        verbose_name='Τόπος παράδοσης',
+    )
+    delivery_method = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        verbose_name='Τρόπος παράδοσης',
+    )
+    packaging = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        verbose_name='Συσκευασία',
+    )
+    payment_method = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        verbose_name='Τρόπος πληρωμής',
+    )
     total_amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -188,9 +230,34 @@ class Offer(models.Model):
         super().save(*args, **kwargs)
 
     def recalculate_total(self):
-        total = sum((item.quantity * item.unit_price) for item in self.items.all())
+        total = sum(
+            (item.quantity * item.unit_price)
+            for item in OfferItem.objects.filter(offer_id=self.pk)
+        )
         self.total_amount = total
         self.save(update_fields=['total_amount'])
+
+    @property
+    def subtotal_amount(self):
+        return self.total_amount
+
+    @property
+    def vat_amount(self):
+        return self.customer.calculate_vat_amount(self.total_amount)
+
+    @property
+    def grand_total_amount(self):
+        return self.customer.calculate_total_with_vat(self.total_amount)
+
+    def get_offer_terms_rows(self):
+        settings = OfferSettings.get_solo()
+        return [
+            ('Χρόνος παράδοσης', self.delivery_time or settings.delivery_time),
+            ('Τόπος παράδοσης', self.delivery_place or settings.delivery_place),
+            ('Τρόπος παράδοσης', self.delivery_method or settings.delivery_method),
+            ('Συσκευασία', self.packaging or settings.packaging),
+            ('Τρόπος πληρωμής', self.payment_method if self.payment_method != '' else settings.payment_method),
+        ]
 
 
 class OfferItem(models.Model):
@@ -237,6 +304,32 @@ class OfferSettings(models.Model):
         null=True,
         verbose_name='Λογότυπο προσφοράς',
     )
+    delivery_time = models.CharField(
+        max_length=200,
+        default='Κατόπιν συνεννόησης',
+        verbose_name='Χρόνος παράδοσης',
+    )
+    delivery_place = models.CharField(
+        max_length=200,
+        default='Έδρα πελάτη',
+        verbose_name='Τόπος παράδοσης',
+    )
+    delivery_method = models.CharField(
+        max_length=200,
+        default='Κατόπιν συνεννόησης',
+        verbose_name='Τρόπος παράδοσης',
+    )
+    packaging = models.CharField(
+        max_length=200,
+        default='Δέματα',
+        verbose_name='Συσκευασία',
+    )
+    payment_method = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        verbose_name='Τρόπος πληρωμής',
+    )
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Τελευταία ενημέρωση')
 
     class Meta:
@@ -249,8 +342,50 @@ class OfferSettings(models.Model):
 
     @classmethod
     def get_solo(cls):
-        obj, _ = cls.objects.get_or_create(pk=1)
+        obj, _ = cls.objects.prefetch_related('bank_accounts').get_or_create(pk=1)
         return obj
 
     def __str__(self):
         return 'Ρυθμίσεις Προσφορών'
+
+    def get_offer_terms_rows(self):
+        return [
+            ('Χρόνος παράδοσης', self.delivery_time),
+            ('Τόπος παράδοσης', self.delivery_place),
+            ('Τρόπος παράδοσης', self.delivery_method),
+            ('Συσκευασία', self.packaging),
+            ('Τρόπος πληρωμής', self.payment_method),
+        ]
+
+
+class OfferBankAccount(models.Model):
+    GROUP_COMPANY = 'company'
+    GROUP_INDIVIDUAL = 'individual'
+    GROUP_CHOICES = [
+        (GROUP_COMPANY, 'Εταιρίας'),
+        (GROUP_INDIVIDUAL, 'Ατομικής'),
+    ]
+
+    settings = models.ForeignKey(
+        OfferSettings,
+        on_delete=models.CASCADE,
+        related_name='bank_accounts',
+        verbose_name='Ρυθμίσεις',
+    )
+    account_group = models.CharField(
+        max_length=20,
+        choices=GROUP_CHOICES,
+        default=GROUP_COMPANY,
+        verbose_name='Ομάδα',
+    )
+    bank_name = models.CharField(max_length=100, verbose_name='Τράπεζα')
+    iban = models.CharField(max_length=40, verbose_name='IBAN')
+    display_order = models.PositiveSmallIntegerField(default=0, verbose_name='Σειρά')
+
+    class Meta:
+        verbose_name = 'Τραπεζικός λογαριασμός'
+        verbose_name_plural = 'Τραπεζικοί λογαριασμοί'
+        ordering = ['display_order', 'id']
+
+    def __str__(self):
+        return f'{self.bank_name} ({self.iban})'

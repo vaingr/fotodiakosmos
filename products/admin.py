@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import FinishedProduct, Offer, OfferItem, OfferSettings, ProductMaterial, ProductStock
+from .models import FinishedProduct, Offer, OfferItem, OfferBankAccount, OfferSettings, ProductMaterial, ProductStock
 
 
 class OfferItemInline(admin.TabularInline):
@@ -16,10 +16,16 @@ class OfferAdmin(admin.ModelAdmin):
     inlines = [OfferItemInline]
 
 
+class OfferBankAccountInline(admin.TabularInline):
+    model = OfferBankAccount
+    extra = 0
+
+
 @admin.register(OfferSettings)
 class OfferSettingsAdmin(admin.ModelAdmin):
     list_display = ('updated_at',)
     readonly_fields = ('updated_at',)
+    inlines = [OfferBankAccountInline]
 
     def has_add_permission(self, request):
         return not OfferSettings.objects.exists()

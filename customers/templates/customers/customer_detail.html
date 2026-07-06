@@ -20,9 +20,9 @@
             </div>
             <div class="customer-info">
                 <h2>{{ customer.full_name }}</h2>
-                <p class="customer-phone">{{ customer.phone }}</p>
-                {% if customer.email %}
-                <p class="customer-email">{{ customer.email }}</p>
+                <p class="customer-phone">{{ customer.get_primary_phone|default:"—" }}</p>
+                {% if customer.get_primary_email %}
+                <p class="customer-email">{{ customer.get_primary_email }}</p>
                 {% endif %}
             </div>
         </div>
@@ -47,10 +47,35 @@
                 <span class="value">{{ customer.company_name }}</span>
             </div>
             <div class="detail-row">
-                <span class="label">Υπεύθυνος επικοινωνίας:</span>
-                <span class="value">{{ customer.contact_person|default:"Δεν έχει καταχωρηθεί" }}</span>
+                <span class="label">1ος Υπεύθυνος:</span>
+                <span class="value">{{ customer.contact_person_display|default:"Δεν έχει καταχωρηθεί" }}</span>
+            </div>
+            {% if customer.contact_phone or customer.contact_email %}
+            <div class="detail-row">
+                <span class="label">Τηλέφωνο:</span>
+                <span class="value">{{ customer.contact_phone|default:"—" }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Email:</span>
+                <span class="value">{{ customer.contact_email|default:"—" }}</span>
             </div>
             {% endif %}
+            {% if customer.contact_person_2 %}
+            <div class="detail-row">
+                <span class="label">2ος Υπεύθυνος:</span>
+                <span class="value">{{ customer.contact_person_2_display }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Τηλέφωνο 2ου υπεύθυνου:</span>
+                <span class="value">{{ customer.contact_person_2_phone|default:"—" }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">Email 2ου υπεύθυνου:</span>
+                <span class="value">{{ customer.contact_person_2_email|default:"—" }}</span>
+            </div>
+            {% endif %}
+            {% endif %}
+            {% if customer.is_individual %}
             <div class="detail-row">
                 <span class="label">Τηλέφωνο:</span>
                 <span class="value">{{ customer.phone|default:"Δεν έχει καταχωρηθεί" }}</span>
@@ -58,6 +83,11 @@
             <div class="detail-row">
                 <span class="label">Email:</span>
                 <span class="value">{{ customer.email|default:"Δεν έχει καταχωρηθεί" }}</span>
+            </div>
+            {% endif %}
+            <div class="detail-row">
+                <span class="label">ΦΠΑ:</span>
+                <span class="value">{{ customer.get_vat_rate_label }}</span>
             </div>
             <div class="detail-row">
                 <span class="label">Ημ/νία Εγγραφής:</span>

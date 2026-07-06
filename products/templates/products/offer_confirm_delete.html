@@ -20,7 +20,9 @@
         <div class="offer-info">
             <p><strong>Αριθμός:</strong> {{ offer.offer_number }}</p>
             <p><strong>Πελάτης:</strong> {{ offer.customer.display_name }}</p>
-            <p><strong>Σύνολο:</strong> {{ offer.total_amount|floatformat:2 }} €</p>
+            <p><strong>Υποσύνολο:</strong> {{ offer.subtotal_amount|floatformat:2 }} €</p>
+            <p><strong>ΦΠΑ ({{ offer.customer.get_vat_rate_label }}):</strong> {{ offer.vat_amount|floatformat:2 }} €</p>
+            <p><strong>Σύνολο:</strong> {{ offer.grand_total_amount|floatformat:2 }} €</p>
             <p><strong>Ημ/νία:</strong> {{ offer.created_at|date:"d/m/Y H:i" }}</p>
         </div>
 

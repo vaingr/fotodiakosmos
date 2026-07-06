@@ -15,11 +15,15 @@ from .forms import (
     OfferForm,
     OfferItemFormSet,
     OfferSettingsForm,
+    CompanyBankAccountFormSet,
+    IndividualBankAccountFormSet,
     ProductMaterialFormSet,
     ProductWarehouseAddForm,
     ProductWarehouseEmailForm,
     ProductWarehouseRemoveForm,
     get_customer_delivery_email,
+    get_offer_attention_display,
+    get_offer_email_recipients,
 )
 from .models import FinishedProduct, Offer, OfferSettings, ProductStock, ProductStockMovement
 from .pdf_utils import generate_offer_pdf, generate_warehouse_pdf
@@ -106,6 +110,8 @@ def _get_all_customers_data():
             'id': customer.pk,
             'name': customer.display_name(),
             'label': customer.display_name(),
+            'vat_rate': customer.vat_rate,
+            'vat_label': customer.get_vat_rate_label(),
         })
     return customers
 
@@ -476,6 +482,8 @@ def offer_edit(request, pk):
         if form.is_valid() and formset.is_valid():
             offer = form.save()
             formset.save()
+            if hasattr(offer, '_prefetched_objects_cache'):
+                offer._prefetched_objects_cache.pop('items', None)
             offer.recalculate_total()
             messages.success(
                 request,
@@ -502,16 +510,52 @@ def offer_settings(request):
     settings_obj = OfferSettings.get_solo()
     if request.method == 'POST':
         form = OfferSettingsForm(request.POST, request.FILES, instance=settings_obj)
-        if form.is_valid():
+        company_bank_formset = CompanyBankAccountFormSet(
+            request.POST,
+            instance=settings_obj,
+            prefix='company_banks',
+        )
+        individual_bank_formset = IndividualBankAccountFormSet(
+            request.POST,
+            instance=settings_obj,
+            prefix='individual_banks',
+        )
+        if form.is_valid() and company_bank_formset.is_valid() and individual_bank_formset.is_valid():
             form.save()
+            company_bank_formset.save()
+            individual_bank_formset.save()
             messages.success(request, 'Οι ρυθμίσεις προσφορών αποθηκεύτηκαν επιτυχώς.')
             return redirect('products:offer_settings')
     else:
         form = OfferSettingsForm(instance=settings_obj)
+        company_bank_formset = CompanyBankAccountFormSet(
+            instance=settings_obj,
+            prefix='company_banks',
+        )
+        individual_bank_formset = IndividualBankAccountFormSet(
+            instance=settings_obj,
+            prefix='individual_banks',
+        )
 
     return render(request, 'products/offer_settings.html', {
         'form': form,
+        'company_bank_formset': company_bank_formset,
+        'individual_bank_formset': individual_bank_formset,
         'settings': settings_obj,
+        'logo_section_open': request.method == 'POST' and 'logo' in form.errors,
+        'terms_section_open': request.method == 'POST' and any(
+            field in form.errors for field in (
+                'delivery_time', 'delivery_place', 'delivery_method', 'packaging', 'payment_method',
+            )
+        ),
+        'company_bank_section_open': request.method == 'POST' and (
+            bool(company_bank_formset.non_form_errors())
+            or any(bank_form.errors for bank_form in company_bank_formset)
+        ),
+        'individual_bank_section_open': request.method == 'POST' and (
+            bool(individual_bank_formset.non_form_errors())
+            or any(bank_form.errors for bank_form in individual_bank_formset)
+        ),
     })
 
 
@@ -521,13 +565,24 @@ def offer_print(request, pk):
         Offer.objects.select_related('customer', 'created_by').prefetch_related('items__product'),
         pk=pk,
     )
-    customer_email = get_customer_delivery_email(offer.customer)
+    email_recipients = get_offer_email_recipients(offer.customer)
+    contact_recipient = request.GET.get('contact', '1')
+    if contact_recipient not in ('1', '2'):
+        contact_recipient = '1'
+    attention_display = get_offer_attention_display(offer.customer, contact_recipient)
+    offer_settings = OfferSettings.get_solo()
+    offer_bank_accounts = offer_settings.bank_accounts.filter(
+        account_group=offer.bank_account_group,
+    )
     return render(request, 'products/offer_print.html', {
         'offer': offer,
-        'offer_settings': OfferSettings.get_solo(),
+        'offer_settings': offer_settings,
+        'offer_bank_accounts': offer_bank_accounts,
         'printed_at': timezone.localtime(timezone.now()),
         'email_configured': is_email_configured(),
-        'customer_email': customer_email,
+        'customer_email': email_recipients[0]['email'] if email_recipients else '',
+        'can_send_offer_email': bool(email_recipients),
+        'attention_display': attention_display,
         'pdf_export': request.GET.get('pdf') == '1',
     })
 
@@ -549,15 +604,9 @@ def offer_email(request, pk):
         )
         return redirect('products:offer_print', pk=pk)
 
-    recipient_email = get_customer_delivery_email(offer.customer)
-    if not recipient_email:
+    email_recipients = get_offer_email_recipients(offer.customer)
+    if not email_recipients:
         messages.error(request, 'Ο πελάτης δεν έχει καταχωρημένο email.')
-        return redirect('products:offer_print', pk=pk)
-
-    try:
-        pdf_bytes = generate_offer_pdf(offer, request)
-    except Exception as exc:
-        messages.error(request, f'Αποτυχία δημιουργίας PDF: {exc}')
         return redirect('products:offer_print', pk=pk)
 
     filename = f'prosfora-{offer.offer_number}.pdf'
@@ -573,21 +622,54 @@ def offer_email(request, pk):
     ]
     body = '\n'.join(body_lines)
 
-    success, response_message = send_email_with_attachment(
-        recipient_email,
-        subject,
-        body,
-        pdf_bytes,
-        filename,
-    )
+    sent_emails = []
+    last_error = ''
 
-    if success:
-        messages.success(
+    for recipient in email_recipients:
+        try:
+            pdf_bytes = generate_offer_pdf(
+                offer,
+                request,
+                contact_recipient=recipient.get('contact_recipient'),
+            )
+        except Exception as exc:
+            messages.error(request, f'Αποτυχία δημιουργίας PDF: {exc}')
+            return redirect('products:offer_print', pk=pk)
+
+        success, response_message = send_email_with_attachment(
+            recipient['email'],
+            subject,
+            body,
+            pdf_bytes,
+            filename,
+        )
+
+        if success:
+            sent_emails.append(recipient['email'])
+        else:
+            last_error = response_message
+
+    if sent_emails and not last_error:
+        if len(sent_emails) == 1:
+            messages.success(
+                request,
+                f'Η προσφορά στάλθηκε στο email {sent_emails[0]} '
+                f'(πελάτης: {offer.customer.display_name()}).',
+            )
+        else:
+            messages.success(
+                request,
+                f'Η προσφορά στάλθηκε στα emails {", ".join(sent_emails)} '
+                f'(πελάτης: {offer.customer.display_name()}).',
+            )
+    elif sent_emails:
+        messages.warning(
             request,
-            f'Η προσφορά στάλθηκε στο email {recipient_email} (πελάτης: {offer.customer.display_name()}).',
+            f'Η προσφορά στάλθηκε σε {", ".join(sent_emails)}, '
+            f'αλλά απέτυχε για άλλους παραλήπτες: {last_error}',
         )
     else:
-        messages.error(request, response_message)
+        messages.error(request, last_error or 'Αποτυχία αποστολής email.')
 
     return redirect('products:offer_print', pk=pk)
 

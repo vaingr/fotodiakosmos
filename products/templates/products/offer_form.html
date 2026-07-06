@@ -43,11 +43,68 @@
                 {{ form.notes }}
             </div>
 
+            <div class="form-group offer-bank-group">
+                <label>{{ form.bank_account_group.label }}</label>
+                <div class="offer-bank-group-options">
+                    {% for radio in form.bank_account_group %}
+                    <label class="offer-bank-group-option">
+                        {{ radio.tag }}
+                        <span>{{ radio.choice_label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% if form.bank_account_group.errors %}
+                <div class="error-message">{{ form.bank_account_group.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="offer-terms-accordion contact-accordion">
+                <button type="button"
+                        class="contact-accordion-toggle"
+                        id="offerTermsAccordionToggle"
+                        aria-expanded="{% if form.delivery_time.errors or form.delivery_place.errors or form.delivery_method.errors or form.packaging.errors or form.payment_method.errors %}true{% else %}false{% endif %}"
+                        aria-controls="offerTermsAccordionPanel">
+                    <span class="contact-accordion-title">
+                        <i class="fas fa-file-contract"></i> Πληροφορίες προσφοράς
+                    </span>
+                    <i class="fas fa-chevron-down contact-accordion-icon" aria-hidden="true"></i>
+                </button>
+                <div class="contact-accordion-panel" id="offerTermsAccordionPanel" {% if not form.delivery_time.errors and not form.delivery_place.errors and not form.delivery_method.errors and not form.packaging.errors and not form.payment_method.errors %}hidden{% endif %}>
+                    <p class="offer-terms-hint">
+                        Προεπιλογές από τις ρυθμίσεις προσφορών. Μπορείτε να τις αλλάξετε μόνο για αυτή την προσφορά.
+                    </p>
+                    <div class="offer-terms-grid">
+                        <div class="form-group">
+                            <label for="{{ form.delivery_time.id_for_label }}">{{ form.delivery_time.label }}</label>
+                            {{ form.delivery_time }}
+                            {% if form.delivery_time.errors %}<div class="error-message">{{ form.delivery_time.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.delivery_place.id_for_label }}">{{ form.delivery_place.label }}</label>
+                            {{ form.delivery_place }}
+                            {% if form.delivery_place.errors %}<div class="error-message">{{ form.delivery_place.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.delivery_method.id_for_label }}">{{ form.delivery_method.label }}</label>
+                            {{ form.delivery_method }}
+                            {% if form.delivery_method.errors %}<div class="error-message">{{ form.delivery_method.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.packaging.id_for_label }}">{{ form.packaging.label }}</label>
+                            {{ form.packaging }}
+                            {% if form.packaging.errors %}<div class="error-message">{{ form.packaging.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.payment_method.id_for_label }}">{{ form.payment_method.label }}</label>
+                            {{ form.payment_method }}
+                            {% if form.payment_method.errors %}<div class="error-message">{{ form.payment_method.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="form-section-title items-title">
                 <span>Προϊόντα προσφοράς</span>
-                <button type="button" class="btn btn-secondary btn-sm" id="addOfferRow">
-                    <i class="fas fa-plus"></i> Προσθήκη προϊόντος
-                </button>
             </div>
 
             {{ formset.management_form }}
@@ -89,16 +146,38 @@
                         </div>
                     </div>
                     {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+                    {% if item_form.DELETE %}
+                    <input type="checkbox"
+                           name="{{ item_form.DELETE.html_name }}"
+                           id="{{ item_form.DELETE.id_for_label }}"
+                           hidden>
+                    {% endif %}
                 </div>
                 {% endfor %}
+            </div>
+
+            <div class="offer-add-row-wrap">
+                <button type="button" class="btn btn-success" id="addOfferRow">
+                    <i class="fas fa-plus"></i> Προσθήκη προϊόντος
+                </button>
             </div>
             {% if formset.non_form_errors %}
             <div class="error-message">{{ formset.non_form_errors.0 }}</div>
             {% endif %}
 
-            <div class="offer-grand-total">
-                <span>Συνολικό ποσό προσφοράς:</span>
-                <strong id="offerGrandTotal">0,00 €</strong>
+            <div class="offer-totals-panel">
+                <div class="offer-total-line">
+                    <span>Υποσύνολο:</span>
+                    <strong id="offerSubtotal">0,00 €</strong>
+                </div>
+                <div class="offer-total-line">
+                    <span>ΦΠΑ (<span id="offerVatRateLabel">24%</span>):</span>
+                    <strong id="offerVatAmount">0,00 €</strong>
+                </div>
+                <div class="offer-grand-total">
+                    <span>Συνολικό ποσό:</span>
+                    <strong id="offerGrandTotal">0,00 €</strong>
+                </div>
             </div>
 
             <div class="form-actions">
@@ -145,13 +224,99 @@
     margin-bottom: 1rem;
 }
 .items-title {
+    margin-top: 1.5rem;
+}
+.offer-add-row-wrap {
+    display: flex;
+    justify-content: flex-start;
+    margin: 0.25rem 0 1.5rem;
+}
+.offer-add-row-wrap .btn-success {
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.35);
+}
+.offer-add-row-wrap .btn-success:hover {
+    filter: brightness(1.05);
+}
+.form-group { margin-bottom: 1rem; }
+.offer-bank-group {
+    margin-bottom: 1.5rem;
+}
+.offer-bank-group-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.offer-bank-group-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+}
+.offer-bank-group-option:has(input:checked) {
+    border-color: var(--accent);
+    background: rgba(59, 130, 246, 0.1);
+}
+.offer-terms-accordion {
+    margin-bottom: 1.5rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg-primary);
+}
+.contact-accordion-toggle {
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    margin-top: 1.5rem;
+    padding: 0.9rem 1rem;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: left;
 }
-.form-group { margin-bottom: 1rem; }
+.contact-accordion-toggle:hover {
+    background: rgba(59, 130, 246, 0.08);
+}
+.contact-accordion-toggle[aria-expanded="true"] {
+    background: rgba(59, 130, 246, 0.1);
+    border-bottom: 1px solid var(--bg-secondary);
+}
+.contact-accordion-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.contact-accordion-icon {
+    color: var(--text-secondary);
+    transition: transform 0.2s ease;
+}
+.contact-accordion-toggle[aria-expanded="true"] .contact-accordion-icon {
+    transform: rotate(180deg);
+    color: var(--accent);
+}
+.contact-accordion-panel {
+    padding: 1rem;
+}
+.offer-terms-hint {
+    margin: 0 0 1rem;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+.offer-terms-grid {
+    display: grid;
+    gap: 1rem;
+}
 .form-group label {
     display: block;
     font-weight: bold;
@@ -191,11 +356,28 @@
     justify-content: flex-end;
     align-items: center;
     gap: 1rem;
-    margin-top: 1.5rem;
-    padding-top: 1rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
     border-top: 2px solid var(--bg-secondary);
     font-size: 1.1rem;
     color: var(--text-primary);
+}
+.offer-totals-panel {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 2px solid var(--bg-secondary);
+}
+.offer-total-line {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+.offer-total-line strong {
+    min-width: 7rem;
+    text-align: right;
 }
 .offer-grand-total strong {
     font-size: 1.35rem;
@@ -215,6 +397,8 @@
 }
 .btn-sm { padding: 0.5rem 0.75rem; font-size: 0.875rem; }
 .btn-primary { background: var(--accent); color: white; }
+.btn-success { background: #28a745; color: white; }
+.btn-success:hover { background: #218838; }
 .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); }
 .btn-danger { background: #dc3545; color: white; }
 .error-message { color: #dc3545; font-size: 0.9rem; margin-top: 0.25rem; }
@@ -264,6 +448,16 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const termsToggle = document.getElementById('offerTermsAccordionToggle');
+    const termsPanel = document.getElementById('offerTermsAccordionPanel');
+    if (termsToggle && termsPanel) {
+        termsToggle.addEventListener('click', function() {
+            const isOpen = termsToggle.getAttribute('aria-expanded') === 'true';
+            termsToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+            termsPanel.hidden = isOpen;
+        });
+    }
+
     const productsData = JSON.parse(document.getElementById('catalog-products-data').textContent);
     const customersData = JSON.parse(document.getElementById('customers-data').textContent);
     const formsetContainer = document.getElementById('offer-formset');
@@ -278,9 +472,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }) + ' €';
     }
 
+    function parseNumber(value) {
+        if (value === null || value === undefined || value === '') {
+            return 0;
+        }
+        return parseFloat(String(value).replace(',', '.')) || 0;
+    }
+
     function updateLineTotal(row) {
-        const quantity = parseFloat(row.querySelector('.offer-quantity-input')?.value || 0);
-        const price = parseFloat(row.querySelector('.offer-price-input')?.value || 0);
+        const quantity = parseNumber(row.querySelector('.offer-quantity-input')?.value);
+        const price = parseNumber(row.querySelector('.offer-price-input')?.value);
         const display = row.querySelector('.line-total-display');
         if (display) {
             display.textContent = formatMoney(quantity * price);
@@ -289,14 +490,37 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateGrandTotal() {
-        let total = 0;
+        let subtotal = 0;
         formsetContainer.querySelectorAll('[data-form-row]').forEach(function(row) {
             if (row.style.display === 'none') return;
-            const quantity = parseFloat(row.querySelector('.offer-quantity-input')?.value || 0);
-            const price = parseFloat(row.querySelector('.offer-price-input')?.value || 0);
-            total += quantity * price;
+            const quantity = parseNumber(row.querySelector('.offer-quantity-input')?.value);
+            const price = parseNumber(row.querySelector('.offer-price-input')?.value);
+            subtotal += quantity * price;
         });
-        document.getElementById('offerGrandTotal').textContent = formatMoney(total);
+
+        const customerSelect = document.getElementById('id_offer_customer');
+        let vatRate = 24;
+        let vatLabel = '24%';
+        if (customerSelect && customerSelect.value) {
+            const customer = customersData.find(function(entry) {
+                return String(entry.id) === customerSelect.value;
+            });
+            if (customer) {
+                vatRate = parseFloat(customer.vat_rate || 0);
+                vatLabel = customer.vat_label || (vatRate + '%');
+            }
+        }
+
+        const vatAmount = subtotal * vatRate / 100;
+        const grandTotal = subtotal + vatAmount;
+
+        const subtotalEl = document.getElementById('offerSubtotal');
+        const vatRateLabelEl = document.getElementById('offerVatRateLabel');
+        const vatAmountEl = document.getElementById('offerVatAmount');
+        if (subtotalEl) subtotalEl.textContent = formatMoney(subtotal);
+        if (vatRateLabelEl) vatRateLabelEl.textContent = vatLabel;
+        if (vatAmountEl) vatAmountEl.textContent = formatMoney(vatAmount);
+        document.getElementById('offerGrandTotal').textContent = formatMoney(grandTotal);
     }
 
     function bindTotals(row) {
@@ -304,15 +528,26 @@ document.addEventListener('DOMContentLoaded', function() {
             input.addEventListener('input', function() {
                 updateLineTotal(row);
             });
+            input.addEventListener('change', function() {
+                updateLineTotal(row);
+            });
         });
         updateLineTotal(row);
     }
 
-    function initPicker(picker, data, selectClass, emptyText) {
+    function initPicker(picker, data, selectClass, emptyText, forceUppercase) {
         const searchInput = picker.querySelector('.product-search-input');
         const select = picker.querySelector('select');
         const results = picker.querySelector('.product-results');
         if (!searchInput || !select || !results) return;
+
+        function normalizeSearchInput() {
+            if (!forceUppercase) return;
+            const value = searchInput.value.toUpperCase();
+            if (searchInput.value !== value) {
+                searchInput.value = value;
+            }
+        }
 
         function filterItems(query) {
             const normalized = (query || '').trim().toUpperCase();
@@ -334,8 +569,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function selectItem(item) {
             select.value = String(item.id);
-            searchInput.value = item.label;
+            searchInput.value = forceUppercase ? item.label.toUpperCase() : item.label;
             results.hidden = true;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
         function renderResults(items) {
@@ -367,10 +603,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         searchInput.addEventListener('input', function() {
+            normalizeSearchInput();
             if (!searchInput.value.trim()) {
                 select.value = '';
+                select.dispatchEvent(new Event('change', { bubbles: true }));
             }
             renderResults(filterItems(searchInput.value));
+        });
+
+        searchInput.addEventListener('paste', function() {
+            if (forceUppercase) {
+                setTimeout(normalizeSearchInput, 0);
+            }
         });
 
         document.addEventListener('click', function(event) {
@@ -387,30 +631,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 return String(entry.id) === select.value;
             });
             if (item) {
-                searchInput.value = item.label;
+                searchInput.value = forceUppercase ? item.label.toUpperCase() : item.label;
             } else {
                 const option = select.options[select.selectedIndex];
                 if (option && option.value) {
-                    searchInput.value = option.textContent.trim();
+                    const label = option.textContent.trim();
+                    searchInput.value = forceUppercase ? label.toUpperCase() : label;
                 }
             }
         }
+        normalizeSearchInput();
     }
 
     function initCustomerPicker() {
         const picker = document.querySelector('[data-customer-picker]');
         if (picker) {
-            initPicker(picker, customersData, 'offer-customer-select', 'Δεν βρέθηκαν πελάτες');
+            initPicker(picker, customersData, 'offer-customer-select', 'Δεν βρέθηκαν πελάτες', true);
+            const select = picker.querySelector('select');
+            if (select) {
+                select.addEventListener('change', updateGrandTotal);
+            }
         }
     }
 
     function initProductPickers(scope) {
         (scope || document).querySelectorAll('[data-product-picker]').forEach(function(picker) {
-            initPicker(picker, productsData, 'offer-product-select', 'Δεν βρέθηκαν προϊόντα');
+            initPicker(picker, productsData, 'offer-product-select', 'Δεν βρέθηκαν προϊόντα', true);
         });
     }
 
-    function reindexFormset() {
+    function syncFormsetIndices() {
         const rows = formsetContainer.querySelectorAll('[data-form-row]');
         rows.forEach(function(row, index) {
             row.querySelectorAll('[name^="items-"], [id^="id_items-"]').forEach(function(field) {
@@ -422,7 +672,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
-        totalFormsInput.value = rows.length;
+        totalFormsInput.value = String(rows.length);
+        return rows.length;
     }
 
     function bindRemoveButtons(scope) {
@@ -448,7 +699,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     row.style.display = 'none';
                 } else {
                     row.remove();
-                    reindexFormset();
+                    syncFormsetIndices();
                 }
                 updateGrandTotal();
             });
@@ -496,22 +747,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
                 <input type="hidden" name="items-${index}-id" id="id_items-${index}-id">
-                <input type="hidden" name="items-${index}-DELETE" id="id_items-${index}-DELETE">
+                <input type="checkbox" name="items-${index}-DELETE" id="id_items-${index}-DELETE" hidden>
             </div>
         `;
     }
 
     if (addButton) {
         addButton.addEventListener('click', function() {
-            const index = parseInt(totalFormsInput.value, 10);
+            const index = syncFormsetIndices();
             const wrapper = document.createElement('div');
             wrapper.innerHTML = buildOfferRowHtml(index).trim();
             const row = wrapper.firstElementChild;
             formsetContainer.appendChild(row);
-            totalFormsInput.value = index + 1;
+            totalFormsInput.value = String(index + 1);
             initProductPickers(row);
             bindRemoveButtons(row);
             bindTotals(row);
+            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         });
     }
 
@@ -519,12 +771,33 @@ document.addEventListener('DOMContentLoaded', function() {
     initCustomerPicker();
     initProductPickers(formsetContainer);
     bindRemoveButtons(formsetContainer);
+    updateGrandTotal();
 
     offerForm.addEventListener('submit', function(event) {
+        syncFormsetIndices();
+
         const customerSelect = document.getElementById('id_offer_customer');
         if (!customerSelect || !customerSelect.value) {
             event.preventDefault();
             alert('Επιλέξτε πελάτη από τη λίστα.');
+            return;
+        }
+
+        const visibleRows = Array.from(
+            formsetContainer.querySelectorAll('[data-form-row]'),
+        ).filter(function(row) {
+            return row.style.display !== 'none';
+        });
+        let hasProduct = false;
+        visibleRows.forEach(function(row) {
+            const productSelect = row.querySelector('select[name$="-product"]');
+            if (productSelect && productSelect.value) {
+                hasProduct = true;
+            }
+        });
+        if (!hasProduct) {
+            event.preventDefault();
+            alert('Προσθέστε τουλάχιστον ένα προϊόν στην προσφορά.');
         }
     });
 });

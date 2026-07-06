@@ -41,9 +41,9 @@
             </div>
             <div class="customer-info">
                 <h3>{{ customer.full_name }}</h3>
-                <p class="customer-phone">{{ customer.phone }}</p>
-                {% if customer.email %}
-                <p class="customer-email">{{ customer.email }}</p>
+                <p class="customer-phone">{{ customer.get_primary_phone|default:"—" }}</p>
+                {% if customer.get_primary_email %}
+                <p class="customer-email">{{ customer.get_primary_email }}</p>
                 {% endif %}
             </div>
         </div>
@@ -101,8 +101,8 @@
                             <span>{{ customer.full_name }}</span>
                         </div>
                     </td>
-                    <td>{{ customer.phone }}</td>
-                    <td>{% if customer.email %}{{ customer.email }}{% else %}-{% endif %}</td>
+                    <td>{{ customer.get_primary_phone|default:"—" }}</td>
+                    <td>{% if customer.get_primary_email %}{{ customer.get_primary_email }}{% else %}-{% endif %}</td>
                     <td>{{ customer.created_at|date:"d/m/Y" }}</td>
                     <td>
                         <div class="table-actions">

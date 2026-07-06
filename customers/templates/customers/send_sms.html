@@ -16,7 +16,7 @@
             <h3>Πελάτης</h3>
             <div class="customer-details">
                 <p><strong>Όνομα:</strong> {{ customer.full_name }}</p>
-                <p><strong>Τηλέφωνο:</strong> {{ customer.phone }}</p>
+                <p><strong>Τηλέφωνο:</strong> {{ customer.get_primary_phone|default:"—" }}</p>
             </div>
         </div>
         

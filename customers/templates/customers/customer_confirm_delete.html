@@ -34,18 +34,28 @@
             <p><strong>Όνομα εταιρείας / Δήμου:</strong> {{ customer.company_name }}</p>
             <p><strong>Υπεύθυνος επικοινωνίας:</strong> {{ customer.contact_person|default:"—" }}</p>
             {% endif %}
-            <p><strong>Τηλέφωνο:</strong> {{ customer.phone|default:"—" }}</p>
-            <p><strong>Email:</strong> {{ customer.email|default:"—" }}</p>
+            <p><strong>Τηλέφωνο:</strong> {{ customer.get_primary_phone|default:"—" }}</p>
+            <p><strong>Email:</strong> {{ customer.get_primary_email|default:"—" }}</p>
         </div>
         
+        {% if has_offers %}
+        <div class="warning-message offers-blocked-message">
+            <strong>Δεν είναι δυνατή η διαγραφή.</strong>
+            Ο πελάτης έχει {{ offers_count }}
+            {% if offers_count == 1 %}προσφορά{% else %}προσφορές{% endif %}.
+            Διαγράψτε πρώτα τις προσφορές του από την ενότητα
+            <a href="{% url 'products:offers' %}">Προσφορές</a>.
+        </div>
+        {% else %}
         <div class="warning-message">
             <strong>Προσοχή!</strong> Η διαγραφή του πελάτη είναι μη αναστρέψιμη ενέργεια.
         </div>
-        
+        {% endif %}
+
         <form method="post" class="delete-form">
             {% csrf_token %}
             <div class="delete-actions">
-                <button type="submit" class="btn btn-danger">
+                <button type="submit" class="btn btn-danger"{% if has_offers %} disabled{% endif %}>
                     <i class="fas fa-trash"></i> Διαγραφή Πελάτη
                 </button>
                 <a href="{% url 'customers:customer_list' %}" class="btn btn-secondary">
@@ -138,6 +148,17 @@
     margin-bottom: 1.5rem;
     color: var(--warning-text, #856404);
     font-size: 0.95rem;
+}
+
+.offers-blocked-message a {
+    color: inherit;
+    font-weight: bold;
+}
+
+.btn-danger:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .delete-form {

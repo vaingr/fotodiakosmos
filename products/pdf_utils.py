@@ -153,7 +153,7 @@ def generate_warehouse_pdf(warehouse_items):
     return buffer.getvalue()
 
 
-def generate_offer_pdf(offer, request):
+def generate_offer_pdf(offer, request, contact_recipient=None):
     from django.urls import reverse
 
     try:
@@ -164,8 +164,11 @@ def generate_offer_pdf(offer, request):
             'Εκτελέστε: pip install playwright && playwright install chromium'
         ) from exc
 
+    query_parts = ['pdf=1']
+    if contact_recipient in ('1', '2'):
+        query_parts.append(f'contact={contact_recipient}')
     print_url = request.build_absolute_uri(
-        reverse('products:offer_print', args=[offer.pk]) + '?pdf=1'
+        reverse('products:offer_print', args=[offer.pk]) + '?' + '&'.join(query_parts)
     )
     base_url = request.build_absolute_uri('/')
 
