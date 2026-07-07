@@ -24,13 +24,17 @@
         </div>
 
         <div class="warning-message">
+            {% if offer_items_count %}
+            <strong>Δεν γίνεται διαγραφή.</strong> Το προϊόν έχει χρησιμοποιηθεί σε {{ offer_items_count }} γραμμές προσφοράς.
+            {% else %}
             <strong>Προσοχή!</strong> Η διαγραφή του προϊόντος είναι μη αναστρέψιμη ενέργεια.
+            {% endif %}
         </div>
 
         <form method="post" class="delete-form">
             {% csrf_token %}
             <div class="delete-actions">
-                <button type="submit" class="btn btn-danger">
+                <button type="submit" class="btn btn-danger" {% if offer_items_count %}disabled title="Το προϊόν έχει χρησιμοποιηθεί σε προσφορές"{% endif %}>
                     <i class="fas fa-trash"></i> Διαγραφή Προϊόντος
                 </button>
                 <a href="{% url 'products:product_list' %}" class="btn btn-secondary">
@@ -71,6 +75,7 @@
     text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;
 }
 .btn-danger { background: #dc3545; color: white; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); }
 </style>
 {% endblock %}

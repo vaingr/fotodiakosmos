@@ -16,6 +16,7 @@ urlpatterns = [
     path('offers/<int:pk>/edit/', views.offer_edit, name='offer_edit'),
     path('offers/<int:pk>/print/', views.offer_print, name='offer_print'),
     path('offers/<int:pk>/email/', views.offer_email, name='offer_email'),
+    path('offers/<int:pk>/pdf/', views.offer_pdf, name='offer_pdf'),
     path('offers/<int:pk>/delete/', views.offer_delete, name='offer_delete'),
     path('<int:pk>/edit/', views.product_edit, name='product_edit'),
     path('<int:pk>/delete/', views.product_delete, name='product_delete'),

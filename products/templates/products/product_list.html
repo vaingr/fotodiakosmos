@@ -5,9 +5,12 @@
 {% block content %}
 <div class="page-header">
     <h1><i class="fas fa-box"></i> Προϊόντα</h1>
-    <a href="{% url 'products:product_create' %}" class="btn btn-primary">
-        <i class="fas fa-plus"></i> Νέο Προϊόν
-    </a>
+    <div class="page-header-actions">
+        <span class="page-header-total">Σύνολο: {{ total_products }}</span>
+        <a href="{% url 'products:product_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Νέο Προϊόν
+        </a>
+    </div>
 </div>
 
 <div class="search-section">
@@ -106,6 +109,23 @@
 .page-header h1 {
     margin: 0;
     color: var(--text-primary);
+}
+.page-header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+.page-header-total {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.6rem 0.9rem;
+    border-radius: 6px;
+    border: 2px solid var(--bg-secondary);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-weight: 700;
 }
 
 .search-section {

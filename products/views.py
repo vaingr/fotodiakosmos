@@ -1,6 +1,8 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from django.core.paginator import Paginator
+from django.db.models.deletion import ProtectedError
 from django.db.models import OuterRef, Q, Subquery
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -193,6 +195,7 @@ def _product_form_context(form, formset, title, product=None):
 @require_module_perm('perm_products')
 def product_list(request):
     products = FinishedProduct.objects.all().order_by('name')
+    total_products = FinishedProduct.objects.count()
     search_query = request.GET.get('search', '').strip().upper()
 
     if search_query:
@@ -208,6 +211,7 @@ def product_list(request):
     return render(request, 'products/product_list.html', {
         'products': page_obj,
         'search_query': search_query,
+        'total_products': total_products,
     })
 
 
@@ -268,14 +272,31 @@ def product_detail(request, pk):
 @require_module_perm('perm_products')
 def product_delete(request, pk):
     product = get_object_or_404(FinishedProduct, pk=pk)
+    offer_items_count = product.offer_items.count()
 
     if request.method == 'POST':
-        product.delete()
+        if offer_items_count > 0:
+            messages.error(
+                request,
+                'Δεν μπορείτε να διαγράψετε το προϊόν γιατί έχει χρησιμοποιηθεί σε προσφορές.',
+            )
+            return redirect('products:product_detail', pk=product.pk)
+
+        try:
+            product.delete()
+        except ProtectedError:
+            messages.error(
+                request,
+                'Δεν μπορείτε να διαγράψετε το προϊόν γιατί έχει χρησιμοποιηθεί σε προσφορές.',
+            )
+            return redirect('products:product_detail', pk=product.pk)
+
         messages.success(request, 'Το προϊόν διαγράφηκε επιτυχώς!')
         return redirect('products:product_list')
 
     return render(request, 'products/product_confirm_delete.html', {
         'product': product,
+        'offer_items_count': offer_items_count,
     })
 
 
@@ -672,6 +693,33 @@ def offer_email(request, pk):
         messages.error(request, last_error or 'Αποτυχία αποστολής email.')
 
     return redirect('products:offer_print', pk=pk)
+
+
+@require_module_perm('perm_offers')
+def offer_pdf(request, pk):
+    offer = get_object_or_404(
+        Offer.objects.select_related('customer').prefetch_related('items__product'),
+        pk=pk,
+    )
+
+    contact_recipient = request.GET.get('contact', '1')
+    if contact_recipient not in ('1', '2'):
+        contact_recipient = '1'
+
+    try:
+        pdf_bytes = generate_offer_pdf(
+            offer,
+            request,
+            contact_recipient=contact_recipient,
+        )
+    except Exception as exc:
+        messages.error(request, f'Αποτυχία δημιουργίας PDF: {exc}')
+        return redirect('products:offer_print', pk=pk)
+
+    filename = f'prosfora-{offer.offer_number}.pdf'
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
 
 
 @require_module_perm('perm_offers')
