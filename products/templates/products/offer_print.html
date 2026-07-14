@@ -378,7 +378,8 @@
                     <div class="customer-box-main">
                         <h2>Στοιχεία Πελάτη</h2>
                         <p><strong>{{ offer.customer.display_name }}</strong></p>
-                        {% if offer.customer.get_primary_phone %}<p>Τηλέφωνο: {{ offer.customer.get_primary_phone }}</p>{% endif %}
+                        {% if offer.customer.contact_mobile %}<p>Κινητό: {{ offer.customer.contact_mobile }}</p>{% endif %}
+                        {% if offer.customer.contact_landline %}<p>Σταθερό: {{ offer.customer.contact_landline }}</p>{% endif %}
                         {% if offer.customer.get_primary_email %}<p>Email: {{ offer.customer.get_primary_email }}</p>{% endif %}
                         {% if offer.customer.is_company and attention_display %}
                         <p>Υπόψιν: {{ attention_display }}</p>

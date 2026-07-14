@@ -41,8 +41,11 @@ class Customer(models.Model):
         default='',
         verbose_name='Φύλο υπεύθυνου επικοινωνίας',
     )
-    contact_phone = models.CharField(
-        max_length=20, blank=True, default='', verbose_name="Τηλέφωνο υπεύθυνου"
+    contact_mobile = models.CharField(
+        max_length=20, blank=True, default='', verbose_name='Κινητό υπεύθυνου',
+    )
+    contact_landline = models.CharField(
+        max_length=20, blank=True, default='', verbose_name='Σταθερό υπεύθυνου',
     )
     contact_email = models.EmailField(
         blank=True, default='', verbose_name="Email υπεύθυνου"
@@ -57,8 +60,11 @@ class Customer(models.Model):
         default='',
         verbose_name='Φύλο 2ου υπεύθυνου',
     )
-    contact_person_2_phone = models.CharField(
-        max_length=20, blank=True, default='', verbose_name='Τηλέφωνο 2ου υπεύθυνου',
+    contact_person_2_mobile = models.CharField(
+        max_length=20, blank=True, default='', verbose_name='Κινητό 2ου υπεύθυνου',
+    )
+    contact_person_2_landline = models.CharField(
+        max_length=20, blank=True, default='', verbose_name='Σταθερό 2ου υπεύθυνου',
     )
     contact_person_2_email = models.EmailField(
         blank=True, default='', verbose_name='Email 2ου υπεύθυνου',
@@ -122,10 +128,20 @@ class Customer(models.Model):
             return f'Κα {name}'
         return name
 
+    def get_contact_mobile(self):
+        mobile = self.contact_mobile or ''
+        if not mobile and self.is_individual:
+            return self.phone or ''
+        return mobile
+
+    def get_contact_landline(self):
+        return self.contact_landline or ''
+
     def get_primary_phone(self):
-        if self.is_company:
-            return self.contact_phone or ''
-        return self.phone or ''
+        mobile = self.get_contact_mobile()
+        if mobile:
+            return mobile
+        return self.get_contact_landline()
 
     def get_primary_email(self):
         if self.is_company:

@@ -50,11 +50,19 @@
                 <span class="label">1ος Υπεύθυνος:</span>
                 <span class="value">{{ customer.contact_person_display|default:"Δεν έχει καταχωρηθεί" }}</span>
             </div>
-            {% if customer.contact_phone or customer.contact_email %}
+            {% if customer.contact_mobile or customer.contact_landline or customer.contact_email %}
+            {% if customer.contact_mobile %}
             <div class="detail-row">
-                <span class="label">Τηλέφωνο:</span>
-                <span class="value">{{ customer.contact_phone|default:"—" }}</span>
+                <span class="label">Κινητό:</span>
+                <span class="value">{{ customer.contact_mobile }}</span>
             </div>
+            {% endif %}
+            {% if customer.contact_landline %}
+            <div class="detail-row">
+                <span class="label">Σταθερό:</span>
+                <span class="value">{{ customer.contact_landline }}</span>
+            </div>
+            {% endif %}
             <div class="detail-row">
                 <span class="label">Email:</span>
                 <span class="value">{{ customer.contact_email|default:"—" }}</span>
@@ -65,10 +73,18 @@
                 <span class="label">2ος Υπεύθυνος:</span>
                 <span class="value">{{ customer.contact_person_2_display }}</span>
             </div>
+            {% if customer.contact_person_2_mobile %}
             <div class="detail-row">
-                <span class="label">Τηλέφωνο 2ου υπεύθυνου:</span>
-                <span class="value">{{ customer.contact_person_2_phone|default:"—" }}</span>
+                <span class="label">Κινητό 2ου υπεύθυνου:</span>
+                <span class="value">{{ customer.contact_person_2_mobile }}</span>
             </div>
+            {% endif %}
+            {% if customer.contact_person_2_landline %}
+            <div class="detail-row">
+                <span class="label">Σταθερό 2ου υπεύθυνου:</span>
+                <span class="value">{{ customer.contact_person_2_landline }}</span>
+            </div>
+            {% endif %}
             <div class="detail-row">
                 <span class="label">Email 2ου υπεύθυνου:</span>
                 <span class="value">{{ customer.contact_person_2_email|default:"—" }}</span>
@@ -76,10 +92,24 @@
             {% endif %}
             {% endif %}
             {% if customer.is_individual %}
+            {% if customer.contact_mobile %}
+            <div class="detail-row">
+                <span class="label">Κινητό:</span>
+                <span class="value">{{ customer.contact_mobile }}</span>
+            </div>
+            {% endif %}
+            {% if customer.contact_landline %}
+            <div class="detail-row">
+                <span class="label">Σταθερό:</span>
+                <span class="value">{{ customer.contact_landline }}</span>
+            </div>
+            {% endif %}
+            {% if not customer.contact_mobile and not customer.contact_landline and customer.phone %}
             <div class="detail-row">
                 <span class="label">Τηλέφωνο:</span>
-                <span class="value">{{ customer.phone|default:"Δεν έχει καταχωρηθεί" }}</span>
+                <span class="value">{{ customer.phone }}</span>
             </div>
+            {% endif %}
             <div class="detail-row">
                 <span class="label">Email:</span>
                 <span class="value">{{ customer.email|default:"Δεν έχει καταχωρηθεί" }}</span>

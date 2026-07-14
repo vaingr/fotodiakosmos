@@ -30,6 +30,23 @@
                 {% endif %}
             </div>
 
+            <div id="shared-contact-phones" hidden>
+                <div class="form-group">
+                    <label for="{{ form.contact_mobile.id_for_label }}">{{ form.contact_mobile.label }}</label>
+                    {{ form.contact_mobile }}
+                    {% if form.contact_mobile.errors %}
+                    <div class="error-message">{{ form.contact_mobile.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.contact_landline.id_for_label }}">{{ form.contact_landline.label }}</label>
+                    {{ form.contact_landline }}
+                    {% if form.contact_landline.errors %}
+                    <div class="error-message">{{ form.contact_landline.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
             <div id="individual-fields" class="customer-fields-section"{% if form.customer_type.value == 'company' %} hidden{% endif %}>
                 <div class="form-row">
                     <div class="form-group">
@@ -49,15 +66,8 @@
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }} (προαιρετικό)</label>
-                        {{ form.phone }}
-                        {% if form.phone.errors %}
-                        <div class="error-message">{{ form.phone.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-
+                <div class="form-row contact-details-row" id="individual-contact-row">
+                    <div id="individual-phone-mount" class="phone-mount"></div>
                     <div class="form-group">
                         <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
                         {{ form.email }}
@@ -103,14 +113,8 @@
                             <div class="error-message">{{ form.contact_person.errors.0 }}</div>
                             {% endif %}
                         </div>
-                        <div class="form-row contact-details-row">
-                            <div class="form-group">
-                                <label for="{{ form.contact_phone.id_for_label }}">{{ form.contact_phone.label }}</label>
-                                {{ form.contact_phone }}
-                                {% if form.contact_phone.errors %}
-                                <div class="error-message">{{ form.contact_phone.errors.0 }}</div>
-                                {% endif %}
-                            </div>
+                        <div class="form-row contact-details-row" id="company-contact-row">
+                            <div id="company-phone-mount" class="phone-mount"></div>
                             <div class="form-group">
                                 <label for="{{ form.contact_email.id_for_label }}">{{ form.contact_email.label }}</label>
                                 {{ form.contact_email }}
@@ -128,14 +132,14 @@
                             <button type="button"
                                     class="contact-accordion-toggle"
                                     id="secondContactAccordionToggle"
-                                    aria-expanded="{% if form.contact_person_2.value or form.contact_person_2_gender.value or form.contact_person_2_phone.value or form.contact_person_2_email.value or form.contact_person_2.errors or form.contact_person_2_gender.errors or form.contact_person_2_phone.errors or form.contact_person_2_email.errors %}true{% else %}false{% endif %}"
+                                    aria-expanded="{% if form.contact_person_2.value or form.contact_person_2_gender.value or form.contact_person_2_mobile.value or form.contact_person_2_landline.value or form.contact_person_2_email.value or form.contact_person_2.errors or form.contact_person_2_gender.errors or form.contact_person_2_mobile.errors or form.contact_person_2_landline.errors or form.contact_person_2_email.errors %}true{% else %}false{% endif %}"
                                     aria-controls="secondContactAccordionPanel">
                                 <span class="contact-accordion-title">2ος Υπεύθυνος επικοινωνίας (προαιρετικό)</span>
                                 <i class="fas fa-chevron-down contact-accordion-icon" aria-hidden="true"></i>
                             </button>
                             <div class="contact-accordion-panel"
                                  id="secondContactAccordionPanel"
-                                 {% if not form.contact_person_2.value and not form.contact_person_2_gender.value and not form.contact_person_2_phone.value and not form.contact_person_2_email.value and not form.contact_person_2.errors and not form.contact_person_2_gender.errors and not form.contact_person_2_phone.errors and not form.contact_person_2_email.errors %}hidden{% endif %}>
+                                 {% if not form.contact_person_2.value and not form.contact_person_2_gender.value and not form.contact_person_2_mobile.value and not form.contact_person_2_landline.value and not form.contact_person_2_email.value and not form.contact_person_2.errors and not form.contact_person_2_gender.errors and not form.contact_person_2_mobile.errors and not form.contact_person_2_landline.errors and not form.contact_person_2_email.errors %}hidden{% endif %}>
                                 <div class="contact-person-field">
                                     <div class="contact-person-gender">
                                         <span class="contact-person-gender-label">{{ form.contact_person_2_gender.label }}</span>
@@ -159,10 +163,17 @@
                                 </div>
                                 <div class="form-row contact-details-row">
                                     <div class="form-group">
-                                        <label for="{{ form.contact_person_2_phone.id_for_label }}">{{ form.contact_person_2_phone.label }}</label>
-                                        {{ form.contact_person_2_phone }}
-                                        {% if form.contact_person_2_phone.errors %}
-                                        <div class="error-message">{{ form.contact_person_2_phone.errors.0 }}</div>
+                                        <label for="{{ form.contact_person_2_mobile.id_for_label }}">{{ form.contact_person_2_mobile.label }}</label>
+                                        {{ form.contact_person_2_mobile }}
+                                        {% if form.contact_person_2_mobile.errors %}
+                                        <div class="error-message">{{ form.contact_person_2_mobile.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="{{ form.contact_person_2_landline.id_for_label }}">{{ form.contact_person_2_landline.label }}</label>
+                                        {{ form.contact_person_2_landline }}
+                                        {% if form.contact_person_2_landline.errors %}
+                                        <div class="error-message">{{ form.contact_person_2_landline.errors.0 }}</div>
                                         {% endif %}
                                     </div>
                                     <div class="form-group">
@@ -332,6 +343,12 @@
 
 .contact-details-row {
     margin-top: 0.25rem;
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
+.phone-mount,
+#shared-contact-phones {
+    display: contents;
 }
 
 .contact-accordion {
@@ -521,11 +538,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const companyNameInput = document.getElementById('{{ form.company_name.id_for_label }}');
     const contactPersonInput = document.getElementById('{{ form.contact_person.id_for_label }}');
     const contactPerson2Input = document.getElementById('{{ form.contact_person_2.id_for_label }}');
-    const phoneInput = document.getElementById('{{ form.phone.id_for_label }}');
-    const emailInput = document.getElementById('{{ form.email.id_for_label }}');
-    const contactPhoneInput = document.getElementById('{{ form.contact_phone.id_for_label }}');
+    const sharedContactPhones = document.getElementById('shared-contact-phones');
+    const individualPhoneMount = document.getElementById('individual-phone-mount');
+    const companyPhoneMount = document.getElementById('company-phone-mount');
+    const emailInputs = form.querySelectorAll('input[name="email"]');
     const contactEmailInput = document.getElementById('{{ form.contact_email.id_for_label }}');
-    const contactPerson2PhoneInput = document.getElementById('{{ form.contact_person_2_phone.id_for_label }}');
+    const contactPerson2MobileInput = document.getElementById('{{ form.contact_person_2_mobile.id_for_label }}');
+    const contactPerson2LandlineInput = document.getElementById('{{ form.contact_person_2_landline.id_for_label }}');
     const contactPerson2EmailInput = document.getElementById('{{ form.contact_person_2_email.id_for_label }}');
 
     function getSelectedType() {
@@ -542,10 +561,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function mountSharedPhoneFields() {
+        if (!sharedContactPhones) return;
+        const mount = getSelectedType() === 'company' ? companyPhoneMount : individualPhoneMount;
+        if (mount) {
+            mount.appendChild(sharedContactPhones);
+            sharedContactPhones.hidden = false;
+        }
+    }
+
     function updateCustomerTypeView() {
         const isCompany = getSelectedType() === 'company';
         individualFields.hidden = isCompany;
         companyFields.hidden = !isCompany;
+        mountSharedPhoneFields();
         setFieldDisabled(individualFields, isCompany);
         setFieldDisabled(companyFields, !isCompany);
     }
@@ -625,8 +654,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     [firstNameInput, lastNameInput, companyNameInput, contactPersonInput, contactPerson2Input].forEach(bindUppercaseInput);
-    [phoneInput, contactPhoneInput, contactPerson2PhoneInput].forEach(bindPhoneInput);
-    [emailInput, contactEmailInput, contactPerson2EmailInput].forEach(bindEmailInput);
+    form.querySelectorAll(
+        'input[name="contact_mobile"], input[name="contact_landline"], input[name="contact_person_2_mobile"], input[name="contact_person_2_landline"]'
+    ).forEach(bindPhoneInput);
+    emailInputs.forEach(bindEmailInput);
+    [contactEmailInput, contactPerson2EmailInput].forEach(bindEmailInput);
 
     updateCustomerTypeView();
 });

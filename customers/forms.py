@@ -11,9 +11,11 @@ class CustomerForm(forms.ModelForm):
         fields = [
             'customer_type',
             'first_name', 'last_name', 'company_name',
-            'phone', 'email',
-            'contact_person', 'contact_person_gender', 'contact_phone', 'contact_email',
-            'contact_person_2', 'contact_person_2_gender', 'contact_person_2_phone', 'contact_person_2_email',
+            'email',
+            'contact_person', 'contact_person_gender',
+            'contact_mobile', 'contact_landline', 'contact_email',
+            'contact_person_2', 'contact_person_2_gender',
+            'contact_person_2_mobile', 'contact_person_2_landline', 'contact_person_2_email',
             'vat_rate',
         ]
         widgets = {
@@ -35,11 +37,6 @@ class CustomerForm(forms.ModelForm):
                 'placeholder': 'Όνομα εταιρείας / Δήμου',
                 'autocomplete': 'off',
             }),
-            'phone': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Τηλέφωνο (προαιρετικό)',
-                'autocomplete': 'off',
-            }),
             'email': forms.EmailInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Email (προαιρετικό)',
@@ -53,14 +50,19 @@ class CustomerForm(forms.ModelForm):
             'contact_person_gender': forms.RadioSelect(attrs={
                 'class': 'contact-person-gender-radio',
             }),
-            'contact_phone': forms.TextInput(attrs={
+            'contact_mobile': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Τηλέφωνο υπεύθυνου',
+                'placeholder': 'Κινητό',
+                'autocomplete': 'off',
+            }),
+            'contact_landline': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Σταθερό',
                 'autocomplete': 'off',
             }),
             'contact_email': forms.EmailInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Email υπεύθυνου',
+                'placeholder': 'Email',
                 'autocomplete': 'off',
             }),
             'contact_person_2': forms.TextInput(attrs={
@@ -71,14 +73,19 @@ class CustomerForm(forms.ModelForm):
             'contact_person_2_gender': forms.RadioSelect(attrs={
                 'class': 'contact-person-gender-radio',
             }),
-            'contact_person_2_phone': forms.TextInput(attrs={
+            'contact_person_2_mobile': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Τηλέφωνο 2ου υπεύθυνου',
+                'placeholder': 'Κινητό',
+                'autocomplete': 'off',
+            }),
+            'contact_person_2_landline': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Σταθερό',
                 'autocomplete': 'off',
             }),
             'contact_person_2_email': forms.EmailInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Email 2ου υπεύθυνου',
+                'placeholder': 'Email',
                 'autocomplete': 'off',
             }),
             'vat_rate': forms.RadioSelect(attrs={
@@ -90,25 +97,28 @@ class CustomerForm(forms.ModelForm):
             'first_name': 'Όνομα',
             'last_name': 'Επώνυμο',
             'company_name': 'Όνομα εταιρείας / Δήμου',
-            'phone': 'Τηλέφωνο',
             'email': 'Email',
             'contact_person': 'Όνομα',
             'contact_person_gender': 'Φύλο',
-            'contact_phone': 'Τηλέφωνο',
+            'contact_mobile': 'Κινητό',
+            'contact_landline': 'Σταθερό',
             'contact_email': 'Email',
             'contact_person_2': 'Όνομα',
             'contact_person_2_gender': 'Φύλο',
-            'contact_person_2_phone': 'Τηλέφωνο 2ου υπεύθυνου',
-            'contact_person_2_email': 'Email 2ου υπεύθυνου',
+            'contact_person_2_mobile': 'Κινητό',
+            'contact_person_2_landline': 'Σταθερό',
+            'contact_person_2_email': 'Email',
             'vat_rate': 'ΦΠΑ',
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         optional_fields = [
-            'phone', 'email', 'first_name', 'last_name', 'company_name',
-            'contact_person', 'contact_person_gender', 'contact_phone', 'contact_email',
-            'contact_person_2', 'contact_person_2_gender', 'contact_person_2_phone', 'contact_person_2_email',
+            'email', 'first_name', 'last_name', 'company_name',
+            'contact_person', 'contact_person_gender',
+            'contact_mobile', 'contact_landline', 'contact_email',
+            'contact_person_2', 'contact_person_2_gender',
+            'contact_person_2_mobile', 'contact_person_2_landline', 'contact_person_2_email',
         ]
         for field_name in optional_fields:
             self.fields[field_name].required = False
@@ -118,6 +128,10 @@ class CustomerForm(forms.ModelForm):
             gender_field.choices = [
                 choice for choice in gender_field.choices if choice[0]
             ]
+
+        if self.instance.pk and self.instance.is_individual:
+            if self.instance.phone and not self.instance.contact_mobile:
+                self.initial.setdefault('contact_mobile', self.instance.phone)
 
     def clean_first_name(self):
         first_name = self.cleaned_data.get('first_name')
@@ -137,14 +151,17 @@ class CustomerForm(forms.ModelForm):
             company_name = company_name.strip().upper()
         return company_name
 
-    def clean_phone(self):
-        return self._clean_phone_field(self.cleaned_data.get('phone'))
+    def clean_contact_mobile(self):
+        return self._clean_phone_field(self.cleaned_data.get('contact_mobile'))
 
-    def clean_contact_phone(self):
-        return self._clean_phone_field(self.cleaned_data.get('contact_phone'))
+    def clean_contact_landline(self):
+        return self._clean_phone_field(self.cleaned_data.get('contact_landline'))
 
-    def clean_contact_person_2_phone(self):
-        return self._clean_phone_field(self.cleaned_data.get('contact_person_2_phone'))
+    def clean_contact_person_2_mobile(self):
+        return self._clean_phone_field(self.cleaned_data.get('contact_person_2_mobile'))
+
+    def clean_contact_person_2_landline(self):
+        return self._clean_phone_field(self.cleaned_data.get('contact_person_2_landline'))
 
     def _clean_phone_field(self, phone):
         if phone:
@@ -188,9 +205,15 @@ class CustomerForm(forms.ModelForm):
     def _validate_contact_person(self, prefix, label, cleaned_data, required=False):
         name = cleaned_data.get(f'contact_person{prefix}')
         gender = cleaned_data.get(f'contact_person{prefix}_gender')
-        phone = cleaned_data.get(f'contact_person{prefix}_phone')
-        email = cleaned_data.get(f'contact_person{prefix}_email')
-        has_any = any([name, gender, phone, email])
+        if prefix == '':
+            mobile = cleaned_data.get('contact_mobile')
+            landline = cleaned_data.get('contact_landline')
+            email = cleaned_data.get('contact_email')
+        else:
+            mobile = cleaned_data.get('contact_person_2_mobile')
+            landline = cleaned_data.get('contact_person_2_landline')
+            email = cleaned_data.get('contact_person_2_email')
+        has_any = any([name, gender, mobile, landline, email])
 
         if required or has_any:
             if not name:
@@ -223,13 +246,14 @@ class CustomerForm(forms.ModelForm):
 
         if instance.customer_type == Customer.TYPE_INDIVIDUAL:
             instance.company_name = ''
+            instance.phone = ''
             instance.contact_person = ''
             instance.contact_person_gender = ''
-            instance.contact_phone = ''
             instance.contact_email = ''
             instance.contact_person_2 = ''
             instance.contact_person_2_gender = ''
-            instance.contact_person_2_phone = ''
+            instance.contact_person_2_mobile = ''
+            instance.contact_person_2_landline = ''
             instance.contact_person_2_email = ''
         else:
             instance.first_name = ''

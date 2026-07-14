@@ -33,10 +33,12 @@ def customer_list(request):
                     Q(phone__icontains=search_query) |
                     Q(email__icontains=search_query) |
                     Q(contact_person__icontains=search_query) |
-                    Q(contact_phone__icontains=search_query) |
+                    Q(contact_mobile__icontains=search_query) |
+                    Q(contact_landline__icontains=search_query) |
                     Q(contact_email__icontains=search_query) |
                     Q(contact_person_2__icontains=search_query) |
-                    Q(contact_person_2_phone__icontains=search_query) |
+                    Q(contact_person_2_mobile__icontains=search_query) |
+                    Q(contact_person_2_landline__icontains=search_query) |
                     Q(contact_person_2_email__icontains=search_query)
                 )
         else:
@@ -50,10 +52,12 @@ def customer_list(request):
                 Q(phone__icontains=search_query) |
                 Q(email__icontains=search_query) |
                 Q(contact_person__icontains=search_query) |
-                Q(contact_phone__icontains=search_query) |
+                Q(contact_mobile__icontains=search_query) |
+                Q(contact_landline__icontains=search_query) |
                 Q(contact_email__icontains=search_query) |
                 Q(contact_person_2__icontains=search_query) |
-                Q(contact_person_2_phone__icontains=search_query) |
+                Q(contact_person_2_mobile__icontains=search_query) |
+                Q(contact_person_2_landline__icontains=search_query) |
                 Q(contact_person_2_email__icontains=search_query)
             )
     
