@@ -108,6 +108,7 @@
         <h1>Αποθήκη Έτοιμων Προϊόντων</h1>
         <div class="print-meta">
             <p>Ημερομηνία εκτύπωσης: {{ printed_at|date:"d/m/Y H:i" }}</p>
+            {% if filter_label %}<p>Φίλτρο: {{ filter_label }}</p>{% endif %}
             <p>Σύνολο προϊόντων: {{ total_count }}</p>
         </div>
     </div>
@@ -119,8 +120,12 @@
                 <th class="photo-col">Φωτο</th>
                 <th>Κωδικός</th>
                 <th>Όνομα</th>
+                <th>Στάδιο</th>
+                <th>ΜΟΚΕΤΑ</th>
+                <th>ΛΑΜΠΑΚΙ</th>
+                <th>ΦΩΤΟΣΩΛΗΝΑΣ</th>
+                <th>ΔΙΑΣΤΑΣΕΙΣ</th>
                 <th class="text-center">Ποσότητα</th>
-                <th>Ημ/νία Προσθήκης</th>
             </tr>
         </thead>
         <tbody>
@@ -138,12 +143,16 @@
                 </td>
                 <td>{{ item.product.code }}</td>
                 <td>{{ item.product.name }}</td>
+                <td>{{ item.get_construction_stage_display }}</td>
+                <td>{{ item.carpet|default:"—" }}</td>
+                <td>{{ item.bulb|default:"—" }}</td>
+                <td>{{ item.photocell|default:"—" }}</td>
+                <td>{{ item.dimensions|default:"—" }}</td>
                 <td class="text-center">{{ item.quantity }}</td>
-                <td>{{ item.created_at|date:"d/m/Y H:i" }}</td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" class="text-center">Δεν υπάρχουν προϊόντα στην αποθήκη.</td>
+                <td colspan="10" class="text-center">Δεν υπάρχουν προϊόντα στην αποθήκη.</td>
             </tr>
             {% endfor %}
         </tbody>

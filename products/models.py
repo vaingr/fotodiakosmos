@@ -25,11 +25,24 @@ class FinishedProduct(models.Model):
 
 
 class ProductStock(models.Model):
-    product = models.OneToOneField(
+    STAGE_SKELETON = 'skeleton'
+    STAGE_COMPLETE = 'complete'
+    STAGE_CHOICES = [
+        (STAGE_SKELETON, 'Σκελετός'),
+        (STAGE_COMPLETE, 'Ολοκληρωμένο'),
+    ]
+
+    product = models.ForeignKey(
         FinishedProduct,
         on_delete=models.CASCADE,
-        related_name='stock',
+        related_name='stocks',
         verbose_name='Προϊόν',
+    )
+    construction_stage = models.CharField(
+        max_length=20,
+        choices=STAGE_CHOICES,
+        default=STAGE_SKELETON,
+        verbose_name='Στάδιο Κατασκευής',
     )
     quantity = models.IntegerField(
         default=0,
@@ -41,13 +54,31 @@ class ProductStock(models.Model):
         validators=[MinValueValidator(0)],
         verbose_name='Όριο Χαμηλού Αποθέματος',
     )
+    carpet = models.CharField(
+        max_length=200, blank=True, default='', verbose_name='ΜΟΚΕΤΑ',
+    )
+    bulb = models.CharField(
+        max_length=200, blank=True, default='', verbose_name='ΛΑΜΠΑΚΙ',
+    )
+    photocell = models.CharField(
+        max_length=200, blank=True, default='', verbose_name='ΦΩΤΟΣΩΛΗΝΑΣ',
+    )
+    dimensions = models.CharField(
+        max_length=200, blank=True, default='', verbose_name='ΔΙΑΣΤΑΣΕΙΣ',
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Ημερομηνία Προσθήκης')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Ημερομηνία Ενημέρωσης')
 
     class Meta:
         verbose_name = 'Απόθεμα Προϊόντος'
         verbose_name_plural = 'Αποθέματα Προϊόντων'
-        ordering = ['product__name']
+        ordering = ['product__name', 'construction_stage', 'carpet', 'bulb', 'dimensions']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['product', 'construction_stage', 'carpet', 'bulb', 'dimensions'],
+                name='unique_product_stock_variant',
+            ),
+        ]
 
     def __str__(self):
         return f'{self.product.name} ({self.quantity})'

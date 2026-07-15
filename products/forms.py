@@ -150,6 +150,14 @@ class ProductWarehouseAddForm(forms.Form):
             'id': 'id_warehouse_product',
         }),
     )
+    construction_stage = forms.ChoiceField(
+        choices=ProductStock.STAGE_CHOICES,
+        initial=ProductStock.STAGE_SKELETON,
+        label='Στάδιο Κατασκευής',
+        widget=forms.RadioSelect(attrs={
+            'class': 'construction-stage-radio',
+        }),
+    )
     quantity = forms.IntegerField(
         label='Ποσότητα',
         min_value=1,
@@ -162,21 +170,209 @@ class ProductWarehouseAddForm(forms.Form):
             'placeholder': 'Ποσότητα',
         }),
     )
+    carpet = forms.CharField(
+        label='ΜΟΚΕΤΑ',
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control complete-detail-input',
+            'id': 'id_warehouse_carpet',
+            'placeholder': 'ΜΟΚΕΤΑ',
+            'autocomplete': 'off',
+        }),
+    )
+    bulb = forms.CharField(
+        label='ΛΑΜΠΑΚΙ',
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control complete-detail-input',
+            'id': 'id_warehouse_bulb',
+            'placeholder': 'ΛΑΜΠΑΚΙ',
+            'autocomplete': 'off',
+        }),
+    )
+    photocell = forms.CharField(
+        label='ΦΩΤΟΣΩΛΗΝΑΣ',
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control complete-detail-input',
+            'id': 'id_warehouse_photocell',
+            'placeholder': 'ΦΩΤΟΣΩΛΗΝΑΣ',
+            'autocomplete': 'off',
+        }),
+    )
+    dimensions = forms.CharField(
+        label='ΔΙΑΣΤΑΣΕΙΣ',
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control complete-detail-input',
+            'id': 'id_warehouse_dimensions',
+            'placeholder': 'ΔΙΑΣΤΑΣΕΙΣ',
+            'autocomplete': 'off',
+        }),
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['product'].queryset = FinishedProduct.objects.order_by('name')
         self.fields['product'].label_from_instance = lambda product: f'{product.code} - {product.name}'
 
+    def _clean_uppercase_field(self, value):
+        if value:
+            return value.strip().upper()
+        return ''
+
+    def clean_carpet(self):
+        return self._clean_uppercase_field(self.cleaned_data.get('carpet'))
+
+    def clean_bulb(self):
+        return self._clean_uppercase_field(self.cleaned_data.get('bulb'))
+
+    def clean_photocell(self):
+        return self._clean_uppercase_field(self.cleaned_data.get('photocell'))
+
+    def clean_dimensions(self):
+        return self._clean_uppercase_field(self.cleaned_data.get('dimensions'))
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get('construction_stage') == ProductStock.STAGE_SKELETON:
+            cleaned_data['carpet'] = ''
+            cleaned_data['bulb'] = ''
+            cleaned_data['photocell'] = ''
+            cleaned_data['dimensions'] = ''
+        return cleaned_data
+
+
+class ProductWarehouseEditForm(forms.Form):
+    stock = forms.ModelChoiceField(
+        queryset=ProductStock.objects.none(),
+        widget=forms.HiddenInput(attrs={'id': 'id_edit_warehouse_stock'}),
+    )
+    quantity = forms.IntegerField(
+        label='Ποσότητα',
+        min_value=1,
+        widget=forms.NumberInput(attrs={
+            'class': 'warehouse-quantity-input',
+            'id': 'id_edit_warehouse_quantity',
+            'min': 1,
+            'step': 1,
+        }),
+    )
+    construction_stage = forms.ChoiceField(
+        choices=ProductStock.STAGE_CHOICES,
+        label='Στάδιο Κατασκευής',
+        widget=forms.RadioSelect(attrs={
+            'class': 'construction-stage-radio edit-construction-stage-radio',
+        }),
+    )
+    carpet = forms.CharField(
+        label='ΜΟΚΕΤΑ',
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control edit-complete-detail-input',
+            'id': 'id_edit_warehouse_carpet',
+            'autocomplete': 'off',
+        }),
+    )
+    bulb = forms.CharField(
+        label='ΛΑΜΠΑΚΙ',
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control edit-complete-detail-input',
+            'id': 'id_edit_warehouse_bulb',
+            'autocomplete': 'off',
+        }),
+    )
+    photocell = forms.CharField(
+        label='ΦΩΤΟΣΩΛΗΝΑΣ',
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control edit-complete-detail-input',
+            'id': 'id_edit_warehouse_photocell',
+            'autocomplete': 'off',
+        }),
+    )
+    dimensions = forms.CharField(
+        label='ΔΙΑΣΤΑΣΕΙΣ',
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control edit-complete-detail-input',
+            'id': 'id_edit_warehouse_dimensions',
+            'autocomplete': 'off',
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['stock'].queryset = ProductStock.objects.filter(quantity__gt=0)
+
+    def _clean_uppercase_field(self, value):
+        if value:
+            return value.strip().upper()
+        return ''
+
+    def clean_carpet(self):
+        return self._clean_uppercase_field(self.cleaned_data.get('carpet'))
+
+    def clean_bulb(self):
+        return self._clean_uppercase_field(self.cleaned_data.get('bulb'))
+
+    def clean_photocell(self):
+        return self._clean_uppercase_field(self.cleaned_data.get('photocell'))
+
+    def clean_dimensions(self):
+        return self._clean_uppercase_field(self.cleaned_data.get('dimensions'))
+
+    def clean(self):
+        cleaned_data = super().clean()
+        stock = cleaned_data.get('stock')
+        construction_stage = cleaned_data.get('construction_stage')
+        if not stock:
+            return cleaned_data
+
+        if construction_stage == ProductStock.STAGE_SKELETON:
+            cleaned_data['carpet'] = ''
+            cleaned_data['bulb'] = ''
+            cleaned_data['photocell'] = ''
+            cleaned_data['dimensions'] = ''
+            return cleaned_data
+
+        quantity = cleaned_data.get('quantity')
+        if (
+            quantity
+            and stock.construction_stage == ProductStock.STAGE_SKELETON
+            and construction_stage == ProductStock.STAGE_COMPLETE
+            and quantity > stock.quantity
+        ):
+            self.add_error(
+                'quantity',
+                f'Η ποσότητα δεν μπορεί να υπερβαίνει τους διαθέσιμους σκελέτους ({stock.quantity}).',
+            )
+            return cleaned_data
+
+        duplicate_exists = ProductStock.objects.filter(
+            product=stock.product,
+            construction_stage=ProductStock.STAGE_COMPLETE,
+            carpet=cleaned_data.get('carpet', ''),
+            bulb=cleaned_data.get('bulb', ''),
+            dimensions=cleaned_data.get('dimensions', ''),
+        ).exclude(pk=stock.pk).exists()
+        if duplicate_exists and construction_stage == stock.construction_stage:
+            raise forms.ValidationError(
+                'Υπάρχει ήδη εγγραφή με την ίδια ΜΟΚΕΤΑ, ΛΑΜΠΑΚΙ και ΔΙΑΣΤΑΣΕΙΣ.',
+            )
+
+        return cleaned_data
+
 
 class ProductWarehouseRemoveForm(forms.Form):
-    product = forms.ModelChoiceField(
-        queryset=FinishedProduct.objects.none(),
+    stock = forms.ModelChoiceField(
+        queryset=ProductStock.objects.none(),
         label='Προϊόν',
         empty_label='Επιλέξτε προϊόν...',
         widget=forms.Select(attrs={
             'class': 'warehouse-product-select',
-            'id': 'id_remove_warehouse_product',
+            'id': 'id_remove_warehouse_stock',
         }),
     )
     quantity = forms.IntegerField(
@@ -194,29 +390,37 @@ class ProductWarehouseRemoveForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['product'].queryset = (
-            FinishedProduct.objects.filter(stock__quantity__gt=0).order_by('name')
+        self.fields['stock'].queryset = (
+            ProductStock.objects.filter(quantity__gt=0).select_related('product').order_by(
+                'product__name', 'construction_stage'
+            )
         )
-        self.fields['product'].label_from_instance = lambda product: (
-            f'{product.code} - {product.name} (απόθεμα: {product.stock.quantity})'
-        )
+        self.fields['stock'].label_from_instance = lambda stock: _format_warehouse_stock_label(stock)
 
     def clean(self):
         cleaned_data = super().clean()
-        product = cleaned_data.get('product')
+        stock = cleaned_data.get('stock')
         quantity = cleaned_data.get('quantity')
 
-        if product and quantity is not None:
-            stock = ProductStock.objects.filter(product=product).first()
-            if not stock:
-                raise forms.ValidationError('Το προϊόν δεν βρίσκεται στην αποθήκη.')
-            if quantity > stock.quantity:
-                self.add_error(
-                    'quantity',
-                    f'Η ποσότητα δεν μπορεί να υπερβαίνει το διαθέσιμο απόθεμα ({stock.quantity}).',
-                )
+        if stock and quantity is not None and quantity > stock.quantity:
+            self.add_error(
+                'quantity',
+                f'Η ποσότητα δεν μπορεί να υπερβαίνει το διαθέσιμο απόθεμα ({stock.quantity}).',
+            )
 
         return cleaned_data
+
+
+def _format_warehouse_stock_label(stock):
+    product = stock.product
+    label = f'{product.code} - {product.name}'
+    if stock.construction_stage == ProductStock.STAGE_COMPLETE:
+        details = ' / '.join(
+            part for part in (stock.carpet, stock.bulb, stock.dimensions) if part
+        )
+        if details:
+            return f'{label} ({stock.get_construction_stage_display()}: {details}: {stock.quantity})'
+    return f'{label} ({stock.get_construction_stage_display()}: {stock.quantity})'
 
 
 def get_customer_delivery_email(customer):

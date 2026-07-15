@@ -56,6 +56,10 @@ class ProductMaterialAdmin(admin.ModelAdmin):
 
 @admin.register(ProductStock)
 class ProductStockAdmin(admin.ModelAdmin):
-    list_display = ('product', 'quantity', 'low_stock_threshold', 'created_at', 'updated_at')
+    list_display = (
+        'product', 'construction_stage', 'quantity', 'carpet', 'bulb',
+        'photocell', 'dimensions', 'low_stock_threshold', 'created_at', 'updated_at',
+    )
+    list_filter = ('construction_stage',)
     search_fields = ('product__name', 'product__code')
-    ordering = ('product__name',)
+    ordering = ('product__name', 'construction_stage')

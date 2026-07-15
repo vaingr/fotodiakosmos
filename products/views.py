@@ -21,11 +21,13 @@ from .forms import (
     IndividualBankAccountFormSet,
     ProductMaterialFormSet,
     ProductWarehouseAddForm,
+    ProductWarehouseEditForm,
     ProductWarehouseEmailForm,
     ProductWarehouseRemoveForm,
     get_customer_delivery_email,
     get_offer_attention_display,
     get_offer_email_recipients,
+    _format_warehouse_stock_label,
 )
 from .models import FinishedProduct, Offer, OfferSettings, ProductStock, ProductStockMovement
 from .pdf_utils import generate_offer_pdf, generate_warehouse_pdf
@@ -46,23 +48,37 @@ def _get_warehouse_materials_data():
 
 
 def _get_catalog_products_data():
-    stock_map = {
-        stock.product_id: stock.quantity
-        for stock in ProductStock.objects.filter(quantity__gt=0).select_related('product')
-    }
+    stock_by_product = {}
+    for stock in ProductStock.objects.filter(quantity__gt=0).select_related('product'):
+        product_data = stock_by_product.setdefault(stock.product_id, {
+            ProductStock.STAGE_SKELETON: None,
+            'complete_stocks': [],
+        })
+        if stock.construction_stage == ProductStock.STAGE_SKELETON:
+            product_data[ProductStock.STAGE_SKELETON] = stock.quantity
+        else:
+            product_data['complete_stocks'].append({
+                'carpet': stock.carpet,
+                'bulb': stock.bulb,
+                'dimensions': stock.dimensions,
+                'quantity': stock.quantity,
+            })
+
     products = []
     for product in FinishedProduct.objects.order_by('name'):
-        stock_quantity = stock_map.get(product.pk)
-        label = f'{product.code} - {product.name}'
-        if stock_quantity is not None:
-            label += f' (απόθεμα: {stock_quantity})'
+        stocks = stock_by_product.get(product.pk, {
+            ProductStock.STAGE_SKELETON: None,
+            'complete_stocks': [],
+        })
         products.append({
             'id': product.pk,
             'code': product.code,
             'name': product.name,
-            'label': label,
-            'stock_quantity': stock_quantity,
-            'in_warehouse': stock_quantity is not None,
+            'label': f'{product.code} - {product.name}',
+            'stocks': {
+                ProductStock.STAGE_SKELETON: stocks.get(ProductStock.STAGE_SKELETON),
+            },
+            'complete_stocks': stocks.get('complete_stocks', []),
         })
     return products
 
@@ -73,14 +89,16 @@ def _get_warehouse_products_data():
         ProductStock.objects
         .filter(quantity__gt=0)
         .select_related('product')
-        .order_by('product__name')
+        .order_by('product__name', 'construction_stage', 'carpet', 'bulb', 'dimensions')
     ):
         product = stock.product
         products.append({
-            'id': product.pk,
+            'id': stock.pk,
             'code': product.code,
             'name': product.name,
-            'label': f'{product.code} - {product.name} (απόθεμα: {stock.quantity})',
+            'construction_stage': stock.construction_stage,
+            'stage_label': stock.get_construction_stage_display(),
+            'label': _format_warehouse_stock_label(stock),
             'stock_quantity': stock.quantity,
         })
     return products
@@ -133,19 +151,113 @@ def _get_warehouse_stock_items():
                 first_add_user.values('created_by__username')[:1]
             ),
         )
-        .order_by('product__name')
+        .order_by('product__name', 'construction_stage', 'carpet', 'bulb', 'dimensions')
     )
 
 
-def _add_product_to_warehouse(product, quantity, user):
+def _filter_warehouse_stock_items(warehouse_items, stage_filter=None, search_query='', stock_ids=None):
+    if stock_ids:
+        return warehouse_items.filter(pk__in=stock_ids)
+
+    if stage_filter in (ProductStock.STAGE_SKELETON, ProductStock.STAGE_COMPLETE):
+        warehouse_items = warehouse_items.filter(construction_stage=stage_filter)
+
+    search_query = (search_query or '').strip().upper()
+    if search_query:
+        warehouse_items = warehouse_items.filter(
+            Q(product__code__icontains=search_query)
+            | Q(product__name__icontains=search_query)
+            | Q(carpet__icontains=search_query)
+            | Q(bulb__icontains=search_query)
+            | Q(photocell__icontains=search_query)
+            | Q(dimensions__icontains=search_query)
+            | Q(added_by_username__icontains=search_query)
+        )
+
+    return warehouse_items
+
+
+def _get_warehouse_print_filter_label(stage_filter=None, search_query=''):
+    labels = []
+    if stage_filter == ProductStock.STAGE_SKELETON:
+        labels.append('Σκελετοί')
+    elif stage_filter == ProductStock.STAGE_COMPLETE:
+        labels.append('Ολοκληρωμένα')
+
+    search_query = (search_query or '').strip()
+    if search_query:
+        labels.append(f'Αναζήτηση: {search_query.upper()}')
+
+    return ' · '.join(labels)
+
+
+def _parse_warehouse_stock_ids(stock_ids_param):
+    return [
+        int(stock_id)
+        for stock_id in (stock_ids_param or '').split(',')
+        if stock_id.strip().isdigit()
+    ]
+
+
+def _get_filtered_warehouse_items(stage_filter='all', search_query='', stock_ids_param=''):
+    warehouse_items = _get_warehouse_stock_items()
+    stock_ids = _parse_warehouse_stock_ids(stock_ids_param)
+    if stock_ids:
+        return _filter_warehouse_stock_items(warehouse_items, stock_ids=stock_ids)
+
+    normalized_stage = stage_filter if stage_filter in (
+        ProductStock.STAGE_SKELETON,
+        ProductStock.STAGE_COMPLETE,
+    ) else None
+    return _filter_warehouse_stock_items(
+        warehouse_items,
+        stage_filter=normalized_stage,
+        search_query=search_query,
+    )
+
+
+def _add_product_to_warehouse(product, quantity, construction_stage, user, complete_details=None):
+    complete_details = complete_details or {}
+    lookup = {
+        'product': product,
+        'construction_stage': construction_stage,
+    }
+    defaults = {'quantity': 0}
+
+    if construction_stage == ProductStock.STAGE_COMPLETE:
+        lookup.update({
+            'carpet': complete_details.get('carpet', ''),
+            'bulb': complete_details.get('bulb', ''),
+            'dimensions': complete_details.get('dimensions', ''),
+        })
+        defaults['photocell'] = complete_details.get('photocell', '')
+    else:
+        lookup.update({
+            'carpet': '',
+            'bulb': '',
+            'dimensions': '',
+        })
+
     stock, _created = ProductStock.objects.get_or_create(
-        product=product,
-        defaults={'quantity': 0},
+        defaults=defaults,
+        **lookup,
     )
     quantity_before = stock.quantity
     quantity_after = quantity_before + quantity
     stock.quantity = quantity_after
-    stock.save(update_fields=['quantity', 'updated_at'])
+
+    update_fields = ['quantity', 'updated_at']
+    if construction_stage == ProductStock.STAGE_COMPLETE:
+        stock.photocell = complete_details.get('photocell', stock.photocell)
+        update_fields.append('photocell')
+    else:
+        stock.carpet = ''
+        stock.bulb = ''
+        stock.photocell = ''
+        stock.dimensions = ''
+        update_fields.extend(['carpet', 'bulb', 'photocell', 'dimensions'])
+
+    stock.save(update_fields=update_fields)
 
     ProductStockMovement.objects.create(
         stock=stock,
@@ -158,8 +270,7 @@ def _add_product_to_warehouse(product, quantity, user):
     return stock, quantity_before == 0
 
 
-def _remove_product_from_warehouse(product, quantity, user):
-    stock = ProductStock.objects.get(product=product)
+def _remove_product_from_warehouse(stock, quantity, user):
     quantity_before = stock.quantity
     quantity_after = quantity_before - quantity
     fully_removed = quantity_after <= 0
@@ -180,6 +291,156 @@ def _remove_product_from_warehouse(product, quantity, user):
         stock.save(update_fields=['quantity', 'updated_at'])
 
     return fully_removed
+
+
+def _record_stock_edit_movement(stock, quantity_before, quantity_after, user, note='Επεξεργασία αποθέματος'):
+    if quantity_before == quantity_after:
+        return
+    movement_type = (
+        ProductStockMovement.ADD
+        if quantity_after > quantity_before
+        else ProductStockMovement.REMOVE
+    )
+    ProductStockMovement.objects.create(
+        stock=stock,
+        movement_type=movement_type,
+        amount=abs(quantity_after - quantity_before),
+        quantity_before=quantity_before,
+        quantity_after=quantity_after,
+        note=note,
+        created_by=user,
+    )
+
+
+def _merge_stock_records(source_stock, target_stock, quantity_to_add, user, note):
+    quantity_before = target_stock.quantity
+    target_stock.quantity = quantity_before + quantity_to_add
+    target_stock.save(update_fields=['quantity', 'updated_at'])
+    ProductStockMovement.objects.filter(stock=source_stock).update(stock=target_stock)
+    _record_stock_edit_movement(target_stock, quantity_before, target_stock.quantity, user, note)
+    source_stock.delete()
+    return target_stock
+
+
+def _convert_skeleton_to_complete(stock, convert_quantity, user, complete_details):
+    quantity_before = stock.quantity
+    carpet = complete_details.get('carpet', '')
+    bulb = complete_details.get('bulb', '')
+    dimensions = complete_details.get('dimensions', '')
+    photocell = complete_details.get('photocell', '')
+
+    existing = ProductStock.objects.filter(
+        product=stock.product,
+        construction_stage=ProductStock.STAGE_COMPLETE,
+        carpet=carpet,
+        bulb=bulb,
+        dimensions=dimensions,
+    ).first()
+
+    if convert_quantity == quantity_before and not existing:
+        stock.construction_stage = ProductStock.STAGE_COMPLETE
+        stock.carpet = carpet
+        stock.bulb = bulb
+        stock.dimensions = dimensions
+        stock.photocell = photocell
+        stock.save(update_fields=[
+            'construction_stage', 'carpet', 'bulb', 'dimensions', 'photocell', 'updated_at',
+        ])
+        _record_stock_edit_movement(
+            stock, quantity_before, quantity_before, user, 'Αλλαγή σε Ολοκληρωμένο',
+        )
+        return stock
+
+    if existing:
+        target = existing
+        target_before = target.quantity
+        target.quantity += convert_quantity
+        if photocell:
+            target.photocell = photocell
+        target.save(update_fields=['quantity', 'photocell', 'updated_at'])
+        _record_stock_edit_movement(
+            target, target_before, target.quantity, user, 'Μετατροπή από Σκελετό',
+        )
+    else:
+        target = ProductStock.objects.create(
+            product=stock.product,
+            construction_stage=ProductStock.STAGE_COMPLETE,
+            carpet=carpet,
+            bulb=bulb,
+            dimensions=dimensions,
+            photocell=photocell,
+            quantity=convert_quantity,
+        )
+        _record_stock_edit_movement(
+            target, 0, convert_quantity, user, 'Μετατροπή από Σκελετό',
+        )
+
+    if convert_quantity < quantity_before:
+        stock.quantity = quantity_before - convert_quantity
+        stock.save(update_fields=['quantity', 'updated_at'])
+        _record_stock_edit_movement(
+            stock,
+            quantity_before,
+            stock.quantity,
+            user,
+            f'Μετατροπή {convert_quantity} τεμ. σε Ολοκληρωμένο',
+        )
+    else:
+        ProductStockMovement.objects.filter(stock=stock).update(stock=target)
+        stock.delete()
+
+    return target
+
+
+def _update_warehouse_stock(stock, quantity, construction_stage, user, complete_details=None):
+    complete_details = complete_details or {}
+    quantity_before = stock.quantity
+
+    if construction_stage != stock.construction_stage:
+        if construction_stage == ProductStock.STAGE_COMPLETE:
+            return _convert_skeleton_to_complete(stock, quantity, user, complete_details)
+
+        existing = ProductStock.objects.filter(
+            product=stock.product,
+            construction_stage=ProductStock.STAGE_SKELETON,
+            carpet='',
+            bulb='',
+            dimensions='',
+        ).exclude(pk=stock.pk).first()
+        if existing:
+            return _merge_stock_records(
+                stock,
+                existing,
+                quantity,
+                user,
+                'Συγχώνευση από αλλαγή σε Σκελετό',
+            )
+
+        stock.construction_stage = ProductStock.STAGE_SKELETON
+        stock.carpet = ''
+        stock.bulb = ''
+        stock.photocell = ''
+        stock.dimensions = ''
+        stock.quantity = quantity
+        stock.save(update_fields=[
+            'construction_stage', 'carpet', 'bulb', 'photocell', 'dimensions',
+            'quantity', 'updated_at',
+        ])
+        _record_stock_edit_movement(stock, quantity_before, quantity, user, 'Αλλαγή σε Σκελετό')
+        return stock
+
+    update_fields = ['quantity', 'updated_at']
+    if construction_stage == ProductStock.STAGE_COMPLETE:
+        stock.carpet = complete_details.get('carpet', '')
+        stock.bulb = complete_details.get('bulb', '')
+        stock.photocell = complete_details.get('photocell', '')
+        stock.dimensions = complete_details.get('dimensions', '')
+        update_fields.extend(['carpet', 'bulb', 'photocell', 'dimensions'])
+
+    stock.quantity = quantity
+    stock.save(update_fields=update_fields)
+    _record_stock_edit_movement(stock, quantity_before, quantity, user)
+    return stock
 
 
 def _product_form_context(form, formset, title, product=None):
@@ -304,6 +565,8 @@ def product_delete(request, pk):
 def product_warehouse(request):
     add_form = ProductWarehouseAddForm()
     remove_form = ProductWarehouseRemoveForm()
+    edit_form = ProductWarehouseEditForm()
+    open_edit_modal = False
 
     if request.method == 'POST':
         action = request.POST.get('warehouse_action', 'add')
@@ -311,43 +574,84 @@ def product_warehouse(request):
         if action == 'remove':
             remove_form = ProductWarehouseRemoveForm(request.POST)
             if remove_form.is_valid():
-                product = remove_form.cleaned_data['product']
+                stock = remove_form.cleaned_data['stock']
                 quantity = remove_form.cleaned_data['quantity']
-                fully_removed = _remove_product_from_warehouse(product, quantity, request.user)
+                product = stock.product
+                stage_label = stock.get_construction_stage_display()
+                fully_removed = _remove_product_from_warehouse(stock, quantity, request.user)
                 if fully_removed:
                     messages.success(
                         request,
-                        f'Το προϊόν «{product.name}» αφαιρέθηκε εντελώς από την αποθήκη.',
+                        f'Το προϊόν «{product.name}» ({stage_label}) αφαιρέθηκε εντελώς από την αποθήκη.',
                     )
                 else:
                     messages.success(
                         request,
-                        f'Αφαιρέθηκαν {quantity} τεμάχια από το προϊόν «{product.name}».',
+                        f'Αφαιρέθηκαν {quantity} τεμάχια από το προϊόν «{product.name}» ({stage_label}).',
                     )
                 return redirect('products:product_warehouse')
+        elif action == 'edit':
+            edit_form = ProductWarehouseEditForm(request.POST)
+            if edit_form.is_valid():
+                stock = edit_form.cleaned_data['stock']
+                quantity = edit_form.cleaned_data['quantity']
+                construction_stage = edit_form.cleaned_data['construction_stage']
+                complete_details = {
+                    'carpet': edit_form.cleaned_data.get('carpet', ''),
+                    'bulb': edit_form.cleaned_data.get('bulb', ''),
+                    'photocell': edit_form.cleaned_data.get('photocell', ''),
+                    'dimensions': edit_form.cleaned_data.get('dimensions', ''),
+                }
+                updated_stock = _update_warehouse_stock(
+                    stock, quantity, construction_stage, request.user, complete_details,
+                )
+                messages.success(
+                    request,
+                    f'Η εγγραφή «{updated_stock.product.name}» ενημερώθηκε επιτυχώς.',
+                )
+                return redirect('products:product_warehouse')
+            open_edit_modal = True
         else:
             add_form = ProductWarehouseAddForm(request.POST)
             if add_form.is_valid():
                 product = add_form.cleaned_data['product']
                 quantity = add_form.cleaned_data['quantity']
-                _stock, is_new = _add_product_to_warehouse(product, quantity, request.user)
+                construction_stage = add_form.cleaned_data['construction_stage']
+                stage_label = dict(ProductStock.STAGE_CHOICES).get(construction_stage, construction_stage)
+                complete_details = {
+                    'carpet': add_form.cleaned_data.get('carpet', ''),
+                    'bulb': add_form.cleaned_data.get('bulb', ''),
+                    'photocell': add_form.cleaned_data.get('photocell', ''),
+                    'dimensions': add_form.cleaned_data.get('dimensions', ''),
+                }
+                _stock, is_new = _add_product_to_warehouse(
+                    product, quantity, construction_stage, request.user, complete_details,
+                )
                 if is_new:
                     messages.success(
                         request,
-                        f'Το προϊόν «{product.name}» προστέθηκε στην αποθήκη με ποσότητα {quantity}.',
+                        f'Το προϊόν «{product.name}» προστέθηκε στην αποθήκη ({stage_label}) με ποσότητα {quantity}.',
                     )
                 else:
                     messages.success(
                         request,
-                        f'Προστέθηκαν {quantity} τεμάχια στο προϊόν «{product.name}».',
+                        f'Προστέθηκαν {quantity} τεμάχια στο προϊόν «{product.name}» ({stage_label}).',
                     )
                 return redirect('products:product_warehouse')
 
     warehouse_items = _get_warehouse_stock_items()
+    editing_stock = None
+    if open_edit_modal:
+        stock_id = request.POST.get('stock')
+        if stock_id:
+            editing_stock = ProductStock.objects.filter(pk=stock_id).select_related('product').first()
 
     return render(request, 'products/product_warehouse.html', {
         'add_form': add_form,
         'remove_form': remove_form,
+        'edit_form': edit_form,
+        'open_edit_modal': open_edit_modal,
+        'editing_stock': editing_stock,
         'email_form': ProductWarehouseEmailForm(),
         'warehouse_items': warehouse_items,
         'catalog_products': _get_catalog_products_data(),
@@ -359,12 +663,26 @@ def product_warehouse(request):
 
 @require_module_perm('perm_finished_products_warehouse')
 def product_warehouse_print(request):
-    warehouse_items = _get_warehouse_stock_items()
+    stage_filter = request.GET.get('stage', 'all')
+    search_query = request.GET.get('q', '')
+    stock_ids_param = request.GET.get('ids', '')
+
+    warehouse_items = _get_filtered_warehouse_items(
+        stage_filter=stage_filter,
+        search_query=search_query,
+        stock_ids_param=stock_ids_param,
+    )
+
+    filter_label = _get_warehouse_print_filter_label(
+        stage_filter if stage_filter in (ProductStock.STAGE_SKELETON, ProductStock.STAGE_COMPLETE) else None,
+        search_query,
+    )
 
     return render(request, 'products/product_warehouse_print.html', {
         'warehouse_items': warehouse_items,
         'total_count': warehouse_items.count(),
         'printed_at': timezone.localtime(timezone.now()),
+        'filter_label': filter_label,
     })
 
 
@@ -387,9 +705,13 @@ def product_warehouse_email(request):
         )
         return redirect('products:product_warehouse')
 
-    warehouse_items = _get_warehouse_stock_items()
+    warehouse_items = _get_filtered_warehouse_items(
+        stage_filter=request.POST.get('filter_stage', 'all'),
+        search_query=request.POST.get('filter_q', ''),
+        stock_ids_param=request.POST.get('filter_ids', ''),
+    )
     if not warehouse_items.exists():
-        messages.error(request, 'Δεν υπάρχουν προϊόντα στην αποθήκη για αποστολή.')
+        messages.error(request, 'Δεν υπάρχουν φιλτραρισμένα προϊόντα για αποστολή.')
         return redirect('products:product_warehouse')
 
     customer = email_form.cleaned_data['customer']

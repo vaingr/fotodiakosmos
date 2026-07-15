@@ -49,6 +49,54 @@
                 {% if add_form.quantity.errors %}
                 <div class="error-message">{{ add_form.quantity.errors.0 }}</div>
                 {% endif %}
+
+                <div class="construction-stage-group">
+                    <label>{{ add_form.construction_stage.label }}</label>
+                    <div class="construction-stage-options">
+                        {% for radio in add_form.construction_stage %}
+                        <label class="construction-stage-option">
+                            {{ radio.tag }}
+                            <span>{{ radio.choice_label }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% if add_form.construction_stage.errors %}
+                <div class="error-message">{{ add_form.construction_stage.errors.0 }}</div>
+                {% endif %}
+
+                <div id="completeDetailsFields"
+                     class="complete-details-fields is-hidden"
+                     hidden>
+                    <div class="complete-detail-row">
+                        <label for="{{ add_form.carpet.id_for_label }}">{{ add_form.carpet.label }}</label>
+                        {{ add_form.carpet }}
+                        {% if add_form.carpet.errors %}
+                        <div class="error-message">{{ add_form.carpet.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="complete-detail-row">
+                        <label for="{{ add_form.bulb.id_for_label }}">{{ add_form.bulb.label }}</label>
+                        {{ add_form.bulb }}
+                        {% if add_form.bulb.errors %}
+                        <div class="error-message">{{ add_form.bulb.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="complete-detail-row">
+                        <label for="{{ add_form.photocell.id_for_label }}">{{ add_form.photocell.label }}</label>
+                        {{ add_form.photocell }}
+                        {% if add_form.photocell.errors %}
+                        <div class="error-message">{{ add_form.photocell.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="complete-detail-row">
+                        <label for="{{ add_form.dimensions.id_for_label }}">{{ add_form.dimensions.label }}</label>
+                        {{ add_form.dimensions }}
+                        {% if add_form.dimensions.errors %}
+                        <div class="error-message">{{ add_form.dimensions.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
                 {% if add_form.non_field_errors %}
                 <div class="error-message">{{ add_form.non_field_errors.0 }}</div>
                 {% endif %}
@@ -88,11 +136,11 @@
                            spellcheck="false">
                     <div class="product-results" hidden></div>
                     <div class="product-select-hidden">
-                        {{ remove_form.product }}
+                        {{ remove_form.stock }}
                     </div>
                 </div>
-                {% if remove_form.product.errors %}
-                <div class="error-message">{{ remove_form.product.errors.0 }}</div>
+                {% if remove_form.stock.errors %}
+                <div class="error-message">{{ remove_form.stock.errors.0 }}</div>
                 {% endif %}
 
                 <div class="quantity-row">
@@ -136,6 +184,30 @@
         {% endif %}
     </div>
     {% if warehouse_items %}
+    <div class="warehouse-stock-toolbar">
+        <div class="warehouse-stock-search">
+            <input type="text"
+                   id="warehouseStockSearch"
+                   class="product-search-input"
+                   placeholder="Αναζήτηση με κωδικό, όνομα, μοκέτα, λαμπάκι..."
+                   autocomplete="off"
+                   autocorrect="off"
+                   autocapitalize="off"
+                   spellcheck="false">
+        </div>
+        <div class="warehouse-stock-filters" id="warehouseStockFilters">
+            <button type="button" class="warehouse-stock-filter-btn is-active" data-stage-filter="all">
+                Όλα τα προϊόντα
+            </button>
+            <button type="button" class="warehouse-stock-filter-btn" data-stage-filter="skeleton">
+                Σκελετοί
+            </button>
+            <button type="button" class="warehouse-stock-filter-btn" data-stage-filter="complete">
+                Ολοκληρωμένα
+            </button>
+        </div>
+    </div>
+    <p class="warehouse-stock-results-note" id="warehouseStockResultsNote"></p>
     <div class="table-wrapper">
         <table class="warehouse-stock-table">
             <thead>
@@ -143,14 +215,23 @@
                     <th class="photo-col">Φωτο</th>
                     <th>Κωδικός</th>
                     <th>Όνομα</th>
+                    <th>Στάδιο</th>
+                    <th>ΜΟΚΕΤΑ</th>
+                    <th>ΛΑΜΠΑΚΙ</th>
+                    <th>ΦΩΤΟΣΩΛΗΝΑΣ</th>
+                    <th>ΔΙΑΣΤΑΣΕΙΣ</th>
                     <th>Ποσότητα</th>
                     <th>Ημ/νία Προσθήκης</th>
                     <th>Προστέθηκε από</th>
+                    <th class="actions-col">Ενέργειες</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="warehouseStockTableBody">
                 {% for item in warehouse_items %}
-                <tr>
+                <tr class="warehouse-stock-row"
+                    data-stock-id="{{ item.pk }}"
+                    data-stage="{{ item.construction_stage }}"
+                    data-search="{{ item.product.code|upper }} {{ item.product.name|upper }} {{ item.get_construction_stage_display|upper }} {{ item.carpet|upper }} {{ item.bulb|upper }} {{ item.photocell|upper }} {{ item.dimensions|upper }} {{ item.added_by_username|default:''|upper }}">
                     <td class="photo-col">
                         {% if item.product.photo %}
                         <img src="{{ item.product.photo.url }}" alt="{{ item.product.name }}" class="product-thumb">
@@ -160,13 +241,38 @@
                     </td>
                     <td>{{ item.product.code }}</td>
                     <td>{{ item.product.name }}</td>
+                    <td>{{ item.get_construction_stage_display }}</td>
+                    <td>{{ item.carpet|default:"—" }}</td>
+                    <td>{{ item.bulb|default:"—" }}</td>
+                    <td>{{ item.photocell|default:"—" }}</td>
+                    <td>{{ item.dimensions|default:"—" }}</td>
                     <td>{{ item.quantity }}</td>
                     <td>{{ item.created_at|date:"d/m/Y H:i" }}</td>
                     <td>{{ item.added_by_username|default:"—" }}</td>
+                    <td class="actions-col">
+                        <button type="button"
+                                class="btn btn-warning btn-sm warehouse-edit-btn"
+                                title="Επεξεργασία"
+                                data-stock-id="{{ item.pk }}"
+                                data-product-label="{{ item.product.code }} - {{ item.product.name }}"
+                                data-stage="{{ item.construction_stage }}"
+                                data-stage-label="{{ item.get_construction_stage_display }}"
+                                data-quantity="{{ item.quantity }}"
+                                data-carpet="{{ item.carpet }}"
+                                data-bulb="{{ item.bulb }}"
+                                data-photocell="{{ item.photocell }}"
+                                data-dimensions="{{ item.dimensions }}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+    <div class="warehouse-stock-empty-filter is-hidden" id="warehouseStockEmptyFilter">
+        <i class="fas fa-search"></i>
+        <p>Δεν βρέθηκαν προϊόντα με τα τρέχοντα κριτήρια αναζήτησης.</p>
     </div>
     {% else %}
     <div class="empty-state">
@@ -175,6 +281,100 @@
     </div>
     {% endif %}
 </div>
+
+{% if warehouse_items %}
+<div class="email-modal-overlay" id="editStockModal" {% if not open_edit_modal %}hidden{% endif %}>
+    <div class="email-modal warehouse-edit-modal" role="dialog" aria-labelledby="editStockModalTitle" aria-modal="true">
+        <div class="email-modal-header">
+            <h3 id="editStockModalTitle"><i class="fas fa-edit"></i> Επεξεργασία Αποθέματος</h3>
+            <button type="button" class="email-modal-close" id="closeEditStockModal" aria-label="Κλείσιμο">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <p class="email-modal-description" id="editStockProductLabel">
+            {% if editing_stock %}{{ editing_stock.product.code }} - {{ editing_stock.product.name }}{% endif %}
+        </p>
+
+        <form method="post" id="editStockForm" autocomplete="off">
+            {% csrf_token %}
+            <input type="hidden" name="warehouse_action" value="edit">
+            {{ edit_form.stock }}
+            {% if edit_form.stock.errors %}
+            <div class="error-message">{{ edit_form.stock.errors.0 }}</div>
+            {% endif %}
+
+            <div class="construction-stage-group">
+                <label>{{ edit_form.construction_stage.label }}</label>
+                <div class="construction-stage-options">
+                    {% for radio in edit_form.construction_stage %}
+                    <label class="construction-stage-option">
+                        {{ radio.tag }}
+                        <span>{{ radio.choice_label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% if edit_form.construction_stage.errors %}
+            <div class="error-message">{{ edit_form.construction_stage.errors.0 }}</div>
+            {% endif %}
+
+            <div class="quantity-row">
+                <label for="{{ edit_form.quantity.id_for_label }}" id="editQuantityLabel">{{ edit_form.quantity.label }}</label>
+                {{ edit_form.quantity }}
+            </div>
+            <p class="selected-stock-note is-hidden" id="editQuantityHint"></p>
+            {% if edit_form.quantity.errors %}
+            <div class="error-message">{{ edit_form.quantity.errors.0 }}</div>
+            {% endif %}
+
+            <div id="editCompleteDetailsFields"
+                 class="complete-details-fields{% if open_edit_modal and edit_form.construction_stage.value == 'complete' %}{% else %} is-hidden{% endif %}"
+                 {% if not open_edit_modal or edit_form.construction_stage.value != 'complete' %}hidden{% endif %}>
+                <div class="complete-detail-row">
+                    <label for="{{ edit_form.carpet.id_for_label }}">{{ edit_form.carpet.label }}</label>
+                    {{ edit_form.carpet }}
+                    {% if edit_form.carpet.errors %}
+                    <div class="error-message">{{ edit_form.carpet.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="complete-detail-row">
+                    <label for="{{ edit_form.bulb.id_for_label }}">{{ edit_form.bulb.label }}</label>
+                    {{ edit_form.bulb }}
+                    {% if edit_form.bulb.errors %}
+                    <div class="error-message">{{ edit_form.bulb.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="complete-detail-row">
+                    <label for="{{ edit_form.photocell.id_for_label }}">{{ edit_form.photocell.label }}</label>
+                    {{ edit_form.photocell }}
+                    {% if edit_form.photocell.errors %}
+                    <div class="error-message">{{ edit_form.photocell.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="complete-detail-row">
+                    <label for="{{ edit_form.dimensions.id_for_label }}">{{ edit_form.dimensions.label }}</label>
+                    {{ edit_form.dimensions }}
+                    {% if edit_form.dimensions.errors %}
+                    <div class="error-message">{{ edit_form.dimensions.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if edit_form.non_field_errors %}
+            <div class="error-message">{{ edit_form.non_field_errors.0 }}</div>
+            {% endif %}
+
+            <div class="email-modal-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="cancelEditStockModal">Ακύρωση</button>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-save"></i> Αποθήκευση
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
 
 {% if customers_enabled and warehouse_items %}
 <div class="email-modal-overlay" id="emailModal" hidden>
@@ -198,8 +398,11 @@
         <form method="post" action="{% url 'products:product_warehouse_email' %}" id="emailWarehouseForm" autocomplete="off">
             {% csrf_token %}
             <p class="email-modal-description">
-                Επιλέξτε παραλήπτη από τη λίστα πελατών. Θα σταλεί PDF με τα προϊόντα της αποθήκης.
+                Επιλέξτε παραλήπτη από τη λίστα πελατών. Θα σταλεί PDF με τα τρέχοντα φιλτραρισμένα προϊόντα της αποθήκης.
             </p>
+            <input type="hidden" name="filter_stage" id="emailFilterStage" value="all">
+            <input type="hidden" name="filter_q" id="emailFilterQ" value="">
+            <input type="hidden" name="filter_ids" id="emailFilterIds" value="">
 
             <div class="product-picker" data-product-picker="email">
                 <label for="emailCustomerSearch">Παραλήπτης</label>
@@ -316,6 +519,77 @@
     color: var(--text-primary);
     font-size: 0.9rem;
 }
+.construction-stage-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.construction-stage-group > label {
+    font-weight: bold;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+.construction-stage-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+.construction-stage-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-weight: 600;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+.construction-stage-option:has(input:checked) {
+    border-color: var(--accent);
+    background: rgba(59, 130, 246, 0.1);
+}
+.construction-stage-option input {
+    accent-color: var(--accent);
+}
+.complete-details-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 0.75rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 0.5rem;
+    background: var(--bg-primary);
+}
+.complete-details-fields[hidden],
+.complete-details-fields.is-hidden {
+    display: none !important;
+}
+.complete-detail-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.complete-detail-row label {
+    font-weight: bold;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+.complete-detail-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    box-sizing: border-box;
+    text-transform: uppercase;
+}
+.complete-detail-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
 .warehouse-quantity-input {
     width: 100%;
     padding: 0.75rem 1rem;
@@ -408,6 +682,8 @@
 .btn-secondary:hover { background: var(--bg-primary); }
 .btn-danger { background: #dc3545; color: white; }
 .btn-danger:hover { background: #c82333; }
+.btn-warning { background: #ffc107; color: #212529; border: none; }
+.btn-warning:hover { background: #e0a800; color: #212529; }
 
 .warehouse-stock-section {
     background: var(--card-bg);
@@ -437,6 +713,63 @@
     align-items: center;
     gap: 0.5rem;
 }
+.warehouse-stock-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+.warehouse-stock-search {
+    width: 100%;
+}
+.warehouse-stock-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+.warehouse-stock-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.65rem 1rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 0.5rem;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+.warehouse-stock-filter-btn:hover {
+    border-color: var(--accent);
+}
+.warehouse-stock-filter-btn.is-active {
+    border-color: var(--accent);
+    background: rgba(59, 130, 246, 0.1);
+}
+.warehouse-stock-results-note {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+.warehouse-stock-empty-filter {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-secondary);
+}
+.warehouse-stock-empty-filter.is-hidden {
+    display: none;
+}
+.warehouse-stock-empty-filter i {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+    display: block;
+    color: var(--accent);
+}
+.warehouse-stock-row.is-hidden {
+    display: none;
+}
 .table-wrapper { overflow-x: auto; }
 .warehouse-stock-table {
     width: 100%;
@@ -453,6 +786,25 @@
     background: var(--bg-secondary);
     font-size: 0.85rem;
     text-transform: uppercase;
+}
+.warehouse-stock-table .actions-col {
+    width: 90px;
+    text-align: center;
+    white-space: nowrap;
+}
+.warehouse-edit-modal .quantity-row {
+    max-width: none;
+    margin-bottom: 0.75rem;
+}
+.edit-stock-meta {
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+.edit-stock-meta-label {
+    font-weight: bold;
+    color: var(--text-primary);
+    margin-right: 0.35rem;
 }
 .photo-col { width: 72px; text-align: center; }
 .product-thumb {
@@ -624,13 +976,87 @@ body.email-sending-active .email-sending-overlay {
 }
 </style>
 
-{% if catalog_products or warehouse_products or customers_email_data %}
+{% if catalog_products or warehouse_products or customers_email_data or warehouse_items %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const warehouseStockSearch = document.getElementById('warehouseStockSearch');
+    const warehouseStockFilters = document.getElementById('warehouseStockFilters');
+    const warehouseStockRows = document.querySelectorAll('.warehouse-stock-row');
+    const warehouseStockResultsNote = document.getElementById('warehouseStockResultsNote');
+    const warehouseStockEmptyFilter = document.getElementById('warehouseStockEmptyFilter');
+    let activeStageFilter = 'all';
+
+    function applyWarehouseStockFilters() {
+        if (!warehouseStockRows.length) return;
+
+        const query = warehouseStockSearch
+            ? warehouseStockSearch.value.trim().toUpperCase()
+            : '';
+        let visibleCount = 0;
+
+        warehouseStockRows.forEach(function(row) {
+            const matchesStage = (
+                activeStageFilter === 'all' || row.dataset.stage === activeStageFilter
+            );
+            const searchText = row.dataset.search || '';
+            const matchesSearch = !query || searchText.includes(query);
+            const visible = matchesStage && matchesSearch;
+            row.classList.toggle('is-hidden', !visible);
+            if (visible) visibleCount += 1;
+        });
+
+        if (warehouseStockResultsNote) {
+            warehouseStockResultsNote.textContent = 'Εμφανίζονται ' + visibleCount + ' από ' + warehouseStockRows.length + ' εγγραφές';
+        }
+        if (warehouseStockEmptyFilter) {
+            warehouseStockEmptyFilter.classList.toggle('is-hidden', visibleCount > 0);
+        }
+    }
+
+    if (warehouseStockSearch) {
+        warehouseStockSearch.addEventListener('input', function() {
+            warehouseStockSearch.value = warehouseStockSearch.value.toUpperCase();
+            applyWarehouseStockFilters();
+        });
+    }
+
+    if (warehouseStockFilters) {
+        warehouseStockFilters.querySelectorAll('.warehouse-stock-filter-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                activeStageFilter = button.dataset.stageFilter || 'all';
+                warehouseStockFilters.querySelectorAll('.warehouse-stock-filter-btn').forEach(function(item) {
+                    item.classList.toggle('is-active', item === button);
+                });
+                applyWarehouseStockFilters();
+            });
+        });
+    }
+
+    applyWarehouseStockFilters();
+
     const printWarehouseBtn = document.getElementById('printWarehouseBtn');
     if (printWarehouseBtn) {
         printWarehouseBtn.addEventListener('click', function() {
-            window.open("{% url 'products:product_warehouse_print' %}", '_blank');
+            const params = new URLSearchParams();
+            const visibleIds = Array.from(warehouseStockRows)
+                .filter(function(row) { return !row.classList.contains('is-hidden'); })
+                .map(function(row) { return row.dataset.stockId; })
+                .filter(Boolean);
+
+            if (visibleIds.length) {
+                params.set('ids', visibleIds.join(','));
+            }
+            if (activeStageFilter && activeStageFilter !== 'all') {
+                params.set('stage', activeStageFilter);
+            }
+            if (warehouseStockSearch && warehouseStockSearch.value.trim()) {
+                params.set('q', warehouseStockSearch.value.trim());
+            }
+
+            const printUrl = "{% url 'products:product_warehouse_print' %}" + (
+                params.toString() ? '?' + params.toString() : ''
+            );
+            window.open(printUrl, '_blank');
         });
     }
 
@@ -657,6 +1083,39 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
+        const stageLabels = {
+            skeleton: 'Σκελετός',
+            complete: 'Ολοκληρωμένο',
+        };
+
+        function getSelectedStage() {
+            if (config.mode !== 'add') return null;
+            const checked = form.querySelector('input[name="construction_stage"]:checked');
+            return checked ? checked.value : 'skeleton';
+        }
+
+        function getCompleteDetailValues() {
+            const carpetInput = document.getElementById('id_warehouse_carpet');
+            const bulbInput = document.getElementById('id_warehouse_bulb');
+            const dimensionsInput = document.getElementById('id_warehouse_dimensions');
+            return {
+                carpet: carpetInput ? carpetInput.value.trim().toUpperCase() : '',
+                bulb: bulbInput ? bulbInput.value.trim().toUpperCase() : '',
+                dimensions: dimensionsInput ? dimensionsInput.value.trim().toUpperCase() : '',
+            };
+        }
+
+        function findCompleteStock(product, details) {
+            if (!product.complete_stocks || !product.complete_stocks.length) {
+                return null;
+            }
+            return product.complete_stocks.find(function(entry) {
+                return entry.carpet === details.carpet
+                    && entry.bulb === details.bulb
+                    && entry.dimensions === details.dimensions;
+            }) || null;
+        }
+
         function updateSelectedStockNote() {
             if (!selectedStockNote) return;
             const product = getProductById(productSelect.value);
@@ -666,10 +1125,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             if (config.mode === 'add') {
-                if (product.in_warehouse) {
-                    selectedStockNote.textContent = 'Τρέχον απόθεμα: ' + product.stock_quantity + ' — η ποσότητα θα προστεθεί.';
+                const stage = getSelectedStage();
+                const stageLabel = stageLabels[stage] || stage;
+                let stockQuantity = null;
+                if (stage === 'complete') {
+                    const match = findCompleteStock(product, getCompleteDetailValues());
+                    stockQuantity = match ? match.quantity : null;
+                } else if (product.stocks) {
+                    stockQuantity = product.stocks.skeleton;
+                }
+                if (stockQuantity !== undefined && stockQuantity !== null) {
+                    selectedStockNote.textContent = (
+                        'Τρέχον απόθεμα (' + stageLabel + '): ' + stockQuantity + ' — η ποσότητα θα προστεθεί.'
+                    );
                 } else {
-                    selectedStockNote.textContent = 'Το προϊόν δεν υπάρχει ακόμα στην αποθήκη — θα δημιουργηθεί νέα εγγραφή.';
+                    selectedStockNote.textContent = (
+                        'Το προϊόν δεν υπάρχει ακόμα με αυτά τα χαρακτηριστικά — θα δημιουργηθεί νέα εγγραφή.'
+                    );
                 }
             } else {
                 selectedStockNote.textContent = 'Διαθέσιμο απόθεμα: ' + product.stock_quantity;
@@ -787,6 +1259,64 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateSelectedStockNote();
             }
         }
+
+        if (config.mode === 'add') {
+            form.querySelectorAll('input[name="construction_stage"]').forEach(function(radio) {
+                radio.addEventListener('change', updateSelectedStockNote);
+            });
+            form.querySelectorAll('.complete-detail-input').forEach(function(input) {
+                input.addEventListener('input', updateSelectedStockNote);
+            });
+            window.updateWarehouseStockNote = updateSelectedStockNote;
+        }
+    }
+
+    function bindUppercaseInput(input) {
+        if (!input) return;
+        input.addEventListener('input', function() {
+            const value = this.value.toUpperCase();
+            if (this.value !== value) {
+                this.value = value;
+            }
+        });
+        input.addEventListener('paste', function() {
+            const field = this;
+            setTimeout(function() {
+                field.value = field.value.toUpperCase();
+            }, 0);
+        });
+    }
+
+    function updateCompleteDetailsVisibility() {
+        const addForm = document.getElementById('addProductForm');
+        const completeDetails = document.getElementById('completeDetailsFields');
+        if (!addForm || !completeDetails) return;
+
+        const checked = addForm.querySelector('input[name="construction_stage"]:checked');
+        const isComplete = checked && checked.value === 'complete';
+
+        completeDetails.hidden = !isComplete;
+        completeDetails.classList.toggle('is-hidden', !isComplete);
+
+        completeDetails.querySelectorAll('.complete-detail-input').forEach(function(input) {
+            input.disabled = !isComplete;
+            if (!isComplete) {
+                input.value = '';
+            }
+        });
+
+        if (typeof window.updateWarehouseStockNote === 'function') {
+            window.updateWarehouseStockNote();
+        }
+    }
+
+    const addProductForm = document.getElementById('addProductForm');
+    if (addProductForm) {
+        addProductForm.querySelectorAll('input[name="construction_stage"]').forEach(function(radio) {
+            radio.addEventListener('change', updateCompleteDetailsVisibility);
+        });
+        document.querySelectorAll('.complete-detail-input').forEach(bindUppercaseInput);
+        updateCompleteDetailsVisibility();
     }
 
     if (document.getElementById('catalog-products-data')) {
@@ -806,7 +1336,7 @@ document.addEventListener('DOMContentLoaded', function() {
         initProductPicker({
             pickerSelector: '[data-product-picker="remove"]',
             searchInputId: 'removeWarehouseProductSearch',
-            productSelectId: 'id_remove_warehouse_product',
+            productSelectId: 'id_remove_warehouse_stock',
             quantityInputId: 'id_remove_warehouse_quantity',
             stockNoteId: 'removeSelectedStockNote',
             formId: 'removeProductForm',
@@ -814,6 +1344,147 @@ document.addEventListener('DOMContentLoaded', function() {
             mode: 'remove',
         });
     }
+
+    const editStockModal = document.getElementById('editStockModal');
+    const closeEditStockModalBtn = document.getElementById('closeEditStockModal');
+    const cancelEditStockModalBtn = document.getElementById('cancelEditStockModal');
+    const editStockForm = document.getElementById('editStockForm');
+    const editStockProductLabel = document.getElementById('editStockProductLabel');
+    const editCompleteDetailsFields = document.getElementById('editCompleteDetailsFields');
+    const editStockInput = document.getElementById('id_edit_warehouse_stock');
+    const editQuantityInput = document.getElementById('id_edit_warehouse_quantity');
+    const editQuantityLabel = document.getElementById('editQuantityLabel');
+    const editQuantityHint = document.getElementById('editQuantityHint');
+    const editCarpetInput = document.getElementById('id_edit_warehouse_carpet');
+    const editBulbInput = document.getElementById('id_edit_warehouse_bulb');
+    const editPhotocellInput = document.getElementById('id_edit_warehouse_photocell');
+    const editDimensionsInput = document.getElementById('id_edit_warehouse_dimensions');
+
+    function closeEditStockModal() {
+        if (editStockModal) {
+            editStockModal.hidden = true;
+        }
+    }
+
+    function getEditSelectedStage() {
+        if (!editStockForm) return 'skeleton';
+        const checked = editStockForm.querySelector('input[name="construction_stage"]:checked');
+        return checked ? checked.value : 'skeleton';
+    }
+
+    function setEditCompleteDetailsVisibility(isComplete) {
+        if (!editCompleteDetailsFields) return;
+        editCompleteDetailsFields.hidden = !isComplete;
+        editCompleteDetailsFields.classList.toggle('is-hidden', !isComplete);
+        [editCarpetInput, editBulbInput, editPhotocellInput, editDimensionsInput].forEach(function(input) {
+            if (!input) return;
+            input.disabled = !isComplete;
+            if (!isComplete) {
+                input.value = '';
+            }
+        });
+    }
+
+    function updateEditQuantityHelp(originalStage, originalQuantity) {
+        const convertingToComplete = (
+            originalStage === 'skeleton' && getEditSelectedStage() === 'complete'
+        );
+        if (editQuantityLabel) {
+            editQuantityLabel.textContent = convertingToComplete
+                ? 'Ποσότητα προς μετατροπή'
+                : 'Ποσότητα';
+        }
+        if (editQuantityHint) {
+            if (convertingToComplete) {
+                editQuantityHint.textContent = (
+                    'Θα μετατραπούν σε Ολοκληρωμένο μόνο τα τεμάχια που ορίζετε. '
+                    + 'Διαθέσιμοι σκελέτοι: ' + originalQuantity + '.'
+                );
+                editQuantityHint.classList.remove('is-hidden');
+            } else {
+                editQuantityHint.textContent = '';
+                editQuantityHint.classList.add('is-hidden');
+            }
+        }
+        if (editQuantityInput && convertingToComplete) {
+            editQuantityInput.max = originalQuantity;
+        } else if (editQuantityInput) {
+            editQuantityInput.removeAttribute('max');
+        }
+    }
+
+    function setEditConstructionStage(stage, originalStage, originalQuantity) {
+        if (!editStockForm) return;
+        editStockForm.querySelectorAll('input[name="construction_stage"]').forEach(function(radio) {
+            radio.checked = radio.value === stage;
+        });
+        setEditCompleteDetailsVisibility(stage === 'complete');
+        updateEditQuantityHelp(originalStage || stage, originalQuantity || editQuantityInput.value);
+    }
+
+    function openEditStockModalFromButton(button) {
+        if (!editStockModal || !button) return;
+
+        const originalStage = button.dataset.stage || 'skeleton';
+        const originalQuantity = button.dataset.quantity || '1';
+
+        if (editStockInput) editStockInput.value = button.dataset.stockId || '';
+        if (editStockProductLabel) editStockProductLabel.textContent = button.dataset.productLabel || '';
+        if (editQuantityInput) editQuantityInput.value = originalQuantity;
+        if (editCarpetInput) editCarpetInput.value = button.dataset.carpet || '';
+        if (editBulbInput) editBulbInput.value = button.dataset.bulb || '';
+        if (editPhotocellInput) editPhotocellInput.value = button.dataset.photocell || '';
+        if (editDimensionsInput) editDimensionsInput.value = button.dataset.dimensions || '';
+
+        editStockModal.dataset.originalStage = originalStage;
+        editStockModal.dataset.originalQuantity = originalQuantity;
+        setEditConstructionStage(originalStage, originalStage, originalQuantity);
+        editStockModal.hidden = false;
+    }
+
+    document.querySelectorAll('.warehouse-edit-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            openEditStockModalFromButton(button);
+        });
+    });
+
+    if (editStockForm) {
+        editStockForm.querySelectorAll('input[name="construction_stage"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                const originalStage = editStockModal ? editStockModal.dataset.originalStage : 'skeleton';
+                const originalQuantity = editStockModal ? editStockModal.dataset.originalQuantity : '';
+                setEditCompleteDetailsVisibility(getEditSelectedStage() === 'complete');
+                updateEditQuantityHelp(originalStage, originalQuantity);
+            });
+        });
+        if (editStockModal && !editStockModal.hidden) {
+            setEditCompleteDetailsVisibility(getEditSelectedStage() === 'complete');
+            updateEditQuantityHelp(
+                editStockModal.dataset.originalStage,
+                editStockModal.dataset.originalQuantity,
+            );
+        }
+    }
+
+    if (closeEditStockModalBtn) {
+        closeEditStockModalBtn.addEventListener('click', closeEditStockModal);
+    }
+    if (cancelEditStockModalBtn) {
+        cancelEditStockModalBtn.addEventListener('click', closeEditStockModal);
+    }
+    if (editStockModal) {
+        editStockModal.addEventListener('click', function(event) {
+            if (event.target === editStockModal) {
+                closeEditStockModal();
+            }
+        });
+    }
+    if (editQuantityInput) {
+        editQuantityInput.addEventListener('input', function() {
+            editQuantityInput.value = editQuantityInput.value.replace(/[^\d]/g, '');
+        });
+    }
+    document.querySelectorAll('.edit-complete-detail-input').forEach(bindUppercaseInput);
 
     const emailModal = document.getElementById('emailModal');
     const emailWarehouseBtn = document.getElementById('emailWarehouseBtn');
@@ -843,8 +1514,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function updateEmailFilterFields() {
+        const stageInput = document.getElementById('emailFilterStage');
+        const qInput = document.getElementById('emailFilterQ');
+        const idsInput = document.getElementById('emailFilterIds');
+        const visibleIds = Array.from(warehouseStockRows)
+            .filter(function(row) { return !row.classList.contains('is-hidden'); })
+            .map(function(row) { return row.dataset.stockId; })
+            .filter(Boolean);
+
+        if (idsInput) idsInput.value = visibleIds.join(',');
+        if (stageInput) stageInput.value = activeStageFilter || 'all';
+        if (qInput && warehouseStockSearch) qInput.value = warehouseStockSearch.value.trim();
+    }
+
     if (emailWarehouseBtn) {
         emailWarehouseBtn.addEventListener('click', function() {
+            updateEmailFilterFields();
             resetEmailCustomerSearch();
             if (emailModal) {
                 emailModal.hidden = false;
@@ -881,6 +1567,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Επιλέξτε πελάτη από τη λίστα.');
                 return;
             }
+            updateEmailFilterFields();
             showEmailSendingOverlay();
         });
     }
