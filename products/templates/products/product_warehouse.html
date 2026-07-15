@@ -12,159 +12,37 @@
 </div>
 
 <div class="dashboard-actions">
-    <div class="action-card action-card-form">
+    <button type="button"
+            class="action-card action-card-trigger"
+            id="openAddProductModalBtn"
+            {% if not catalog_products %}disabled title="Δεν υπάρχουν προϊόντα στον κατάλογο"{% endif %}>
         <div class="action-icon" style="background: #20c997;">
             <i class="fas fa-plus"></i>
         </div>
         <div class="action-content">
             <h3>Προσθήκη Προϊόντος</h3>
             <p>Επιλέξτε προϊόν από τον κατάλογο και καταχωρήστε ποσότητα</p>
-
-            {% if catalog_products %}
-            <form method="post" class="add-product-form" id="addProductForm" autocomplete="off">
-                {% csrf_token %}
-                <input type="hidden" name="warehouse_action" value="add">
-                <div class="product-picker" data-product-picker>
-                    <input type="text"
-                           class="product-search-input"
-                           id="warehouseProductSearch"
-                           placeholder="Αναζήτηση με κωδικό ή όνομα..."
-                           autocomplete="off"
-                           autocorrect="off"
-                           autocapitalize="off"
-                           spellcheck="false">
-                    <div class="product-results" hidden></div>
-                    <div class="product-select-hidden">
-                        {{ add_form.product }}
-                    </div>
-                </div>
-                {% if add_form.product.errors %}
-                <div class="error-message">{{ add_form.product.errors.0 }}</div>
-                {% endif %}
-
-                <div class="quantity-row">
-                    <label for="{{ add_form.quantity.id_for_label }}">{{ add_form.quantity.label }}</label>
-                    {{ add_form.quantity }}
-                </div>
-                {% if add_form.quantity.errors %}
-                <div class="error-message">{{ add_form.quantity.errors.0 }}</div>
-                {% endif %}
-
-                <div class="construction-stage-group">
-                    <label>{{ add_form.construction_stage.label }}</label>
-                    <div class="construction-stage-options">
-                        {% for radio in add_form.construction_stage %}
-                        <label class="construction-stage-option">
-                            {{ radio.tag }}
-                            <span>{{ radio.choice_label }}</span>
-                        </label>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% if add_form.construction_stage.errors %}
-                <div class="error-message">{{ add_form.construction_stage.errors.0 }}</div>
-                {% endif %}
-
-                <div id="completeDetailsFields"
-                     class="complete-details-fields is-hidden"
-                     hidden>
-                    <div class="complete-detail-row">
-                        <label for="{{ add_form.carpet.id_for_label }}">{{ add_form.carpet.label }}</label>
-                        {{ add_form.carpet }}
-                        {% if add_form.carpet.errors %}
-                        <div class="error-message">{{ add_form.carpet.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                    <div class="complete-detail-row">
-                        <label for="{{ add_form.bulb.id_for_label }}">{{ add_form.bulb.label }}</label>
-                        {{ add_form.bulb }}
-                        {% if add_form.bulb.errors %}
-                        <div class="error-message">{{ add_form.bulb.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                    <div class="complete-detail-row">
-                        <label for="{{ add_form.photocell.id_for_label }}">{{ add_form.photocell.label }}</label>
-                        {{ add_form.photocell }}
-                        {% if add_form.photocell.errors %}
-                        <div class="error-message">{{ add_form.photocell.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                    <div class="complete-detail-row">
-                        <label for="{{ add_form.dimensions.id_for_label }}">{{ add_form.dimensions.label }}</label>
-                        {{ add_form.dimensions }}
-                        {% if add_form.dimensions.errors %}
-                        <div class="error-message">{{ add_form.dimensions.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% if add_form.non_field_errors %}
-                <div class="error-message">{{ add_form.non_field_errors.0 }}</div>
-                {% endif %}
-
-                <p class="selected-stock-note is-hidden" id="selectedStockNote"></p>
-
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="fas fa-plus"></i> Προσθήκη στην αποθήκη
-                </button>
-            </form>
-            {% else %}
-            <p class="form-note">Δεν υπάρχουν προϊόντα στον κατάλογο.</p>
-            {% endif %}
         </div>
-    </div>
+        <div class="action-card-arrow">
+            <i class="fas fa-arrow-right"></i>
+        </div>
+    </button>
 
-    <div class="action-card action-card-form">
+    <button type="button"
+            class="action-card action-card-trigger"
+            id="openRemoveProductModalBtn"
+            {% if not warehouse_products %}disabled title="Δεν υπάρχουν προϊόντα στην αποθήκη"{% endif %}>
         <div class="action-icon" style="background: #dc3545;">
             <i class="fas fa-minus"></i>
         </div>
         <div class="action-content">
             <h3>Αφαίρεση Προϊόντος</h3>
             <p>Επιλέξτε προϊόν από την αποθήκη και καταχωρήστε ποσότητα αφαίρεσης</p>
-
-            {% if warehouse_products %}
-            <form method="post" class="add-product-form" id="removeProductForm" autocomplete="off">
-                {% csrf_token %}
-                <input type="hidden" name="warehouse_action" value="remove">
-                <div class="product-picker" data-product-picker="remove">
-                    <input type="text"
-                           class="product-search-input"
-                           id="removeWarehouseProductSearch"
-                           placeholder="Αναζήτηση με κωδικό ή όνομα..."
-                           autocomplete="off"
-                           autocorrect="off"
-                           autocapitalize="off"
-                           spellcheck="false">
-                    <div class="product-results" hidden></div>
-                    <div class="product-select-hidden">
-                        {{ remove_form.stock }}
-                    </div>
-                </div>
-                {% if remove_form.stock.errors %}
-                <div class="error-message">{{ remove_form.stock.errors.0 }}</div>
-                {% endif %}
-
-                <div class="quantity-row">
-                    <label for="{{ remove_form.quantity.id_for_label }}">{{ remove_form.quantity.label }}</label>
-                    {{ remove_form.quantity }}
-                </div>
-                {% if remove_form.quantity.errors %}
-                <div class="error-message">{{ remove_form.quantity.errors.0 }}</div>
-                {% endif %}
-                {% if remove_form.non_field_errors %}
-                <div class="error-message">{{ remove_form.non_field_errors.0 }}</div>
-                {% endif %}
-
-                <p class="selected-stock-note is-hidden" id="removeSelectedStockNote"></p>
-
-                <button type="submit" class="btn btn-danger btn-sm">
-                    <i class="fas fa-minus"></i> Αφαίρεση από την αποθήκη
-                </button>
-            </form>
-            {% else %}
-            <p class="form-note">Δεν υπάρχουν προϊόντα στην αποθήκη.</p>
-            {% endif %}
         </div>
-    </div>
+        <div class="action-card-arrow">
+            <i class="fas fa-arrow-right"></i>
+        </div>
+    </button>
 </div>
 
 <div class="warehouse-stock-section">
@@ -281,6 +159,176 @@
     </div>
     {% endif %}
 </div>
+
+{% if catalog_products %}
+<div class="email-modal-overlay" id="addProductModal" {% if not open_add_modal %}hidden{% endif %}>
+    <div class="email-modal warehouse-add-modal" role="dialog" aria-labelledby="addProductModalTitle" aria-modal="true">
+        <div class="email-modal-header">
+            <h3 id="addProductModalTitle"><i class="fas fa-plus"></i> Προσθήκη Προϊόντος</h3>
+            <button type="button" class="email-modal-close" id="closeAddProductModal" aria-label="Κλείσιμο">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <p class="email-modal-description">
+            Επιλέξτε προϊόν από τον κατάλογο και καταχωρήστε ποσότητα.
+        </p>
+
+        <form method="post" class="add-product-form" id="addProductForm" autocomplete="off" data-preserve-form="{% if open_add_modal %}true{% else %}false{% endif %}">
+            {% csrf_token %}
+            <input type="hidden" name="warehouse_action" value="add">
+            <div class="product-picker" data-product-picker="add">
+                <label for="warehouseProductSearch">Προϊόν</label>
+                <input type="text"
+                       class="product-search-input"
+                       id="warehouseProductSearch"
+                       placeholder="Αναζήτηση με κωδικό ή όνομα..."
+                       autocomplete="off"
+                       autocorrect="off"
+                       autocapitalize="off"
+                       spellcheck="false"
+                       readonly>
+                <div class="product-results" hidden></div>
+                <div class="product-select-hidden">
+                    {{ add_form.product }}
+                </div>
+            </div>
+            {% if add_form.product.errors %}
+            <div class="error-message">{{ add_form.product.errors.0 }}</div>
+            {% endif %}
+
+            <div class="quantity-row">
+                <label for="{{ add_form.quantity.id_for_label }}">{{ add_form.quantity.label }}</label>
+                {{ add_form.quantity }}
+            </div>
+            {% if add_form.quantity.errors %}
+            <div class="error-message">{{ add_form.quantity.errors.0 }}</div>
+            {% endif %}
+
+            <div class="construction-stage-group">
+                <label>{{ add_form.construction_stage.label }}</label>
+                <div class="construction-stage-options">
+                    {% for radio in add_form.construction_stage %}
+                    <label class="construction-stage-option">
+                        {{ radio.tag }}
+                        <span>{{ radio.choice_label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% if add_form.construction_stage.errors %}
+            <div class="error-message">{{ add_form.construction_stage.errors.0 }}</div>
+            {% endif %}
+
+            <div id="completeDetailsFields"
+                 class="complete-details-fields is-hidden"
+                 hidden>
+                <div class="complete-detail-row">
+                    <label for="{{ add_form.carpet.id_for_label }}">{{ add_form.carpet.label }}</label>
+                    {{ add_form.carpet }}
+                    {% if add_form.carpet.errors %}
+                    <div class="error-message">{{ add_form.carpet.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="complete-detail-row">
+                    <label for="{{ add_form.bulb.id_for_label }}">{{ add_form.bulb.label }}</label>
+                    {{ add_form.bulb }}
+                    {% if add_form.bulb.errors %}
+                    <div class="error-message">{{ add_form.bulb.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="complete-detail-row">
+                    <label for="{{ add_form.photocell.id_for_label }}">{{ add_form.photocell.label }}</label>
+                    {{ add_form.photocell }}
+                    {% if add_form.photocell.errors %}
+                    <div class="error-message">{{ add_form.photocell.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="complete-detail-row">
+                    <label for="{{ add_form.dimensions.id_for_label }}">{{ add_form.dimensions.label }}</label>
+                    {{ add_form.dimensions }}
+                    {% if add_form.dimensions.errors %}
+                    <div class="error-message">{{ add_form.dimensions.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% if add_form.non_field_errors %}
+            <div class="error-message">{{ add_form.non_field_errors.0 }}</div>
+            {% endif %}
+
+            <p class="selected-stock-note is-hidden" id="selectedStockNote"></p>
+
+            <div class="email-modal-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="cancelAddProductModal">Ακύρωση</button>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> Προσθήκη στην αποθήκη
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if warehouse_products %}
+<div class="email-modal-overlay" id="removeProductModal" {% if not open_remove_modal %}hidden{% endif %}>
+    <div class="email-modal warehouse-remove-modal" role="dialog" aria-labelledby="removeProductModalTitle" aria-modal="true">
+        <div class="email-modal-header">
+            <h3 id="removeProductModalTitle"><i class="fas fa-minus"></i> Αφαίρεση Προϊόντος</h3>
+            <button type="button" class="email-modal-close" id="closeRemoveProductModal" aria-label="Κλείσιμο">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <p class="email-modal-description">
+            Επιλέξτε προϊόν από την αποθήκη και καταχωρήστε ποσότητα αφαίρεσης.
+        </p>
+
+        <form method="post" class="add-product-form" id="removeProductForm" autocomplete="off" data-preserve-form="{% if open_remove_modal %}true{% else %}false{% endif %}">
+            {% csrf_token %}
+            <input type="hidden" name="warehouse_action" value="remove">
+            <div class="product-picker" data-product-picker="remove">
+                <label for="removeWarehouseProductSearch">Προϊόν</label>
+                <input type="text"
+                       class="product-search-input"
+                       id="removeWarehouseProductSearch"
+                       placeholder="Αναζήτηση με κωδικό ή όνομα..."
+                       autocomplete="off"
+                       autocorrect="off"
+                       autocapitalize="off"
+                       spellcheck="false"
+                       readonly>
+                <div class="product-results" hidden></div>
+                <div class="product-select-hidden">
+                    {{ remove_form.stock }}
+                </div>
+            </div>
+            {% if remove_form.stock.errors %}
+            <div class="error-message">{{ remove_form.stock.errors.0 }}</div>
+            {% endif %}
+
+            <div class="quantity-row">
+                <label for="{{ remove_form.quantity.id_for_label }}">{{ remove_form.quantity.label }}</label>
+                {{ remove_form.quantity }}
+            </div>
+            {% if remove_form.quantity.errors %}
+            <div class="error-message">{{ remove_form.quantity.errors.0 }}</div>
+            {% endif %}
+            {% if remove_form.non_field_errors %}
+            <div class="error-message">{{ remove_form.non_field_errors.0 }}</div>
+            {% endif %}
+
+            <p class="selected-stock-note is-hidden" id="removeSelectedStockNote"></p>
+
+            <div class="email-modal-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="cancelRemoveProductModal">Ακύρωση</button>
+                <button type="submit" class="btn btn-danger btn-sm">
+                    <i class="fas fa-minus"></i> Αφαίρεση από την αποθήκη
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
 
 {% if warehouse_items %}
 <div class="email-modal-overlay" id="editStockModal" {% if not open_edit_modal %}hidden{% endif %}>
@@ -484,6 +532,39 @@
     color: var(--text-primary);
 }
 .action-card-form { align-items: flex-start; }
+.action-card-trigger {
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.action-card-trigger:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--shadow);
+}
+.action-card-trigger:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+.action-card-arrow {
+    margin-left: auto;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+.warehouse-add-modal .quantity-row {
+    max-width: none;
+}
+.warehouse-remove-modal .quantity-row {
+    max-width: none;
+}
+[data-product-picker="add"] label,
+[data-product-picker="remove"] label {
+    display: block;
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
 .action-icon {
     width: 50px;
     height: 50px;
@@ -634,7 +715,7 @@
     border: 2px solid var(--accent);
     border-radius: 6px;
     box-shadow: 0 8px 24px var(--shadow);
-    z-index: 1000;
+    z-index: 1200;
 }
 .product-result-item {
     display: block;
@@ -1311,6 +1392,168 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const addProductForm = document.getElementById('addProductForm');
+    const addProductModal = document.getElementById('addProductModal');
+    const openAddProductModalBtn = document.getElementById('openAddProductModalBtn');
+    const closeAddProductModalBtn = document.getElementById('closeAddProductModal');
+    const cancelAddProductModalBtn = document.getElementById('cancelAddProductModal');
+    const warehouseProductSearch = document.getElementById('warehouseProductSearch');
+    const warehouseProductSelect = document.getElementById('id_warehouse_product');
+    const warehouseQuantityInput = document.getElementById('id_warehouse_quantity');
+
+    function resetAddProductForm() {
+        if (!addProductForm) return;
+
+        addProductForm.reset();
+        addProductForm.dataset.preserveForm = 'false';
+
+        if (warehouseProductSearch) {
+            warehouseProductSearch.value = '';
+            warehouseProductSearch.setAttribute('readonly', 'readonly');
+        }
+        if (warehouseProductSelect) {
+            warehouseProductSelect.value = '';
+        }
+
+        const addPicker = document.querySelector('[data-product-picker="add"]');
+        if (addPicker) {
+            const results = addPicker.querySelector('.product-results');
+            if (results) {
+                results.hidden = true;
+            }
+        }
+
+        const selectedStockNote = document.getElementById('selectedStockNote');
+        if (selectedStockNote) {
+            selectedStockNote.textContent = '';
+            selectedStockNote.classList.add('is-hidden');
+        }
+
+        const skeletonRadio = addProductForm.querySelector('input[name="construction_stage"][value="skeleton"]');
+        if (skeletonRadio) {
+            skeletonRadio.checked = true;
+        }
+
+        updateCompleteDetailsVisibility();
+    }
+
+    function openAddProductModal() {
+        if (!addProductModal) return;
+
+        const preserveForm = addProductForm
+            && addProductForm.dataset.preserveForm === 'true';
+        if (!preserveForm) {
+            resetAddProductForm();
+        } else if (warehouseProductSearch) {
+            warehouseProductSearch.removeAttribute('readonly');
+        }
+
+        updateCompleteDetailsVisibility();
+        addProductModal.hidden = false;
+        if (warehouseProductSearch) {
+            warehouseProductSearch.focus();
+        }
+    }
+
+    function closeAddProductModal() {
+        if (!addProductModal) return;
+        addProductModal.hidden = true;
+        resetAddProductForm();
+    }
+
+    if (openAddProductModalBtn) {
+        openAddProductModalBtn.addEventListener('click', openAddProductModal);
+    }
+    if (closeAddProductModalBtn) {
+        closeAddProductModalBtn.addEventListener('click', closeAddProductModal);
+    }
+    if (cancelAddProductModalBtn) {
+        cancelAddProductModalBtn.addEventListener('click', closeAddProductModal);
+    }
+    if (warehouseProductSearch) {
+        warehouseProductSearch.addEventListener('focus', function() {
+            warehouseProductSearch.removeAttribute('readonly');
+        });
+    }
+
+    const removeProductModal = document.getElementById('removeProductModal');
+    const removeProductForm = document.getElementById('removeProductForm');
+    const openRemoveProductModalBtn = document.getElementById('openRemoveProductModalBtn');
+    const closeRemoveProductModalBtn = document.getElementById('closeRemoveProductModal');
+    const cancelRemoveProductModalBtn = document.getElementById('cancelRemoveProductModal');
+    const removeWarehouseProductSearch = document.getElementById('removeWarehouseProductSearch');
+    const removeWarehouseStockSelect = document.getElementById('id_remove_warehouse_stock');
+    const removeWarehouseQuantityInput = document.getElementById('id_remove_warehouse_quantity');
+
+    function resetRemoveProductForm() {
+        if (!removeProductForm) return;
+
+        removeProductForm.reset();
+        removeProductForm.dataset.preserveForm = 'false';
+
+        if (removeWarehouseProductSearch) {
+            removeWarehouseProductSearch.value = '';
+            removeWarehouseProductSearch.setAttribute('readonly', 'readonly');
+        }
+        if (removeWarehouseStockSelect) {
+            removeWarehouseStockSelect.value = '';
+        }
+        if (removeWarehouseQuantityInput) {
+            removeWarehouseQuantityInput.removeAttribute('max');
+        }
+
+        const removePicker = document.querySelector('[data-product-picker="remove"]');
+        if (removePicker) {
+            const results = removePicker.querySelector('.product-results');
+            if (results) {
+                results.hidden = true;
+            }
+        }
+
+        const removeSelectedStockNote = document.getElementById('removeSelectedStockNote');
+        if (removeSelectedStockNote) {
+            removeSelectedStockNote.textContent = '';
+            removeSelectedStockNote.classList.add('is-hidden');
+        }
+    }
+
+    function openRemoveProductModal() {
+        if (!removeProductModal) return;
+
+        const preserveForm = removeProductForm
+            && removeProductForm.dataset.preserveForm === 'true';
+        if (!preserveForm) {
+            resetRemoveProductForm();
+        } else if (removeWarehouseProductSearch) {
+            removeWarehouseProductSearch.removeAttribute('readonly');
+        }
+
+        removeProductModal.hidden = false;
+        if (removeWarehouseProductSearch) {
+            removeWarehouseProductSearch.focus();
+        }
+    }
+
+    function closeRemoveProductModal() {
+        if (!removeProductModal) return;
+        removeProductModal.hidden = true;
+        resetRemoveProductForm();
+    }
+
+    if (openRemoveProductModalBtn) {
+        openRemoveProductModalBtn.addEventListener('click', openRemoveProductModal);
+    }
+    if (closeRemoveProductModalBtn) {
+        closeRemoveProductModalBtn.addEventListener('click', closeRemoveProductModal);
+    }
+    if (cancelRemoveProductModalBtn) {
+        cancelRemoveProductModalBtn.addEventListener('click', closeRemoveProductModal);
+    }
+    if (removeWarehouseProductSearch) {
+        removeWarehouseProductSearch.addEventListener('focus', function() {
+            removeWarehouseProductSearch.removeAttribute('readonly');
+        });
+    }
+
     if (addProductForm) {
         addProductForm.querySelectorAll('input[name="construction_stage"]').forEach(function(radio) {
             radio.addEventListener('change', updateCompleteDetailsVisibility);
@@ -1321,7 +1564,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (document.getElementById('catalog-products-data')) {
         initProductPicker({
-            pickerSelector: '[data-product-picker]:not([data-product-picker="remove"])',
+            pickerSelector: '[data-product-picker="add"]',
             searchInputId: 'warehouseProductSearch',
             productSelectId: 'id_warehouse_product',
             quantityInputId: 'id_warehouse_quantity',
@@ -1472,13 +1715,27 @@ document.addEventListener('DOMContentLoaded', function() {
     if (cancelEditStockModalBtn) {
         cancelEditStockModalBtn.addEventListener('click', closeEditStockModal);
     }
-    if (editStockModal) {
-        editStockModal.addEventListener('click', function(event) {
-            if (event.target === editStockModal) {
-                closeEditStockModal();
-            }
-        });
-    }
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key !== 'Escape') {
+            return;
+        }
+        if (addProductModal && !addProductModal.hidden) {
+            closeAddProductModal();
+            return;
+        }
+        if (removeProductModal && !removeProductModal.hidden) {
+            closeRemoveProductModal();
+            return;
+        }
+        if (editStockModal && !editStockModal.hidden) {
+            closeEditStockModal();
+            return;
+        }
+        if (emailModal && !emailModal.hidden) {
+            closeEmailModal();
+        }
+    });
     if (editQuantityInput) {
         editQuantityInput.addEventListener('input', function() {
             editQuantityInput.value = editQuantityInput.value.replace(/[^\d]/g, '');
@@ -1542,13 +1799,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (cancelEmailModalBtn) {
         cancelEmailModalBtn.addEventListener('click', closeEmailModal);
-    }
-    if (emailModal) {
-        emailModal.addEventListener('click', function(event) {
-            if (event.target === emailModal) {
-                closeEmailModal();
-            }
-        });
     }
 
     function showEmailSendingOverlay() {

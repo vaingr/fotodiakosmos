@@ -567,6 +567,8 @@ def product_warehouse(request):
     remove_form = ProductWarehouseRemoveForm()
     edit_form = ProductWarehouseEditForm()
     open_edit_modal = False
+    open_add_modal = False
+    open_remove_modal = False
 
     if request.method == 'POST':
         action = request.POST.get('warehouse_action', 'add')
@@ -590,6 +592,7 @@ def product_warehouse(request):
                         f'Αφαιρέθηκαν {quantity} τεμάχια από το προϊόν «{product.name}» ({stage_label}).',
                     )
                 return redirect('products:product_warehouse')
+            open_remove_modal = True
         elif action == 'edit':
             edit_form = ProductWarehouseEditForm(request.POST)
             if edit_form.is_valid():
@@ -638,6 +641,7 @@ def product_warehouse(request):
                         f'Προστέθηκαν {quantity} τεμάχια στο προϊόν «{product.name}» ({stage_label}).',
                     )
                 return redirect('products:product_warehouse')
+            open_add_modal = True
 
     warehouse_items = _get_warehouse_stock_items()
     editing_stock = None
@@ -651,6 +655,8 @@ def product_warehouse(request):
         'remove_form': remove_form,
         'edit_form': edit_form,
         'open_edit_modal': open_edit_modal,
+        'open_add_modal': open_add_modal,
+        'open_remove_modal': open_remove_modal,
         'editing_stock': editing_stock,
         'email_form': ProductWarehouseEmailForm(),
         'warehouse_items': warehouse_items,

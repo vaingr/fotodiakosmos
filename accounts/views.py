@@ -1,15 +1,20 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.forms import UserCreationForm, SetPasswordForm
-from django.shortcuts import redirect
 from django.contrib.auth.views import LoginView
 from django.contrib import messages
 from django.utils import timezone
 from django.contrib.auth.models import User
-from .models import Subscription
+from .models import Subscription, ScheduledTask, ScheduledTaskItem
+from django.db.models import Q, Case, When, IntegerField, Count
 from django import forms
+from django.urls import reverse
+from urllib.parse import urlencode
+from django.forms import inlineformset_factory
+from .forms import TaskCreateForm, TaskItemFormSet, TaskItemForm, BaseTaskItemFormSet
+from products.models import Offer
 from datetime import date
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.http import HttpResponse, JsonResponse
 from django.conf import settings
 import os
@@ -48,9 +53,616 @@ def dashboard(request):
     return render(request, 'accounts/dashboard.html')
 
 
+def _get_task_priority_order():
+    return Case(
+        When(priority=ScheduledTask.PRIORITY_HIGH, then=0),
+        When(priority=ScheduledTask.PRIORITY_MEDIUM, then=1),
+        When(priority=ScheduledTask.PRIORITY_LOW, then=2),
+        default=3,
+        output_field=IntegerField(),
+    )
+
+
+def _get_task_queryset():
+    return ScheduledTask.objects.select_related(
+        'assigned_to',
+        'created_by',
+        'customer',
+    ).prefetch_related('items__product')
+
+
+def _build_task_filter_query(
+    task_filter='pending',
+    search_query='',
+    task_type_filter='',
+    priority_filter='',
+):
+    params = {}
+    if task_filter:
+        params['filter'] = task_filter
+    search_query = (search_query or '').strip()
+    if search_query:
+        params['q'] = search_query
+    if task_type_filter in (
+        ScheduledTask.TYPE_CONSTRUCTION,
+        ScheduledTask.TYPE_REPAIR,
+    ):
+        params['type'] = task_type_filter
+    if priority_filter in (
+        ScheduledTask.PRIORITY_LOW,
+        ScheduledTask.PRIORITY_MEDIUM,
+        ScheduledTask.PRIORITY_HIGH,
+    ):
+        params['priority'] = priority_filter
+    return params
+
+
+def _task_filter_url(
+    task_filter='pending',
+    search_query='',
+    task_type_filter='',
+    priority_filter='',
+):
+    params = _build_task_filter_query(
+        task_filter,
+        search_query,
+        task_type_filter,
+        priority_filter,
+    )
+    url = reverse('task_scheduling')
+    if params:
+        return f'{url}?{urlencode(params)}'
+    return url
+
+
+def _get_task_filter_urls(
+    task_filter='pending',
+    search_query='',
+    task_type_filter='',
+    priority_filter='',
+):
+    def make_url(
+        filter_value=None,
+        type_value=None,
+        priority_value=None,
+        toggle_type=None,
+        toggle_priority=None,
+        clear_search=False,
+    ):
+        current_filter = task_filter if filter_value is None else filter_value
+        current_type = task_type_filter
+        if toggle_type:
+            current_type = (
+                ''
+                if task_type_filter == toggle_type
+                else toggle_type
+            )
+        elif type_value is not None:
+            current_type = type_value
+
+        current_priority = priority_filter
+        if toggle_priority:
+            current_priority = (
+                ''
+                if priority_filter == toggle_priority
+                else toggle_priority
+            )
+        elif priority_value is not None:
+            current_priority = priority_value
+
+        current_search = '' if clear_search else search_query
+        return _task_filter_url(
+            current_filter,
+            current_search,
+            current_type,
+            current_priority,
+        )
+
+    return {
+        'all': make_url(filter_value='all'),
+        'pending': make_url(filter_value='pending'),
+        'overdue': make_url(filter_value='overdue'),
+        'completed': make_url(filter_value='completed'),
+        'construction': make_url(toggle_type=ScheduledTask.TYPE_CONSTRUCTION),
+        'repair': make_url(toggle_type=ScheduledTask.TYPE_REPAIR),
+        'priority_high': make_url(toggle_priority=ScheduledTask.PRIORITY_HIGH),
+        'priority_medium': make_url(toggle_priority=ScheduledTask.PRIORITY_MEDIUM),
+        'priority_low': make_url(toggle_priority=ScheduledTask.PRIORITY_LOW),
+        'clear_search': make_url(clear_search=True),
+    }
+
+
+def _filter_tasks(
+    queryset,
+    task_filter='active',
+    search_query='',
+    task_type_filter='',
+    priority_filter='',
+):
+    today = timezone.localdate()
+    active_statuses = [ScheduledTask.STATUS_PENDING]
+
+    if task_filter == 'pending':
+        queryset = queryset.filter(status=ScheduledTask.STATUS_PENDING)
+    elif task_filter == 'in_progress':
+        queryset = queryset.filter(status=ScheduledTask.STATUS_PENDING)
+    elif task_filter == 'completed':
+        queryset = queryset.filter(status=ScheduledTask.STATUS_COMPLETED)
+    elif task_filter == 'cancelled':
+        queryset = queryset.filter(status=ScheduledTask.STATUS_CANCELLED)
+    elif task_filter == 'today':
+        queryset = queryset.filter(scheduled_date=today, status__in=active_statuses)
+    elif task_filter == 'overdue':
+        queryset = queryset.filter(scheduled_date__lt=today, status__in=active_statuses)
+    elif task_filter == 'all':
+        pass
+    else:
+        queryset = queryset.filter(status__in=active_statuses)
+
+    if task_type_filter == ScheduledTask.TYPE_CONSTRUCTION:
+        queryset = queryset.filter(task_type=ScheduledTask.TYPE_CONSTRUCTION)
+    elif task_type_filter == ScheduledTask.TYPE_REPAIR:
+        queryset = queryset.filter(task_type=ScheduledTask.TYPE_REPAIR)
+
+    if priority_filter in (
+        ScheduledTask.PRIORITY_LOW,
+        ScheduledTask.PRIORITY_MEDIUM,
+        ScheduledTask.PRIORITY_HIGH,
+    ):
+        queryset = queryset.filter(priority=priority_filter)
+
+    if search_query:
+        queryset = queryset.filter(
+            Q(description__icontains=search_query)
+            | Q(customer__company_name__icontains=search_query)
+            | Q(customer__first_name__icontains=search_query)
+            | Q(customer__last_name__icontains=search_query)
+            | Q(assigned_to__username__icontains=search_query)
+            | Q(assigned_to__first_name__icontains=search_query)
+            | Q(assigned_to__last_name__icontains=search_query)
+        )
+
+    return queryset.annotate(
+        priority_order=_get_task_priority_order(),
+    ).order_by('scheduled_date', 'priority_order', 'task_type')
+
+
+def _get_task_customers_data():
+    from customers.models import Customer
+
+    return [
+        {
+            'id': customer.pk,
+            'name': customer.display_name(),
+            'label': customer.display_name(),
+        }
+        for customer in Customer.objects.all().order_by(
+            'last_name',
+            'first_name',
+            'company_name',
+        )
+    ]
+
+
+def _get_task_stats(queryset):
+    today = timezone.localdate()
+    active_statuses = [ScheduledTask.STATUS_PENDING]
+    return queryset.aggregate(
+        pending=Count('id', filter=Q(status=ScheduledTask.STATUS_PENDING)),
+        today=Count('id', filter=Q(scheduled_date=today, status__in=active_statuses)),
+        overdue=Count('id', filter=Q(scheduled_date__lt=today, status__in=active_statuses)),
+        completed=Count('id', filter=Q(status=ScheduledTask.STATUS_COMPLETED)),
+    )
+
+
+def _redirect_task_dashboard(
+    task_filter='pending',
+    search_query='',
+    open_task_id=None,
+    task_type_filter='',
+    priority_filter='',
+):
+    params = _build_task_filter_query(
+        task_filter,
+        search_query,
+        task_type_filter,
+        priority_filter,
+    )
+    if open_task_id:
+        params['task'] = open_task_id
+    url = reverse('task_scheduling')
+    if params:
+        return redirect(f"{url}?{urlencode(params)}")
+    return redirect('task_scheduling')
+
+
+def _get_task_detail_dict(task):
+    return {
+        'id': task.pk,
+        'task_type': task.task_type,
+        'task_type_label': task.get_task_type_display(),
+        'under_work_label': task.get_under_work_label(),
+        'products_title': (
+            'Προϊόντα προς επισκευή'
+            if task.task_type == ScheduledTask.TYPE_REPAIR
+            else 'Προϊόντα προς κατασκευή'
+        ),
+        'customer': task.customer.display_name(),
+        'scheduled_date': task.scheduled_date.isoformat(),
+        'status': task.status,
+        'status_label': task.get_status_display(),
+        'description': task.description,
+        'items': [
+            {
+                'id': item.pk,
+                'product_code': item.product.code,
+                'product_name': item.product.name,
+                'product_photo_url': (
+                    item.product.photo.url if item.product.photo else ''
+                ),
+                'quantity': item.quantity,
+                'item_status': item.item_status,
+                'status_label': item.get_status_label(),
+            }
+            for item in task.items.all()
+        ],
+    }
+
+
+def _get_tasks_detail_data(tasks):
+    return [_get_task_detail_dict(task) for task in tasks]
+
+
+def _update_task_item_statuses(task, post_data):
+    valid_statuses = {
+        ScheduledTaskItem.STATUS_UNDER_WORK,
+        ScheduledTaskItem.STATUS_COMPLETED,
+    }
+    updated = False
+    for item in task.items.all():
+        new_status = post_data.get(f'item_{item.pk}')
+        if new_status in valid_statuses and item.item_status != new_status:
+            item.item_status = new_status
+            item.save(update_fields=['item_status'])
+            updated = True
+    task.refresh_status_from_items()
+    return updated
+
+
+def _get_task_products_data():
+    from products.models import FinishedProduct
+
+    return [
+        {
+            'id': product.pk,
+            'code': product.code,
+            'name': product.name,
+            'label': f'{product.code} - {product.name}',
+        }
+        for product in FinishedProduct.objects.order_by('name')
+    ]
+
+
+def _get_task_print_filter_label(
+    task_filter='pending',
+    search_query='',
+    task_type_filter='',
+    priority_filter='',
+):
+    filter_labels = {
+        'all': 'Όλες',
+        'pending': 'Σε εκκρεμότητα',
+        'overdue': 'Καθυστερημένες',
+        'completed': 'Ολοκληρωμένες',
+        'cancelled': 'Ακυρωμένες',
+        'today': 'Σημερινές',
+        'in_progress': 'Σε εκκρεμότητα',
+    }
+    type_labels = {
+        ScheduledTask.TYPE_CONSTRUCTION: 'Κατασκευές',
+        ScheduledTask.TYPE_REPAIR: 'Επισκευές',
+    }
+    priority_labels = dict(ScheduledTask.PRIORITY_CHOICES)
+    labels = [filter_labels.get(task_filter, 'Σε εκκρεμότητα')]
+    if task_type_filter in type_labels:
+        labels.append(type_labels[task_type_filter])
+    if priority_filter in priority_labels:
+        labels.append(f'Προτεραιότητα: {priority_labels[priority_filter]}')
+    search_query = (search_query or '').strip()
+    if search_query:
+        labels.append(f'Αναζήτηση: {search_query}')
+    return ' · '.join(labels)
+
+
+def _get_pending_construction_products():
+    items = ScheduledTaskItem.objects.filter(
+        task__task_type=ScheduledTask.TYPE_CONSTRUCTION,
+        task__status=ScheduledTask.STATUS_PENDING,
+        item_status=ScheduledTaskItem.STATUS_UNDER_WORK,
+    ).select_related(
+        'product',
+        'task',
+        'task__customer',
+    ).order_by('product__name', 'task__scheduled_date')
+
+    grouped = {}
+    for item in items:
+        product_id = item.product_id
+        if product_id not in grouped:
+            grouped[product_id] = {
+                'product': item.product,
+                'total_quantity': 0,
+                'entries': [],
+            }
+        grouped[product_id]['total_quantity'] += item.quantity
+        grouped[product_id]['entries'].append({
+            'task': item.task,
+            'quantity': item.quantity,
+            'customer': item.task.customer.display_name(),
+            'scheduled_date': item.task.scheduled_date,
+        })
+
+    return sorted(grouped.values(), key=lambda row: row['product'].name.lower())
+
+
+def _build_task_forms_from_offer(offer):
+    offer_items = list(offer.items.select_related('product').order_by('id'))
+    description_parts = [f'Από προσφορά {offer.offer_number}']
+    if offer.notes.strip():
+        description_parts.append(offer.notes.strip())
+
+    task_form = TaskCreateForm(initial={
+        'task_type': ScheduledTask.TYPE_CONSTRUCTION,
+        'customer': offer.customer_id,
+        'description': '\n'.join(description_parts),
+    })
+
+    if offer_items:
+        OfferTaskItemFormSet = inlineformset_factory(
+            ScheduledTask,
+            ScheduledTaskItem,
+            form=TaskItemForm,
+            formset=BaseTaskItemFormSet,
+            extra=len(offer_items),
+            can_delete=True,
+            min_num=0,
+            validate_min=False,
+        )
+        item_formset = OfferTaskItemFormSet()
+        for form, item in zip(item_formset.forms, offer_items):
+            form.fields['product'].initial = item.product_id
+            form.fields['quantity'].initial = item.quantity
+    else:
+        item_formset = TaskItemFormSet()
+
+    return task_form, item_formset
+
+
+@login_required
+def construction_products_print(request):
+    products = _get_pending_construction_products()
+    total_quantity = sum(row['total_quantity'] for row in products)
+
+    return render(request, 'accounts/construction_products_print.html', {
+        'products': products,
+        'total_products': len(products),
+        'total_quantity': total_quantity,
+        'printed_at': timezone.localtime(timezone.now()),
+    })
+
+
+@login_required
+def construction_products_list(request):
+    products = _get_pending_construction_products()
+    total_quantity = sum(row['total_quantity'] for row in products)
+
+    return render(request, 'accounts/construction_products_list.html', {
+        'products': products,
+        'total_products': len(products),
+        'total_quantity': total_quantity,
+    })
+
+
+@login_required
+def task_scheduling_print(request):
+    task_id = request.GET.get('task_id', '').strip()
+    if task_id:
+        task = get_object_or_404(_get_task_queryset(), pk=task_id)
+        tasks = _get_task_queryset().filter(pk=task.pk)
+        filter_label = f'Εργασία: {task.display_label()}'
+    else:
+        task_filter = request.GET.get('filter', 'pending')
+        search_query = request.GET.get('q', '').strip()
+        task_type_filter = request.GET.get('type', '').strip()
+        priority_filter = request.GET.get('priority', '').strip()
+        tasks = _filter_tasks(
+            _get_task_queryset(),
+            task_filter=task_filter,
+            search_query=search_query,
+            task_type_filter=task_type_filter,
+            priority_filter=priority_filter,
+        )
+        filter_label = _get_task_print_filter_label(
+            task_filter,
+            search_query,
+            task_type_filter,
+            priority_filter,
+        )
+
+    return render(request, 'accounts/task_scheduling_print.html', {
+        'tasks': tasks,
+        'total_count': tasks.count(),
+        'printed_at': timezone.localtime(timezone.now()),
+        'filter_label': filter_label,
+        'single_task_print': bool(task_id),
+    })
+
+
 @login_required
 def task_scheduling(request):
-    return render(request, 'accounts/task_scheduling.html')
+    base_queryset = _get_task_queryset()
+    task_filter = request.GET.get('filter', 'pending')
+    search_query = request.GET.get('q', '').strip()
+    task_type_filter = request.GET.get('type', '').strip()
+    priority_filter = request.GET.get('priority', '').strip()
+    task_form = TaskCreateForm()
+    item_formset = TaskItemFormSet()
+    open_task_modal = False
+    editing_task = False
+    from_offer = None
+
+    if request.method == 'POST':
+        task_action = request.POST.get('task_action', 'create')
+        task_filter = request.POST.get('redirect_filter', task_filter)
+        search_query = request.POST.get('redirect_q', search_query).strip()
+        task_type_filter = request.POST.get('redirect_type', task_type_filter).strip()
+        priority_filter = request.POST.get('redirect_priority', priority_filter).strip()
+
+        if task_action == 'create':
+            task_form = TaskCreateForm(request.POST)
+            item_formset = TaskItemFormSet(request.POST)
+            if task_form.is_valid() and item_formset.is_valid():
+                task = task_form.save(commit=False)
+                task.created_by = request.user
+                task.save()
+                item_formset.instance = task
+                item_formset.save()
+                messages.success(request, 'Η εργασία καταχωρήθηκε επιτυχώς.')
+                return _redirect_task_dashboard(
+                    task_filter,
+                    search_query,
+                    task_type_filter=task_type_filter,
+                    priority_filter=priority_filter,
+                )
+            open_task_modal = True
+        elif task_action == 'update':
+            task = get_object_or_404(base_queryset, pk=request.POST.get('task_id'))
+            task_form = TaskCreateForm(request.POST, instance=task)
+            item_formset = TaskItemFormSet(request.POST, instance=task)
+            if task_form.is_valid() and item_formset.is_valid():
+                task = task_form.save()
+                item_formset.save()
+                task.refresh_status_from_items()
+                messages.success(request, 'Η εργασία ενημερώθηκε επιτυχώς.')
+                return _redirect_task_dashboard(
+                    task_filter,
+                    search_query,
+                    task_type_filter=task_type_filter,
+                    priority_filter=priority_filter,
+                )
+            open_task_modal = True
+            editing_task = True
+        elif task_action == 'update_items':
+            task = get_object_or_404(base_queryset, pk=request.POST.get('task_id'))
+            _update_task_item_statuses(task, request.POST)
+            task.refresh_from_db()
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                if task.status == ScheduledTask.STATUS_COMPLETED:
+                    message = 'Ολοκληρώθηκε'
+                else:
+                    message = 'Αποθηκεύτηκε'
+                return JsonResponse({
+                    'success': True,
+                    'task': _get_task_detail_dict(task),
+                    'message': message,
+                })
+            if task.status == ScheduledTask.STATUS_COMPLETED:
+                messages.success(request, 'Όλα τα προϊόντα ολοκληρώθηκαν. Η εργασία θεωρείται ολοκληρωμένη.')
+            else:
+                messages.success(request, 'Οι καταστάσεις των προϊόντων ενημερώθηκαν.')
+            return _redirect_task_dashboard(
+                task_filter,
+                search_query,
+                task_type_filter=task_type_filter,
+                priority_filter=priority_filter,
+            )
+        elif task_action == 'set_status':
+            task = get_object_or_404(base_queryset, pk=request.POST.get('task_id'))
+            new_status = request.POST.get('status')
+            valid_statuses = {choice[0] for choice in ScheduledTask.STATUS_CHOICES}
+            if new_status in valid_statuses:
+                task.status = new_status
+                task.save(update_fields=['status', 'updated_at'])
+                messages.success(request, 'Η κατάσταση της εργασίας ενημερώθηκε.')
+            return _redirect_task_dashboard(
+                task_filter,
+                search_query,
+                task_type_filter=task_type_filter,
+                priority_filter=priority_filter,
+            )
+        elif task_action == 'delete':
+            task = get_object_or_404(base_queryset, pk=request.POST.get('task_id'))
+            task_title = task.display_label()
+            task.delete()
+            messages.success(request, f'Η εργασία «{task_title}» διαγράφηκε.')
+            return _redirect_task_dashboard(
+                task_filter,
+                search_query,
+                task_type_filter=task_type_filter,
+                priority_filter=priority_filter,
+            )
+
+    elif request.GET.get('edit'):
+        edit_task = get_object_or_404(base_queryset, pk=request.GET.get('edit'))
+        task_form = TaskCreateForm(instance=edit_task)
+        item_formset = TaskItemFormSet(instance=edit_task)
+        open_task_modal = True
+        editing_task = True
+    elif request.GET.get('from_offer'):
+        from_offer = get_object_or_404(
+            Offer.objects.select_related('customer').prefetch_related('items__product'),
+            pk=request.GET.get('from_offer'),
+        )
+        task_form, item_formset = _build_task_forms_from_offer(from_offer)
+        open_task_modal = True
+
+    tasks = _filter_tasks(
+        base_queryset,
+        task_filter=task_filter,
+        search_query=search_query,
+        task_type_filter=task_type_filter,
+        priority_filter=priority_filter,
+    )
+    stats = _get_task_stats(base_queryset)
+    open_task_detail_id = request.GET.get('task', '')
+    filter_urls = _get_task_filter_urls(
+        task_filter,
+        search_query,
+        task_type_filter,
+        priority_filter,
+    )
+    list_query_string = urlencode(_build_task_filter_query(
+        task_filter,
+        search_query,
+        task_type_filter,
+        priority_filter,
+    ))
+
+    customers_data = _get_task_customers_data()
+    catalog_products = _get_task_products_data()
+    tasks_detail_data = _get_tasks_detail_data(tasks)
+
+    return render(request, 'accounts/task_scheduling.html', {
+        'task_form': task_form,
+        'item_formset': item_formset,
+        'tasks': tasks,
+        'tasks_detail_data': tasks_detail_data,
+        'stats': stats,
+        'task_filter': task_filter,
+        'search_query': search_query,
+        'task_type_filter': task_type_filter,
+        'priority_filter': priority_filter,
+        'filter_urls': filter_urls,
+        'list_query_string': list_query_string,
+        'status_choices': ScheduledTask.STATUS_CHOICES,
+        'priority_choices': ScheduledTask.PRIORITY_CHOICES,
+        'open_task_modal': open_task_modal,
+        'editing_task': editing_task,
+        'from_offer': from_offer,
+        'open_task_detail_id': open_task_detail_id,
+        'customers_data': customers_data,
+        'catalog_products': catalog_products,
+    })
 
 def superuser_required(view_func):
     decorated_view_func = user_passes_test(lambda u: u.is_superuser)(view_func)

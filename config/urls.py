@@ -19,13 +19,16 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
-from accounts.views import dashboard, create_user, CustomLoginView, manage_subscriptions, manage_users, database_backup, database_restore, database_management, manage_client_name, manage_app_name, manage_partner_name, manage_email_settings, manage_sms_settings, send_sms_view, send_bulk_sms_view, check_sms_balance, sms_dashboard, get_sms_history_view, manage_customers_module, task_scheduling
+from accounts.views import dashboard, create_user, CustomLoginView, manage_subscriptions, manage_users, database_backup, database_restore, database_management, manage_client_name, manage_app_name, manage_partner_name, manage_email_settings, manage_sms_settings, send_sms_view, send_bulk_sms_view, check_sms_balance, sms_dashboard, get_sms_history_view, manage_customers_module, task_scheduling, task_scheduling_print, construction_products_list, construction_products_print
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', CustomLoginView.as_view(), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('dashboard/', dashboard, name='dashboard'),
     path('task-scheduling/', task_scheduling, name='task_scheduling'),
+    path('task-scheduling/construction-products/', construction_products_list, name='construction_products_list'),
+    path('task-scheduling/construction-products/print/', construction_products_print, name='construction_products_print'),
+    path('task-scheduling/print/', task_scheduling_print, name='task_scheduling_print'),
     path('create-user/', create_user, name='create_user'),
     path('manage-subscriptions/', manage_subscriptions, name='manage_subscriptions'),
     path('manage-users/', manage_users, name='manage_users'),

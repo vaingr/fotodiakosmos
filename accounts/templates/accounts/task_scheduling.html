@@ -1,42 +1,2652 @@
 {% extends 'accounts/base.html' %}
+{% load greek_date %}
 
 {% block title %}Προγραμματισμός Εργασιών{% endblock %}
 
 {% block content %}
 <style>
     .content-wrapper { border: none !important; }
+
+    .page-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+        background: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 2px 4px var(--shadow);
+    }
+
+    .page-header h1 {
+        margin: 0;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        padding: 1.25rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px var(--shadow);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px var(--shadow);
+    }
+
+    .stat-card.is-active {
+        outline: 2px solid var(--accent);
+    }
+
+    .stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .stat-info { min-width: 0; }
+
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        margin-bottom: 0.15rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1.1;
+    }
+
+    .task-dashboard-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        max-width: 880px;
+    }
+
+    .task-create-card,
+    .task-action-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem 1.5rem;
+        background: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 2px 4px var(--shadow);
+        border: none;
+        width: 100%;
+        color: var(--text-primary);
+        cursor: pointer;
+        text-align: left;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        text-decoration: none;
+    }
+
+    .task-create-card:hover,
+    .task-action-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px var(--shadow);
+    }
+
+    .action-icon {
+        width: 50px;
+        height: 50px;
+        background: var(--accent);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+
+    .action-content { flex: 1; min-width: 0; }
+
+    .action-content h3 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1.1rem;
+    }
+
+    .action-content p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .task-create-arrow {
+        margin-left: auto;
+        color: var(--text-secondary);
+    }
+
+    .task-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+    }
+
+    .task-form-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .task-form-row label {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+    }
+
+    .task-form-row input,
+    .task-form-row select,
+    .task-form-row textarea {
+        width: 100%;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid var(--card-border);
+        border-radius: 0.5rem;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 0.95rem;
+    }
+
+    .task-form-row textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .task-form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.85rem;
+    }
+
+    .task-type-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .task-type-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .task-type-option {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.55rem 0.85rem;
+        border: 1px solid var(--card-border);
+        border-radius: 0.5rem;
+        background: var(--bg-primary);
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+
+    .task-type-option:has(input:checked) {
+        border-color: var(--accent);
+        background: rgba(59, 130, 246, 0.12);
+    }
+
+    .task-type-option input {
+        margin: 0;
+    }
+
+    .product-picker {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .product-search-input {
+        width: 100%;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid var(--card-border);
+        border-radius: 0.5rem;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 0.95rem;
+    }
+
+    .product-results {
+        position: fixed;
+        z-index: 1200;
+        max-height: 220px;
+        overflow-y: auto;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 0.5rem;
+        box-shadow: 0 8px 24px var(--shadow);
+    }
+
+    .product-result-item {
+        display: block;
+        width: 100%;
+        padding: 0.65rem 0.85rem;
+        text-align: left;
+        border: none;
+        border-bottom: 1px solid var(--card-border);
+        background: transparent;
+        color: var(--text-primary);
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.9rem;
+    }
+
+    .product-result-item:hover {
+        background: rgba(59, 130, 246, 0.15);
+    }
+
+    .product-result-item.is-empty {
+        cursor: default;
+        color: var(--text-secondary);
+    }
+
+    .product-select-hidden,
+    .task-customer-select {
+        display: none;
+    }
+
+    .task-modal-warning {
+        margin: 0 0 1rem 0;
+        color: #f87171;
+        font-size: 0.9rem;
+    }
+
+    .task-products-section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 0.85rem 0;
+        border-top: 1px solid var(--card-border);
+        border-bottom: 1px solid var(--card-border);
+    }
+
+    .task-products-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.92rem;
+    }
+
+    .task-product-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 90px 36px;
+        gap: 0.5rem;
+        align-items: start;
+    }
+
+    .task-product-row label {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+        display: block;
+    }
+
+    .task-quantity-input {
+        width: 100%;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid var(--card-border);
+        border-radius: 0.5rem;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 0.95rem;
+    }
+
+    .task-product-select {
+        display: none;
+    }
+
+    .task-add-product-btn {
+        align-self: flex-start;
+    }
+
+    .task-date-picker {
+        position: relative;
+    }
+
+    .task-date-native {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .task-date-display {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid var(--card-border);
+        border-radius: 0.5rem;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 0.95rem;
+        cursor: pointer;
+        text-align: left;
+    }
+
+    .task-date-display:hover,
+    .task-date-display.is-open {
+        border-color: var(--accent);
+    }
+
+    .task-date-display-text.is-placeholder {
+        color: var(--text-secondary);
+    }
+
+    .task-date-display i {
+        color: var(--accent);
+    }
+
+    .task-date-calendar {
+        position: fixed;
+        z-index: 1300;
+        width: 300px;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 0.75rem;
+        box-shadow: 0 12px 28px var(--shadow);
+        padding: 0.85rem;
+    }
+
+    .task-date-calendar[hidden] {
+        display: none;
+    }
+
+    .task-date-calendar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .task-date-month-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.92rem;
+        text-align: center;
+        flex: 1;
+    }
+
+    .task-date-nav {
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--card-border);
+        border-radius: 0.5rem;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .task-date-nav:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+
+    .task-date-weekdays,
+    .task-date-days {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0.25rem;
+    }
+
+    .task-date-weekday {
+        text-align: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        padding: 0.25rem 0;
+    }
+
+    .task-date-day,
+    .task-date-day-empty {
+        min-height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        border-radius: 0.5rem;
+        background: transparent;
+        color: var(--text-primary);
+        font-size: 0.85rem;
+        cursor: pointer;
+    }
+
+    .task-date-day:hover {
+        background: rgba(59, 130, 246, 0.15);
+    }
+
+    .task-date-day.is-today {
+        border: 1px solid var(--accent);
+    }
+
+    .task-date-day.is-selected {
+        background: var(--accent);
+        color: #fff;
+    }
+
+    .task-date-day-empty {
+        cursor: default;
+    }
+
+    .task-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        z-index: 1100;
+    }
+
+    .task-modal-overlay[hidden] {
+        display: none;
+    }
+
+    .task-modal {
+        width: 100%;
+        max-width: 560px;
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+        background: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 12px 32px var(--shadow);
+        padding: 1.5rem;
+        color: var(--text-primary);
+    }
+
+    .task-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .task-modal-header h3 {
+        margin: 0;
+        font-size: 1.125rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .task-modal-close {
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        cursor: pointer;
+        padding: 0.25rem;
+    }
+
+    .task-modal-description {
+        margin: 0 0 1rem 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .task-modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .task-confirm-modal {
+        max-width: 420px;
+    }
+
+    .task-confirm-message {
+        margin: 0 0 1rem 0;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    .tasks-section {
+        background: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 2px 4px var(--shadow);
+        padding: 1.5rem;
+    }
+
+    .tasks-section-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .tasks-section-header h2 {
+        margin: 0;
+        font-size: 1.15rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-primary);
+    }
+
+    .tasks-section-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .tasks-toolbar {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        margin-bottom: 1rem;
+    }
+
+    .tasks-search-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .tasks-search-input {
+        flex: 1 1 220px;
+        min-width: 0;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid var(--card-border);
+        border-radius: 0.5rem;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-family: inherit;
+    }
+
+    .tasks-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .tasks-filters-group-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-right: 0.15rem;
+    }
+
+    .tasks-filter-divider {
+        width: 1px;
+        height: 24px;
+        background: var(--card-border);
+        margin: 0 0.15rem;
+    }
+
+    .tasks-filter-btn {
+        border: 1px solid var(--card-border);
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        padding: 0.45rem 0.8rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .tasks-filter-btn:hover,
+    .tasks-filter-btn.is-active {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+    }
+
+    .tasks-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+    }
+
+    .tasks-table th,
+    .tasks-table td {
+        padding: 0.85rem 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--card-border);
+        vertical-align: top;
+    }
+
+    .tasks-table th {
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .tasks-table tbody tr:hover {
+        background: rgba(59, 130, 246, 0.06);
+    }
+
+    .task-row-clickable {
+        cursor: pointer;
+    }
+
+    .task-detail-modal {
+        max-width: 640px;
+        overflow-x: hidden;
+    }
+
+    #taskDetailModal .task-modal-header {
+        gap: 0.75rem;
+        min-width: 0;
+    }
+
+    #taskDetailModal .task-modal-header h3 {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .task-detail-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .task-detail-save-status {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        max-width: 6.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .task-detail-save-status.is-saving {
+        color: #60a5fa;
+    }
+
+    .task-detail-save-status.is-saved {
+        color: #4ade80;
+    }
+
+    .task-detail-save-status.is-error {
+        color: #f87171;
+    }
+
+    #taskDetailModal.task-modal-overlay {
+        padding: 1rem;
+    }
+
+    .task-detail-item.is-saving {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    .task-detail-meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        padding: 0.85rem;
+        background: var(--bg-primary);
+        border: 1px solid var(--card-border);
+        border-radius: 0.5rem;
+    }
+
+    .task-detail-meta-label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: 0.2rem;
+    }
+
+    .task-detail-meta-value {
+        color: var(--text-primary);
+        font-size: 0.92rem;
+        font-weight: 600;
+    }
+
+    .task-detail-description {
+        margin: 0 0 1rem 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        white-space: pre-wrap;
+    }
+
+    .task-detail-items {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .task-detail-item {
+        padding: 0.85rem;
+        border: 1px solid var(--card-border);
+        border-radius: 0.5rem;
+        background: var(--bg-primary);
+    }
+
+    .task-detail-item-product {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.65rem;
+    }
+
+    .task-detail-item-photo {
+        flex-shrink: 0;
+    }
+
+    .task-detail-item-thumb {
+        width: 48px;
+        height: 48px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 1px solid var(--card-border);
+        background: var(--card-bg);
+        display: block;
+    }
+
+    .task-detail-item-thumb-placeholder {
+        width: 48px;
+        height: 48px;
+        border-radius: 6px;
+        border: 1px dashed var(--card-border);
+        background: var(--card-bg);
+        color: var(--text-secondary);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+    }
+
+    .task-detail-item-info {
+        min-width: 0;
+    }
+
+    .task-detail-item-info strong {
+        display: block;
+        color: var(--text-primary);
+        margin-bottom: 0.15rem;
+    }
+
+    .task-detail-item-info span {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+    }
+
+    .item-status-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .item-status-option {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.45rem 0.7rem;
+        border: 1px solid var(--card-border);
+        border-radius: 0.5rem;
+        background: var(--card-bg);
+        cursor: pointer;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+    }
+
+    .item-status-option:has(input:checked) {
+        border-color: var(--accent);
+        background: rgba(59, 130, 246, 0.12);
+    }
+
+    .item-status-option input {
+        margin: 0;
+    }
+
+    .item-status-option.is-completed:has(input:checked) {
+        border-color: #22c55e;
+        background: rgba(34, 197, 94, 0.12);
+    }
+
+    @media (max-width: 640px) {
+        #taskDetailModal.task-modal-overlay {
+            align-items: flex-end;
+            padding: 0;
+        }
+
+        #taskDetailModal .task-detail-modal {
+            max-width: none;
+            width: 100%;
+            max-height: 92vh;
+            max-height: 92dvh;
+            border-radius: 16px 16px 0 0;
+            padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        #taskDetailModal .task-modal-header h3 {
+            font-size: 1rem;
+        }
+
+        #taskDetailModal .task-detail-meta {
+            grid-template-columns: 1fr 1fr;
+            gap: 0.65rem;
+            padding: 0.75rem;
+        }
+
+        #taskDetailModal .task-detail-item {
+            padding: 0.75rem;
+        }
+
+        #taskDetailModal .task-detail-item-thumb,
+        #taskDetailModal .task-detail-item-thumb-placeholder {
+            width: 56px;
+            height: 56px;
+        }
+
+        #taskDetailModal .item-status-options {
+            flex-direction: column;
+        }
+
+        #taskDetailModal .item-status-option {
+            width: 100%;
+            min-height: 44px;
+            justify-content: flex-start;
+            padding: 0.65rem 0.85rem;
+        }
+
+        #taskDetailModal .task-detail-save-status {
+            font-size: 0.72rem;
+        }
+    }
+
+    .task-items-progress {
+        display: inline-block;
+        margin-top: 0.25rem;
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+    }
+
+    .task-row-overdue {
+        background: rgba(239, 68, 68, 0.08);
+    }
+
+    .task-title-cell strong {
+        display: block;
+        color: var(--text-primary);
+        margin-bottom: 0.1rem;
+    }
+
+    .task-description {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        margin: 0;
+        white-space: pre-wrap;
+    }
+
+    .task-product-completed {
+        color: #4ade80;
+        font-weight: 600;
+    }
+
+    .task-products-summary {
+        margin: 0;
+        padding: 0;
+        line-height: 1.35;
+        white-space: normal;
+    }
+
+    .task-product-line {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .task-product-line + .task-product-line {
+        margin-top: 0.1rem;
+    }
+
+    .task-product-line-photo {
+        flex-shrink: 0;
+    }
+
+    .task-product-line-thumb {
+        width: 28px;
+        height: 28px;
+        object-fit: cover;
+        border-radius: 4px;
+        border: 1px solid var(--card-border);
+        background: var(--card-bg);
+        display: block;
+    }
+
+    .task-product-line-thumb-placeholder {
+        width: 28px;
+        height: 28px;
+        border-radius: 4px;
+        border: 1px dashed var(--card-border);
+        background: var(--card-bg);
+        color: var(--text-secondary);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+    }
+
+    .task-product-line-text {
+        min-width: 0;
+    }
+
+    .task-product-line.task-product-completed .task-product-line-text {
+        color: #4ade80;
+        font-weight: 600;
+    }
+
+    .task-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .badge-priority-high { background: rgba(239, 68, 68, 0.18); color: #f87171; }
+    .badge-priority-medium { background: rgba(245, 158, 11, 0.18); color: #fbbf24; }
+    .badge-priority-low { background: rgba(148, 163, 184, 0.18); color: #94a3b8; }
+
+    .badge-status-pending { background: rgba(148, 163, 184, 0.18); color: #94a3b8; }
+    .badge-status-completed { background: rgba(34, 197, 94, 0.18); color: #4ade80; }
+    .badge-status-cancelled { background: rgba(100, 116, 139, 0.18); color: #94a3b8; }
+
+    .task-date-overdue {
+        color: #f87171;
+        font-weight: 600;
+    }
+
+    .table-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.45rem 0.75rem;
+        border: none;
+        border-radius: 0.5rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary { background: #64748b; color: #fff; }
+    .btn-success { background: #22c55e; color: #fff; }
+    .btn-warning { background: #f59e0b; color: #fff; }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .btn-sm { padding: 0.35rem 0.6rem; font-size: 0.78rem; }
+
+    .inline-task-form { display: inline; }
+
+    .empty-state {
+        text-align: center;
+        padding: 2.5rem 1rem;
+        color: var(--text-secondary);
+    }
+
+    .empty-state i {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+        opacity: 0.7;
+    }
+
+    .error-message {
+        color: #f87171;
+        font-size: 0.85rem;
+    }
 </style>
 
 <div class="page-header">
     <h1><i class="fas fa-calendar-check"></i> Προγραμματισμός Εργασιών</h1>
 </div>
 
-<div class="empty-state-card">
-    <i class="fas fa-tools empty-state-icon"></i>
-    <p>Η ενότητα βρίσκεται υπό ανάπτυξη.</p>
+<div class="dashboard-stats">
+    <a href="{{ filter_urls.pending }}" class="stat-card {% if task_filter == 'pending' %}is-active{% endif %}">
+        <div class="stat-icon" style="background: #64748b;">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-label">Σε εκκρεμότητα</div>
+            <div class="stat-value">{{ stats.pending }}</div>
+        </div>
+    </a>
+
+    <a href="{{ filter_urls.overdue }}" class="stat-card {% if task_filter == 'overdue' %}is-active{% endif %}">
+        <div class="stat-icon" style="background: #ef4444;">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-label">Καθυστερημένες</div>
+            <div class="stat-value">{{ stats.overdue }}</div>
+        </div>
+    </a>
+
+    <a href="{{ filter_urls.completed }}" class="stat-card {% if task_filter == 'completed' %}is-active{% endif %}">
+        <div class="stat-icon" style="background: #10b981;">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-info">
+            <div class="stat-label">Ολοκληρωμένες</div>
+            <div class="stat-value">{{ stats.completed }}</div>
+        </div>
+    </a>
 </div>
 
-<style>
-.empty-state-card {
-    margin-top: 2rem;
-    padding: 3rem 2rem;
-    text-align: center;
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 0.75rem;
-    box-shadow: 0 2px 4px var(--shadow);
-}
+<div class="task-dashboard-actions">
+    <button type="button" class="task-create-card" id="openTaskModalBtn">
+        <div class="action-icon" style="background: #3b82f6;">
+            <i class="fas fa-plus"></i>
+        </div>
+        <div class="action-content">
+            <h3>Νέα Εργασία</h3>
+            <p>Καταχώρηση εργασίας προς εκτέλεση</p>
+        </div>
+        <div class="task-create-arrow">
+            <i class="fas fa-arrow-right"></i>
+        </div>
+    </button>
 
-.empty-state-icon {
-    font-size: 2.5rem;
-    color: var(--text-secondary);
-    margin-bottom: 1rem;
-}
+    <a href="{% url 'construction_products_list' %}" class="task-action-card">
+        <div class="action-icon" style="background: #f59e0b;">
+            <i class="fas fa-hammer"></i>
+        </div>
+        <div class="action-content">
+            <h3>Λίστα με προϊόντα προς κατασκευή</h3>
+            <p>Προϊόντα από εκκρεμείς κατασκευές</p>
+        </div>
+        <div class="task-create-arrow">
+            <i class="fas fa-arrow-right"></i>
+        </div>
+    </a>
+</div>
 
-.empty-state-card p {
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: 1.05rem;
-}
-</style>
+<div class="tasks-section">
+    <div class="tasks-section-header">
+        <h2><i class="fas fa-list-check"></i> Εργασίες προς εκτέλεση</h2>
+        <div class="tasks-section-actions">
+            <button type="button" class="btn btn-secondary btn-sm" id="printTasksBtn" title="Εκτύπωση λίστας">
+                <i class="fas fa-print"></i> Εκτύπωση
+            </button>
+        </div>
+    </div>
+
+        <div class="tasks-toolbar">
+            <form method="get" class="tasks-search-form">
+                <input type="hidden" name="filter" value="{{ task_filter }}">
+                {% if task_type_filter %}
+                <input type="hidden" name="type" value="{{ task_type_filter }}">
+                {% endif %}
+                {% if priority_filter %}
+                <input type="hidden" name="priority" value="{{ priority_filter }}">
+                {% endif %}
+                <input type="search"
+                       name="q"
+                       class="tasks-search-input"
+                       placeholder="Αναζήτηση με πελάτη, περιγραφή ή υπεύθυνο..."
+                       value="{{ search_query }}"
+                       autocomplete="off">
+                <button type="submit" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-search"></i> Αναζήτηση
+                </button>
+                {% if search_query %}
+                <a href="{{ filter_urls.clear_search }}" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-times"></i> Καθαρισμός
+                </a>
+                {% endif %}
+            </form>
+
+            <div class="tasks-filters">
+                <span class="tasks-filters-group-label">Κατάσταση:</span>
+                <a href="{{ filter_urls.all }}"
+                   class="tasks-filter-btn {% if task_filter == 'all' %}is-active{% endif %}">
+                    Όλες
+                </a>
+                <a href="{{ filter_urls.pending }}"
+                   class="tasks-filter-btn {% if task_filter == 'pending' %}is-active{% endif %}">
+                    Σε εκκρεμότητα
+                </a>
+                <a href="{{ filter_urls.overdue }}"
+                   class="tasks-filter-btn {% if task_filter == 'overdue' %}is-active{% endif %}">
+                    Καθυστερημένες
+                </a>
+                <a href="{{ filter_urls.completed }}"
+                   class="tasks-filter-btn {% if task_filter == 'completed' %}is-active{% endif %}">
+                    Ολοκληρωμένες
+                </a>
+
+                <span class="tasks-filter-divider" aria-hidden="true"></span>
+
+                <span class="tasks-filters-group-label">Είδος:</span>
+                <a href="{{ filter_urls.construction }}"
+                   class="tasks-filter-btn {% if task_type_filter == 'construction' %}is-active{% endif %}">
+                    Κατασκευές
+                </a>
+                <a href="{{ filter_urls.repair }}"
+                   class="tasks-filter-btn {% if task_type_filter == 'repair' %}is-active{% endif %}">
+                    Επισκευές
+                </a>
+
+                <span class="tasks-filter-divider" aria-hidden="true"></span>
+
+                <span class="tasks-filters-group-label">Προτεραιότητα:</span>
+                <a href="{{ filter_urls.priority_high }}"
+                   class="tasks-filter-btn {% if priority_filter == 'high' %}is-active{% endif %}">
+                    Υψηλή
+                </a>
+                <a href="{{ filter_urls.priority_medium }}"
+                   class="tasks-filter-btn {% if priority_filter == 'medium' %}is-active{% endif %}">
+                    Μεσαία
+                </a>
+                <a href="{{ filter_urls.priority_low }}"
+                   class="tasks-filter-btn {% if priority_filter == 'low' %}is-active{% endif %}">
+                    Χαμηλή
+                </a>
+            </div>
+        </div>
+
+        {% if tasks %}
+        <div class="table-wrapper">
+            <table class="tasks-table">
+                <thead>
+                    <tr>
+                        <th>Είδος Εργασίας</th>
+                        <th>Πελάτης</th>
+                        <th>Ημερομηνία</th>
+                        <th>Προτεραιότητα</th>
+                        <th>Κατάσταση</th>
+                        <th>Ενέργειες</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    <tr class="task-row-clickable {% if task.is_overdue %}task-row-overdue{% endif %}"
+                        data-task-id="{{ task.pk }}"
+                        role="button"
+                        tabindex="0"
+                        aria-label="Προβολή εργασίας {{ task.get_task_type_display }} - {{ task.customer.display_name }}">
+                        <td class="task-title-cell">
+                            <strong>{{ task.get_task_type_display }}</strong>
+                            {% if task.items.all %}
+                            <div class="task-description task-products-summary">
+                                {% for item in task.items.all %}
+                                <div class="task-product-line{% if item.item_status == 'completed' %} task-product-completed{% endif %}">
+                                    <div class="task-product-line-photo">
+                                        {% if item.product.photo %}
+                                        <img src="{{ item.product.photo.url }}" alt="{{ item.product.name }}" class="task-product-line-thumb">
+                                        {% else %}
+                                        <div class="task-product-line-thumb-placeholder" title="Χωρίς φωτογραφία">
+                                            <i class="fas fa-image"></i>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <span class="task-product-line-text">{{ item.product.code }} - {{ item.product.name }} x{{ item.quantity }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% if task.description %}
+                            <p class="task-description">{{ task.description }}</p>
+                            {% endif %}
+                        </td>
+                        <td>{{ task.customer.display_name }}</td>
+                        <td class="{% if task.is_overdue %}task-date-overdue{% endif %}">
+                            {{ task.scheduled_date|greek_date }}
+                            {% if task.is_overdue %}
+                            <div><small>Καθυστέρηση</small></div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="task-badge badge-priority-{{ task.priority }}">
+                                {{ task.get_priority_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="task-badge task-row-status-badge badge-status-{{ task.status }}">
+                                {{ task.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="table-actions" data-stop-row-click>
+                                <a href="{% url 'task_scheduling_print' %}?task_id={{ task.pk }}"
+                                   class="btn btn-secondary btn-sm"
+                                   title="Εκτύπωση"
+                                   target="_blank"
+                                   rel="noopener"
+                                   onclick="event.stopPropagation();">
+                                    <i class="fas fa-print"></i>
+                                </a>
+                                <a href="{% url 'task_scheduling' %}?{% if list_query_string %}{{ list_query_string }}&{% endif %}edit={{ task.pk }}"
+                                   class="btn btn-warning btn-sm"
+                                   title="Επεξεργασία">
+                                    <i class="fas fa-pen"></i>
+                                </a>
+                                <form method="post"
+                                      class="inline-task-form task-delete-form"
+                                      data-task-label="{{ task.display_label|escape }}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="task_action" value="delete">
+                                    <input type="hidden" name="task_id" value="{{ task.pk }}">
+                                    <input type="hidden" name="redirect_filter" value="{{ task_filter }}">
+                                    <input type="hidden" name="redirect_q" value="{{ search_query }}">
+                                    <input type="hidden" name="redirect_type" value="{{ task_type_filter }}">
+                                    <input type="hidden" name="redirect_priority" value="{{ priority_filter }}">
+                                    <button type="button" class="btn btn-danger btn-sm task-delete-btn" title="Διαγραφή">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-clipboard-list"></i>
+            {% if search_query %}
+            <p>Δεν βρέθηκαν εργασίες για «{{ search_query }}».</p>
+            {% else %}
+            <p>Δεν υπάρχουν εργασίες σε αυτή την κατηγορία.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+</div>
+
+<div class="task-modal-overlay" id="taskDeleteConfirmModal" hidden>
+    <div class="task-modal task-confirm-modal" role="alertdialog" aria-labelledby="taskDeleteConfirmTitle" aria-modal="true">
+        <div class="task-modal-header">
+            <h3 id="taskDeleteConfirmTitle"><i class="fas fa-trash"></i> Διαγραφή εργασίας</h3>
+            <button type="button" class="task-modal-close" id="closeTaskDeleteConfirmBtn" aria-label="Κλείσιμο">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <p class="task-confirm-message" id="taskDeleteConfirmMessage"></p>
+        <div class="task-modal-actions">
+            <button type="button" class="btn btn-secondary btn-sm" id="cancelTaskDeleteConfirmBtn">
+                Ακύρωση
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" id="confirmTaskDeleteBtn">
+                <i class="fas fa-trash"></i> Διαγραφή
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="task-modal-overlay" id="taskDetailModal" hidden>
+    <div class="task-modal task-detail-modal" role="dialog" aria-labelledby="taskDetailModalTitle" aria-modal="true">
+        <div class="task-modal-header">
+            <h3 id="taskDetailModalTitle"><i class="fas fa-list-check"></i> <span id="taskDetailTitleText">Εργασία</span></h3>
+            <div class="task-detail-header-actions">
+                <span id="taskDetailSaveStatus" class="task-detail-save-status" hidden aria-live="polite"></span>
+                <button type="button" class="task-modal-close" id="closeTaskDetailModalBtn" aria-label="Κλείσιμο">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <p class="task-modal-description" id="taskDetailSubtitle"></p>
+
+        <div class="task-detail-meta" id="taskDetailMeta"></div>
+        <p class="task-detail-description" id="taskDetailDescription" hidden></p>
+
+        <div id="taskDetailForm">
+            {% csrf_token %}
+            <input type="hidden" id="taskDetailTaskId" value="">
+            <div class="task-products-title" id="taskDetailProductsTitle">Προϊόντα</div>
+            <div class="task-detail-items" id="taskDetailItems"></div>
+        </div>
+    </div>
+</div>
+
+<div class="task-modal-overlay" id="taskCreateModal" {% if not open_task_modal %}hidden{% endif %}>
+    <div class="task-modal" role="dialog" aria-labelledby="taskCreateModalTitle" aria-modal="true">
+        <div class="task-modal-header">
+            <h3 id="taskCreateModalTitle">
+                <i class="fas {% if editing_task %}fa-pen{% else %}fa-plus{% endif %}"></i>
+                {% if editing_task %}Επεξεργασία Εργασίας{% else %}Νέα Εργασία{% endif %}
+            </h3>
+            <button type="button" class="task-modal-close" id="closeTaskModalBtn" aria-label="Κλείσιμο">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <p class="task-modal-description" id="taskCreateModalDescription">
+            {% if editing_task %}
+            Τροποποιήστε τα στοιχεία της εργασίας και αποθηκεύστε τις αλλαγές.
+            {% elif from_offer %}
+            Προσυμπληρωμένα στοιχεία από την προσφορά {{ from_offer.offer_number }} ({{ from_offer.customer.display_name }}).
+            {% else %}
+            Καταχωρήστε μια νέα εργασία προς εκτέλεση.
+            {% endif %}
+        </p>
+
+        {% if not customers_data %}
+        <p class="task-modal-warning">Δεν υπάρχουν καταχωρημένοι πελάτες. Προσθέστε πρώτα πελάτη από τη λίστα πελατών.</p>
+        {% else %}
+        <form method="post" class="task-form" id="taskCreateForm" autocomplete="off" data-preserve-form="{% if open_task_modal %}true{% else %}false{% endif %}">
+            {% csrf_token %}
+            <input type="hidden" name="task_action" id="taskFormAction" value="{% if editing_task %}update{% else %}create{% endif %}">
+            {% if editing_task and task_form.instance.pk %}
+            <input type="hidden" name="task_id" id="taskFormTaskId" value="{{ task_form.instance.pk }}">
+            {% endif %}
+            <input type="hidden" name="redirect_filter" value="{{ task_filter }}">
+            <input type="hidden" name="redirect_q" value="{{ search_query }}">
+            <input type="hidden" name="redirect_type" value="{{ task_type_filter }}">
+            <input type="hidden" name="redirect_priority" value="{{ priority_filter }}">
+
+            <div class="task-form-row task-type-group">
+                <label>{{ task_form.task_type.label }}</label>
+                <div class="task-type-options">
+                    {% for radio in task_form.task_type %}
+                    {% if radio.data.value %}
+                    <label class="task-type-option">
+                        {{ radio.tag }}
+                        <span>{{ radio.choice_label }}</span>
+                    </label>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% if task_form.task_type.errors %}
+                <div class="error-message">{{ task_form.task_type.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="task-form-row">
+                <label for="taskCustomerSearch">Πελάτης</label>
+                <div class="product-picker" data-customer-picker>
+                    <input type="text"
+                           class="product-search-input"
+                           id="taskCustomerSearch"
+                           placeholder="Αναζήτηση πελάτη με όνομα..."
+                           value=""
+                           autocomplete="off"
+                           autocorrect="off"
+                           autocapitalize="off"
+                           spellcheck="false"
+                           data-lpignore="true"
+                           readonly>
+                    <div class="product-results" hidden></div>
+                    <div class="product-select-hidden">
+                        {{ task_form.customer }}
+                    </div>
+                </div>
+                {% if task_form.customer.errors %}
+                <div class="error-message">{{ task_form.customer.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="task-products-section">
+                <div class="task-products-title" id="taskProductsTitle">Προϊόντα προς κατασκευή</div>
+                {% if not catalog_products %}
+                <p class="task-modal-warning">Δεν υπάρχουν προϊόντα στον κατάλογο.</p>
+                {% else %}
+                {{ item_formset.management_form }}
+                <div id="taskProductsFormset">
+                    {% for item_form in item_formset %}
+                    <div class="task-product-row" data-form-row>
+                        <div>
+                            <label>Προϊόν</label>
+                            <div class="product-picker" data-product-picker>
+                                <input type="text"
+                                       class="product-search-input task-product-search"
+                                       placeholder="Αναζήτηση με κωδικό ή όνομα..."
+                                       autocomplete="off"
+                                       readonly>
+                                <div class="product-results" hidden></div>
+                                {{ item_form.product }}
+                            </div>
+                            {% if item_form.product.errors %}
+                            <div class="error-message">{{ item_form.product.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label>Ποσότητα</label>
+                            {{ item_form.quantity }}
+                            {% if item_form.quantity.errors %}
+                            <div class="error-message">{{ item_form.quantity.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label>&nbsp;</label>
+                            <button type="button" class="btn btn-danger btn-sm remove-task-product-btn" title="Αφαίρεση">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+                        {% if item_form.DELETE %}
+                        <input type="checkbox"
+                               name="{{ item_form.DELETE.html_name }}"
+                               id="{{ item_form.DELETE.id_for_label }}"
+                               hidden>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="button" class="btn btn-success btn-sm task-add-product-btn" id="addTaskProductRow">
+                    <i class="fas fa-plus"></i> Προσθήκη προϊόντος
+                </button>
+                {% if item_formset.non_form_errors %}
+                <div class="error-message">{{ item_formset.non_form_errors.0 }}</div>
+                {% endif %}
+                {% endif %}
+            </div>
+
+            <div class="task-form-row">
+                <label for="{{ task_form.description.id_for_label }}">{{ task_form.description.label }}</label>
+                {{ task_form.description }}
+                {% if task_form.description.errors %}
+                <div class="error-message">{{ task_form.description.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="task-form-grid">
+                <div class="task-form-row">
+                    <label for="{{ task_form.scheduled_date.id_for_label }}">{{ task_form.scheduled_date.label }}</label>
+                    <div class="task-date-picker" id="taskScheduledDatePicker">
+                        <button type="button" class="task-date-display" id="taskDateDisplayBtn" aria-haspopup="dialog" aria-expanded="false">
+                            <span class="task-date-display-text is-placeholder" id="taskDateDisplayText">Επιλέξτε ημερομηνία</span>
+                            <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                        </button>
+                        {{ task_form.scheduled_date }}
+                        <div class="task-date-calendar" id="taskDateCalendar" hidden>
+                            <div class="task-date-calendar-header">
+                                <button type="button" class="task-date-nav" data-nav="prev" aria-label="Προηγούμενος μήνας">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <span class="task-date-month-label" id="taskDateMonthLabel"></span>
+                                <button type="button" class="task-date-nav" data-nav="next" aria-label="Επόμενος μήνας">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                            <div class="task-date-weekdays" id="taskDateWeekdays"></div>
+                            <div class="task-date-days" id="taskDateDays"></div>
+                        </div>
+                    </div>
+                    {% if task_form.scheduled_date.errors %}
+                    <div class="error-message">{{ task_form.scheduled_date.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="task-form-row">
+                    <label for="{{ task_form.priority.id_for_label }}">{{ task_form.priority.label }}</label>
+                    {{ task_form.priority }}
+                    {% if task_form.priority.errors %}
+                    <div class="error-message">{{ task_form.priority.errors.0 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if task_form.non_field_errors %}
+            <div class="error-message">{{ task_form.non_field_errors.0 }}</div>
+            {% endif %}
+
+            <div class="task-modal-actions">
+                <button type="button" class="btn btn-secondary btn-sm" id="cancelTaskModalBtn">
+                    Ακύρωση
+                </button>
+                <button type="submit" class="btn btn-primary btn-sm" id="taskFormSubmitBtn">
+                    <i class="fas fa-save"></i>
+                    {% if editing_task %}Αποθήκευση{% else %}Καταχώρηση{% endif %}
+                </button>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+{% if customers_data %}{{ customers_data|json_script:"task-customers-data" }}{% endif %}
+{% if catalog_products %}{{ catalog_products|json_script:"task-catalog-products-data" }}{% endif %}
+{% if tasks_detail_data %}{{ tasks_detail_data|json_script:"tasks-detail-data" }}{% endif %}
+
+<script>
+(function() {
+    const GREEK_MONTHS_GENITIVE = [
+        '', 'Ιανουαρίου', 'Φεβρουαρίου', 'Μαρτίου', 'Απριλίου', 'Μαΐου', 'Ιουνίου',
+        'Ιουλίου', 'Αυγούστου', 'Σεπτεμβρίου', 'Οκτωβρίου', 'Νοεμβρίου', 'Δεκεμβρίου',
+    ];
+
+    const STATUS_LABELS = {
+        pending: 'Σε εκκρεμότητα',
+        completed: 'Ολοκληρωμένη',
+        cancelled: 'Ακυρωμένη',
+    };
+
+    const tasksById = {};
+    const tasksDetailDataEl = document.getElementById('tasks-detail-data');
+    if (tasksDetailDataEl) {
+        JSON.parse(tasksDetailDataEl.textContent).forEach(function(task) {
+            tasksById[String(task.id)] = task;
+        });
+    }
+
+    const taskDetailModal = document.getElementById('taskDetailModal');
+    const closeTaskDetailModalBtn = document.getElementById('closeTaskDetailModalBtn');
+    const taskDetailForm = document.getElementById('taskDetailForm');
+    const taskDetailTaskId = document.getElementById('taskDetailTaskId');
+    const taskDetailTitleText = document.getElementById('taskDetailTitleText');
+    const taskDetailSubtitle = document.getElementById('taskDetailSubtitle');
+    const taskDetailMeta = document.getElementById('taskDetailMeta');
+    const taskDetailDescription = document.getElementById('taskDetailDescription');
+    const taskDetailProductsTitle = document.getElementById('taskDetailProductsTitle');
+    const taskDetailItems = document.getElementById('taskDetailItems');
+    const taskDetailSaveStatus = document.getElementById('taskDetailSaveStatus');
+    const taskSchedulingUrl = '{% url "task_scheduling" %}';
+    const taskSchedulingPrintUrl = '{% url "task_scheduling_print" %}';
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    const openTaskDetailId = '{{ open_task_detail_id|escapejs }}';
+    let taskDetailSaveTimer = null;
+    let activeTaskDetailSaveRequest = null;
+
+    function formatGreekDate(isoValue) {
+        if (!isoValue) return '—';
+        const parts = isoValue.split('-');
+        if (parts.length !== 3) return isoValue;
+        const day = Number(parts[2]);
+        const month = Number(parts[1]);
+        const year = parts[0];
+        if (!day || !month || month < 1 || month > 12) return isoValue;
+        return day + ' ' + GREEK_MONTHS_GENITIVE[month] + ' ' + year;
+    }
+
+    function renderTaskDetailMeta(label, value) {
+        return '<div><span class="task-detail-meta-label">' + label + '</span>'
+            + '<span class="task-detail-meta-value">' + value + '</span></div>';
+    }
+
+    function renderTaskDetail(task) {
+        if (!task) return;
+
+        taskDetailTaskId.value = String(task.id);
+        taskDetailTitleText.textContent = task.task_type_label;
+        taskDetailSubtitle.textContent = 'Επιλέξτε την κατάσταση κάθε προϊόντος. Όταν όλα ολοκληρωθούν, η εργασία θεωρείται ολοκληρωμένη.';
+        taskDetailProductsTitle.textContent = task.products_title;
+
+        taskDetailMeta.innerHTML = [
+            renderTaskDetailMeta('Πελάτης', task.customer),
+            renderTaskDetailMeta('Ημερομηνία', formatGreekDate(task.scheduled_date)),
+            '<div><span class="task-detail-meta-label">Κατάσταση</span>'
+                + '<span class="task-detail-meta-value" id="taskDetailStatusValue">'
+                + (STATUS_LABELS[task.status] || task.status_label)
+                + '</span></div>',
+        ].join('');
+
+        if (task.description) {
+            taskDetailDescription.textContent = task.description;
+            taskDetailDescription.hidden = false;
+        } else {
+            taskDetailDescription.textContent = '';
+            taskDetailDescription.hidden = true;
+        }
+
+        if (!task.items.length) {
+            taskDetailItems.innerHTML = '<p class="task-modal-description">Δεν υπάρχουν καταχωρημένα προϊόντα.</p>';
+            return;
+        }
+
+        taskDetailItems.innerHTML = task.items.map(function(item) {
+            const underWorkChecked = item.item_status === 'under_work' ? ' checked' : '';
+            const completedChecked = item.item_status === 'completed' ? ' checked' : '';
+            const photoHtml = item.product_photo_url
+                ? '<img src="' + item.product_photo_url + '" alt="' + item.product_name + '" class="task-detail-item-thumb">'
+                : '<div class="task-detail-item-thumb-placeholder" title="Χωρίς φωτογραφία"><i class="fas fa-image"></i></div>';
+            return ''
+                + '<div class="task-detail-item" data-item-id="' + item.id + '">'
+                + '<div class="task-detail-item-product">'
+                + '<div class="task-detail-item-photo">' + photoHtml + '</div>'
+                + '<div class="task-detail-item-info">'
+                + '<strong>' + item.product_code + ' - ' + item.product_name + '</strong>'
+                + '<span>Ποσότητα: ' + item.quantity + '</span>'
+                + '</div>'
+                + '</div>'
+                + '<div class="item-status-options">'
+                + '<label class="item-status-option">'
+                + '<input type="radio" name="item_' + item.id + '" value="under_work"' + underWorkChecked + '>'
+                + '<span>' + task.under_work_label + '</span>'
+                + '</label>'
+                + '<label class="item-status-option is-completed">'
+                + '<input type="radio" name="item_' + item.id + '" value="completed"' + completedChecked + '>'
+                + '<span>Ολοκληρώθηκε</span>'
+                + '</label>'
+                + '</div>'
+                + '</div>';
+        }).join('');
+
+        bindTaskDetailAutoSave();
+        clearTaskDetailSaveStatus();
+    }
+
+    function clearTaskDetailSaveStatus() {
+        if (!taskDetailSaveStatus) return;
+        taskDetailSaveStatus.textContent = '';
+        taskDetailSaveStatus.hidden = true;
+        taskDetailSaveStatus.classList.remove('is-saving', 'is-saved', 'is-error');
+    }
+
+    function showTaskDetailSaveStatus(state, message) {
+        if (!taskDetailSaveStatus) return;
+        taskDetailSaveStatus.hidden = false;
+        taskDetailSaveStatus.classList.remove('is-saving', 'is-saved', 'is-error');
+        taskDetailSaveStatus.classList.add('is-' + state);
+        taskDetailSaveStatus.textContent = message;
+        if (taskDetailSaveTimer) {
+            clearTimeout(taskDetailSaveTimer);
+        }
+        if (state === 'saved') {
+            taskDetailSaveTimer = setTimeout(clearTaskDetailSaveStatus, 2200);
+        }
+    }
+
+    function updateTaskRowFromDetail(task) {
+        const row = document.querySelector('.task-row-clickable[data-task-id="' + task.id + '"]');
+        if (!row) return;
+        const badge = row.querySelector('.task-row-status-badge');
+        if (badge) {
+            const displayStatus = task.status === 'in_progress' ? 'pending' : task.status;
+            badge.className = 'task-badge task-row-status-badge badge-status-' + displayStatus;
+            badge.textContent = STATUS_LABELS[displayStatus] || task.status_label;
+        }
+
+        const summary = row.querySelector('.task-products-summary');
+        if (summary && task.items && task.items.length) {
+            summary.innerHTML = task.items.map(function(item) {
+                const completedClass = item.item_status === 'completed'
+                    ? ' task-product-completed'
+                    : '';
+                const photoHtml = item.product_photo_url
+                    ? '<img src="' + item.product_photo_url + '" alt="' + item.product_name + '" class="task-product-line-thumb">'
+                    : '<div class="task-product-line-thumb-placeholder" title="Χωρίς φωτογραφία"><i class="fas fa-image"></i></div>';
+                return ''
+                    + '<div class="task-product-line' + completedClass + '">'
+                    + '<div class="task-product-line-photo">' + photoHtml + '</div>'
+                    + '<span class="task-product-line-text">' + item.product_code
+                    + ' - ' + item.product_name + ' x' + item.quantity + '</span>'
+                    + '</div>';
+            }).join('');
+        }
+    }
+
+    function updateTaskDetailStatusMeta(task) {
+        const statusValue = document.getElementById('taskDetailStatusValue');
+        if (statusValue) {
+            statusValue.textContent = STATUS_LABELS[task.status] || task.status_label;
+        }
+    }
+
+    function bindTaskDetailAutoSave() {
+        if (!taskDetailItems) return;
+        taskDetailItems.querySelectorAll('input[type="radio"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                const task = tasksById[taskDetailTaskId.value];
+                const itemId = radio.name.replace('item_', '');
+                let previousValue = null;
+                if (task) {
+                    const item = task.items.find(function(entry) {
+                        return String(entry.id) === itemId;
+                    });
+                    if (item) {
+                        previousValue = item.item_status;
+                    }
+                }
+                saveTaskItemStatus(radio, previousValue);
+            });
+        });
+    }
+
+    function saveTaskItemStatus(radio, previousValue) {
+        if (!csrfToken || !taskDetailTaskId || !radio) return;
+
+        const itemRow = radio.closest('.task-detail-item');
+
+        const formData = new FormData();
+        formData.append('task_action', 'update_items');
+        formData.append('task_id', taskDetailTaskId.value);
+        formData.append('csrfmiddlewaretoken', csrfToken.value);
+        formData.append(radio.name, radio.value);
+
+        if (itemRow) {
+            itemRow.classList.add('is-saving');
+        }
+        showTaskDetailSaveStatus('saving', 'Αποθηκεύεται...');
+
+        if (activeTaskDetailSaveRequest) {
+            activeTaskDetailSaveRequest.abort();
+        }
+        activeTaskDetailSaveRequest = new AbortController();
+
+        fetch(taskSchedulingUrl, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: formData,
+            signal: activeTaskDetailSaveRequest.signal,
+        })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('save_failed');
+                }
+                return response.json();
+            })
+            .then(function(data) {
+                if (!data.success || !data.task) {
+                    throw new Error('save_failed');
+                }
+                tasksById[String(data.task.id)] = data.task;
+                updateTaskRowFromDetail(data.task);
+                updateTaskDetailStatusMeta(data.task);
+                showTaskDetailSaveStatus('saved', data.task.status === 'completed' ? 'Ολοκληρώθηκε' : (data.message || 'Αποθηκεύτηκε'));
+            })
+            .catch(function(error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                if (previousValue) {
+                    const revertRadio = itemRow
+                        ? itemRow.querySelector('input[type="radio"][value="' + previousValue + '"]')
+                        : null;
+                    if (revertRadio) {
+                        revertRadio.checked = true;
+                    }
+                }
+                showTaskDetailSaveStatus('error', 'Αποτυχία αποθήκευσης');
+            })
+            .finally(function() {
+                activeTaskDetailSaveRequest = null;
+                if (itemRow) {
+                    itemRow.classList.remove('is-saving');
+                }
+            });
+    }
+
+    function openTaskDetailModal(taskId) {
+        const task = tasksById[String(taskId)];
+        if (!task || !taskDetailModal) return;
+        renderTaskDetail(task);
+        taskDetailModal.hidden = false;
+    }
+
+    function closeTaskDetailModal() {
+        if (taskDetailModal) {
+            taskDetailModal.hidden = true;
+            clearTaskDetailSaveStatus();
+        }
+    }
+
+    document.querySelectorAll('.task-row-clickable').forEach(function(row) {
+        function handleOpen() {
+            openTaskDetailModal(row.dataset.taskId);
+        }
+
+        row.addEventListener('click', function(event) {
+            if (event.target.closest('[data-stop-row-click]')) {
+                return;
+            }
+            handleOpen();
+        });
+
+        row.addEventListener('keydown', function(event) {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+                return;
+            }
+            if (event.target.closest('[data-stop-row-click]')) {
+                return;
+            }
+            event.preventDefault();
+            handleOpen();
+        });
+    });
+
+    document.querySelectorAll('.task-delete-btn').forEach(function(button) {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const form = button.closest('.task-delete-form');
+            if (!form) return;
+
+            openTaskDeleteConfirm(form);
+        });
+    });
+
+    const taskDeleteConfirmModal = document.getElementById('taskDeleteConfirmModal');
+    const taskDeleteConfirmMessage = document.getElementById('taskDeleteConfirmMessage');
+    const closeTaskDeleteConfirmBtn = document.getElementById('closeTaskDeleteConfirmBtn');
+    const cancelTaskDeleteConfirmBtn = document.getElementById('cancelTaskDeleteConfirmBtn');
+    const confirmTaskDeleteBtn = document.getElementById('confirmTaskDeleteBtn');
+    let pendingDeleteForm = null;
+
+    function openTaskDeleteConfirm(form) {
+        if (!taskDeleteConfirmModal || !taskDeleteConfirmMessage) return;
+        pendingDeleteForm = form;
+        const label = form.dataset.taskLabel || 'αυτή την εργασία';
+        taskDeleteConfirmMessage.textContent = 'Είστε σίγουροι ότι θέλετε να διαγράψετε την εργασία «' + label + '»;';
+        taskDeleteConfirmModal.hidden = false;
+    }
+
+    function closeTaskDeleteConfirm() {
+        if (taskDeleteConfirmModal) {
+            taskDeleteConfirmModal.hidden = true;
+        }
+        pendingDeleteForm = null;
+    }
+
+    if (closeTaskDeleteConfirmBtn) {
+        closeTaskDeleteConfirmBtn.addEventListener('click', closeTaskDeleteConfirm);
+    }
+    if (cancelTaskDeleteConfirmBtn) {
+        cancelTaskDeleteConfirmBtn.addEventListener('click', closeTaskDeleteConfirm);
+    }
+    if (confirmTaskDeleteBtn) {
+        confirmTaskDeleteBtn.addEventListener('click', function() {
+            if (pendingDeleteForm) {
+                pendingDeleteForm.submit();
+            }
+        });
+    }
+
+    if (closeTaskDetailModalBtn) {
+        closeTaskDetailModalBtn.addEventListener('click', closeTaskDetailModal);
+    }
+    if (openTaskDetailId) {
+        openTaskDetailModal(openTaskDetailId);
+    }
+
+    const printTasksBtn = document.getElementById('printTasksBtn');
+    if (printTasksBtn) {
+        printTasksBtn.addEventListener('click', function() {
+            const currentParams = new URLSearchParams(window.location.search);
+            const params = new URLSearchParams();
+            params.set('filter', currentParams.get('filter') || 'pending');
+            const searchQuery = (currentParams.get('q') || '').trim();
+            if (searchQuery) {
+                params.set('q', searchQuery);
+            }
+            const taskType = (currentParams.get('type') || '').trim();
+            if (taskType) {
+                params.set('type', taskType);
+            }
+            const priority = (currentParams.get('priority') || '').trim();
+            if (priority) {
+                params.set('priority', priority);
+            }
+            const printUrl = taskSchedulingPrintUrl + '?' + params.toString();
+            window.open(printUrl, '_blank', 'noopener');
+        });
+    }
+
+    const taskModal = document.getElementById('taskCreateModal');
+    const openTaskModalBtn = document.getElementById('openTaskModalBtn');
+    const closeTaskModalBtn = document.getElementById('closeTaskModalBtn');
+    const cancelTaskModalBtn = document.getElementById('cancelTaskModalBtn');
+    const taskCreateForm = document.getElementById('taskCreateForm');
+
+    function resetCustomerPicker() {
+        const picker = document.querySelector('[data-customer-picker]');
+        if (!picker) return;
+        const searchInput = picker.querySelector('.product-search-input');
+        const select = picker.querySelector('select');
+        const results = picker.querySelector('.product-results');
+        if (searchInput) {
+            searchInput.value = '';
+            searchInput.setAttribute('readonly', 'readonly');
+        }
+        if (select) {
+            select.value = '';
+        }
+        if (results) {
+            results.hidden = true;
+        }
+    }
+
+    function resetTaskDatePicker() {
+        const nativeInput = document.getElementById('{{ task_form.scheduled_date.id_for_label }}');
+        const displayText = document.getElementById('taskDateDisplayText');
+        const displayBtn = document.getElementById('taskDateDisplayBtn');
+        const calendar = document.getElementById('taskDateCalendar');
+        if (nativeInput) nativeInput.value = '';
+        if (displayText) {
+            displayText.textContent = 'Επιλέξτε ημερομηνία';
+            displayText.classList.add('is-placeholder');
+        }
+        if (displayBtn) {
+            displayBtn.classList.remove('is-open');
+            displayBtn.setAttribute('aria-expanded', 'false');
+        }
+        if (calendar) calendar.hidden = true;
+        if (window.taskDatePickerApi) {
+            window.taskDatePickerApi.setValue('');
+        }
+    }
+
+    function resetTaskProductsFormset() {
+        const formset = document.getElementById('taskProductsFormset');
+        const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS');
+        if (!formset || !totalFormsInput || !window.taskProductsData) return;
+
+        const options = window.taskProductsData.map(function(item) {
+            return '<option value="' + item.id + '">' + item.label + '</option>';
+        }).join('');
+
+        formset.innerHTML = `
+            <div class="task-product-row" data-form-row>
+                <div>
+                    <label>Προϊόν</label>
+                    <div class="product-picker" data-product-picker>
+                        <input type="text" class="product-search-input task-product-search"
+                               placeholder="Αναζήτηση με κωδικό ή όνομα..." autocomplete="off" readonly>
+                        <div class="product-results" hidden></div>
+                        <select class="task-product-select" name="items-0-product" id="id_items-0-product">
+                            <option value="">Επιλέξτε προϊόν...</option>
+                            ${options}
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label>Ποσότητα</label>
+                    <input type="number" class="task-quantity-input" name="items-0-quantity"
+                           id="id_items-0-quantity" min="1" step="1" value="1">
+                </div>
+                <div>
+                    <label>&nbsp;</label>
+                    <button type="button" class="btn btn-danger btn-sm remove-task-product-btn" title="Αφαίρεση">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <input type="hidden" name="items-0-id" id="id_items-0-id">
+                <input type="checkbox" name="items-0-DELETE" id="id_items-0-DELETE" hidden>
+            </div>
+        `;
+        totalFormsInput.value = '1';
+        initTaskProductPickers(formset);
+        bindTaskProductRemoveButtons(formset);
+    }
+
+    function setTaskFormCreateMode() {
+        const actionInput = document.getElementById('taskFormAction');
+        const taskIdInput = document.getElementById('taskFormTaskId');
+        const titleEl = document.getElementById('taskCreateModalTitle');
+        const descEl = document.getElementById('taskCreateModalDescription');
+        const submitBtn = document.getElementById('taskFormSubmitBtn');
+        if (actionInput) {
+            actionInput.value = 'create';
+        }
+        if (taskIdInput) {
+            taskIdInput.remove();
+        }
+        if (titleEl) {
+            titleEl.innerHTML = '<i class="fas fa-plus"></i> Νέα Εργασία';
+        }
+        if (descEl) {
+            descEl.textContent = 'Καταχωρήστε μια νέα εργασία προς εκτέλεση.';
+        }
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-save"></i> Καταχώρηση';
+        }
+    }
+
+    function clearEditQueryFromUrl() {
+        const url = new URL(window.location.href);
+        if (!url.searchParams.has('edit')) {
+            return;
+        }
+        url.searchParams.delete('edit');
+        window.history.replaceState(null, '', url.toString());
+    }
+
+    function clearFromOfferQueryFromUrl() {
+        const url = new URL(window.location.href);
+        if (!url.searchParams.has('from_offer')) {
+            return;
+        }
+        url.searchParams.delete('from_offer');
+        window.history.replaceState(null, '', url.toString());
+    }
+
+    function syncCustomerPickerFromSelect() {
+        const customersDataEl = document.getElementById('task-customers-data');
+        const picker = document.querySelector('[data-customer-picker]');
+        if (!customersDataEl || !picker) return;
+        const customersData = JSON.parse(customersDataEl.textContent);
+        const searchInput = picker.querySelector('.product-search-input');
+        const select = picker.querySelector('select');
+        if (!searchInput || !select || !select.value) return;
+        const selected = customersData.find(function(item) {
+            return String(item.id) === select.value;
+        });
+        if (selected) {
+            searchInput.value = selected.label;
+        }
+    }
+
+    function openTaskModal() {
+        if (taskModal) {
+            const preserveForm = taskCreateForm
+                && taskCreateForm.dataset.preserveForm === 'true';
+            if (!preserveForm) {
+                setTaskFormCreateMode();
+                resetCustomerPicker();
+                resetTaskDatePicker();
+                resetTaskProductsFormset();
+            } else {
+                syncCustomerPickerFromSelect();
+                const nativeInput = document.getElementById('{{ task_form.scheduled_date.id_for_label }}');
+                if (window.taskDatePickerApi && nativeInput && nativeInput.value) {
+                    window.taskDatePickerApi.setValue(nativeInput.value);
+                }
+            }
+            updateTaskProductsTitle();
+            taskModal.hidden = false;
+            const customerSearch = document.getElementById('taskCustomerSearch');
+            const typeInput = document.querySelector('input[name="task_type"]');
+            if (customerSearch) {
+                customerSearch.focus();
+            } else if (typeInput) {
+                typeInput.focus();
+            }
+        }
+    }
+
+    function closeTaskModal() {
+        if (taskModal) {
+            taskModal.hidden = true;
+            clearEditQueryFromUrl();
+            clearFromOfferQueryFromUrl();
+            if (taskCreateForm) {
+                taskCreateForm.dataset.preserveForm = 'false';
+            }
+            setTaskFormCreateMode();
+            resetCustomerPicker();
+            resetTaskDatePicker();
+            resetTaskProductsFormset();
+        }
+    }
+
+    function updateTaskProductsTitle() {
+        const titleEl = document.getElementById('taskProductsTitle');
+        const selectedType = document.querySelector('input[name="task_type"]:checked');
+        if (!titleEl || !selectedType) return;
+        titleEl.textContent = selectedType.value === 'repair'
+            ? 'Προϊόντα προς επισκευή'
+            : 'Προϊόντα προς κατασκευή';
+    }
+
+    document.querySelectorAll('input[name="task_type"]').forEach(function(input) {
+        input.addEventListener('change', updateTaskProductsTitle);
+    });
+    updateTaskProductsTitle();
+
+    if (openTaskModalBtn) {
+        openTaskModalBtn.addEventListener('click', function() {
+            if (taskCreateForm) {
+                taskCreateForm.dataset.preserveForm = 'false';
+            }
+            clearEditQueryFromUrl();
+            clearFromOfferQueryFromUrl();
+            openTaskModal();
+        });
+    }
+    if (closeTaskModalBtn) {
+        closeTaskModalBtn.addEventListener('click', closeTaskModal);
+    }
+    if (cancelTaskModalBtn) {
+        cancelTaskModalBtn.addEventListener('click', closeTaskModal);
+    }
+    document.addEventListener('keydown', function(event) {
+        if (event.key !== 'Escape') {
+            return;
+        }
+        if (taskDeleteConfirmModal && !taskDeleteConfirmModal.hidden) {
+            closeTaskDeleteConfirm();
+            return;
+        }
+        if (taskDetailModal && !taskDetailModal.hidden) {
+            closeTaskDetailModal();
+            return;
+        }
+        if (taskModal && !taskModal.hidden) {
+            closeTaskModal();
+        }
+    });
+
+    const customersDataEl = document.getElementById('task-customers-data');
+    if (customersDataEl) {
+        const customersData = JSON.parse(customersDataEl.textContent);
+        const picker = document.querySelector('[data-customer-picker]');
+        if (picker) {
+            const searchInput = picker.querySelector('.product-search-input');
+            const select = picker.querySelector('select');
+            const results = picker.querySelector('.product-results');
+
+            function filterCustomers(query) {
+                const normalized = (query || '').trim().toUpperCase();
+                if (!normalized) return customersData.slice(0, 30);
+                return customersData.filter(function(item) {
+                    return item.label.toUpperCase().includes(normalized)
+                        || (item.name && item.name.toUpperCase().includes(normalized));
+                }).slice(0, 30);
+            }
+
+            function positionResults() {
+                if (!results || results.hidden || !searchInput) return;
+                const rect = searchInput.getBoundingClientRect();
+                results.style.top = (rect.bottom + 4) + 'px';
+                results.style.left = rect.left + 'px';
+                results.style.width = rect.width + 'px';
+            }
+
+            function selectCustomer(item) {
+                if (!select || !searchInput) return;
+                select.value = String(item.id);
+                searchInput.value = item.label;
+                results.hidden = true;
+            }
+
+            function renderResults(items) {
+                if (!results) return;
+                results.innerHTML = '';
+                if (!items.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'product-result-item is-empty';
+                    empty.textContent = 'Δεν βρέθηκαν πελάτες';
+                    results.appendChild(empty);
+                } else {
+                    items.forEach(function(item) {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = 'product-result-item';
+                        button.textContent = item.label;
+                        button.addEventListener('click', function() {
+                            selectCustomer(item);
+                        });
+                        results.appendChild(button);
+                    });
+                }
+                results.hidden = false;
+                positionResults();
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('focus', function() {
+                    searchInput.removeAttribute('readonly');
+                    renderResults(filterCustomers(searchInput.value));
+                });
+                searchInput.addEventListener('input', function() {
+                    if (!searchInput.value.trim() && select) {
+                        select.value = '';
+                    }
+                    renderResults(filterCustomers(searchInput.value));
+                });
+            }
+
+            document.addEventListener('click', function(event) {
+                if (picker && !picker.contains(event.target)) {
+                    results.hidden = true;
+                }
+            });
+
+            window.addEventListener('resize', positionResults);
+            window.addEventListener('scroll', positionResults, true);
+
+            const preserveForm = taskCreateForm
+                && taskCreateForm.dataset.preserveForm === 'true';
+            if (preserveForm && select && select.value && searchInput) {
+                const selected = customersData.find(function(item) {
+                    return String(item.id) === select.value;
+                });
+                if (selected) {
+                    searchInput.value = selected.label;
+                }
+            } else if (!preserveForm) {
+                resetCustomerPicker();
+            }
+        }
+    }
+
+    const catalogProductsEl = document.getElementById('task-catalog-products-data');
+    if (catalogProductsEl) {
+        window.taskProductsData = JSON.parse(catalogProductsEl.textContent);
+        const taskProductsFormset = document.getElementById('taskProductsFormset');
+        const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS');
+        const addTaskProductRowBtn = document.getElementById('addTaskProductRow');
+
+        function initTaskProductPicker(picker) {
+            const searchInput = picker.querySelector('.product-search-input');
+            const select = picker.querySelector('select');
+            const results = picker.querySelector('.product-results');
+            if (!searchInput || !select || !results) return;
+
+            function filterProducts(query) {
+                const normalized = (query || '').trim().toUpperCase();
+                if (!normalized) return window.taskProductsData.slice(0, 30);
+                return window.taskProductsData.filter(function(item) {
+                    return (item.code && item.code.toUpperCase().includes(normalized))
+                        || (item.name && item.name.toUpperCase().includes(normalized))
+                        || item.label.toUpperCase().includes(normalized);
+                }).slice(0, 30);
+            }
+
+            function positionResults() {
+                if (results.hidden) return;
+                const rect = searchInput.getBoundingClientRect();
+                results.style.top = (rect.bottom + 4) + 'px';
+                results.style.left = rect.left + 'px';
+                results.style.width = rect.width + 'px';
+            }
+
+            function selectProduct(item) {
+                select.value = String(item.id);
+                searchInput.value = item.label;
+                results.hidden = true;
+            }
+
+            function renderResults(items) {
+                results.innerHTML = '';
+                if (!items.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'product-result-item is-empty';
+                    empty.textContent = 'Δεν βρέθηκαν προϊόντα';
+                    results.appendChild(empty);
+                } else {
+                    items.forEach(function(item) {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = 'product-result-item';
+                        button.textContent = item.label;
+                        button.addEventListener('click', function() {
+                            selectProduct(item);
+                        });
+                        results.appendChild(button);
+                    });
+                }
+                results.hidden = false;
+                positionResults();
+            }
+
+            searchInput.addEventListener('focus', function() {
+                searchInput.removeAttribute('readonly');
+                renderResults(filterProducts(searchInput.value));
+            });
+            searchInput.addEventListener('input', function() {
+                if (!searchInput.value.trim()) {
+                    select.value = '';
+                }
+                renderResults(filterProducts(searchInput.value));
+            });
+            document.addEventListener('click', function(event) {
+                if (!picker.contains(event.target)) {
+                    results.hidden = true;
+                }
+            });
+            window.addEventListener('resize', positionResults);
+            window.addEventListener('scroll', positionResults, true);
+
+            if (select.value) {
+                const selected = window.taskProductsData.find(function(item) {
+                    return String(item.id) === select.value;
+                });
+                if (selected) {
+                    searchInput.value = selected.label;
+                }
+            }
+        }
+
+        function initTaskProductPickers(scope) {
+            (scope || document).querySelectorAll('[data-product-picker]').forEach(function(picker) {
+                if (picker.closest('[data-customer-picker]')) return;
+                initTaskProductPicker(picker);
+            });
+        }
+
+        function syncTaskProductIndices() {
+            const rows = taskProductsFormset.querySelectorAll('[data-form-row]');
+            rows.forEach(function(row, index) {
+                row.querySelectorAll('[name^="items-"], [id^="id_items-"]').forEach(function(field) {
+                    if (field.name) {
+                        field.name = field.name.replace(/items-\d+-/, 'items-' + index + '-');
+                    }
+                    if (field.id) {
+                        field.id = field.id.replace(/id_items-\d+-/, 'id_items-' + index + '-');
+                    }
+                });
+            });
+            if (totalFormsInput) {
+                totalFormsInput.value = String(rows.length);
+            }
+            return rows.length;
+        }
+
+        function bindTaskProductRemoveButtons(scope) {
+            (scope || document).querySelectorAll('.remove-task-product-btn').forEach(function(button) {
+                if (button.dataset.bound) return;
+                button.dataset.bound = '1';
+                button.addEventListener('click', function() {
+                    const row = button.closest('[data-form-row]');
+                    const visibleRows = Array.from(
+                        taskProductsFormset.querySelectorAll('[data-form-row]'),
+                    ).filter(function(existingRow) {
+                        return existingRow.style.display !== 'none';
+                    });
+                    if (visibleRows.length <= 1) {
+                        alert('Πρέπει να υπάρχει τουλάχιστον μία γραμμή προϊόντος.');
+                        return;
+                    }
+                    const idField = row.querySelector('input[name$="-id"]');
+                    const deleteField = row.querySelector('input[name$="-DELETE"]');
+                    if (idField && idField.value && deleteField) {
+                        deleteField.checked = true;
+                        row.style.display = 'none';
+                    } else {
+                        row.remove();
+                        syncTaskProductIndices();
+                    }
+                });
+            });
+        }
+
+        function buildTaskProductRowHtml(index) {
+            const options = window.taskProductsData.map(function(item) {
+                return '<option value="' + item.id + '">' + item.label + '</option>';
+            }).join('');
+
+            return `
+                <div class="task-product-row" data-form-row>
+                    <div>
+                        <label>Προϊόν</label>
+                        <div class="product-picker" data-product-picker>
+                            <input type="text" class="product-search-input task-product-search"
+                                   placeholder="Αναζήτηση με κωδικό ή όνομα..." autocomplete="off" readonly>
+                            <div class="product-results" hidden></div>
+                            <select class="task-product-select" name="items-${index}-product" id="id_items-${index}-product">
+                                <option value="">Επιλέξτε προϊόν...</option>
+                                ${options}
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label>Ποσότητα</label>
+                        <input type="number" class="task-quantity-input" name="items-${index}-quantity"
+                               id="id_items-${index}-quantity" min="1" step="1" value="1">
+                    </div>
+                    <div>
+                        <label>&nbsp;</label>
+                        <button type="button" class="btn btn-danger btn-sm remove-task-product-btn" title="Αφαίρεση">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" name="items-${index}-id" id="id_items-${index}-id">
+                    <input type="checkbox" name="items-${index}-DELETE" id="id_items-${index}-DELETE" hidden>
+                </div>
+            `;
+        }
+
+        if (addTaskProductRowBtn && taskProductsFormset) {
+            addTaskProductRowBtn.addEventListener('click', function() {
+                const index = syncTaskProductIndices();
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = buildTaskProductRowHtml(index).trim();
+                const row = wrapper.firstElementChild;
+                taskProductsFormset.appendChild(row);
+                if (totalFormsInput) {
+                    totalFormsInput.value = String(index + 1);
+                }
+                initTaskProductPickers(row);
+                bindTaskProductRemoveButtons(row);
+            });
+        }
+
+        if (taskCreateForm) {
+            taskCreateForm.addEventListener('submit', function() {
+                syncTaskProductIndices();
+            });
+        }
+
+        initTaskProductPickers(taskProductsFormset);
+        bindTaskProductRemoveButtons(taskProductsFormset);
+    }
+
+    (function initTaskDatePicker() {
+        const picker = document.getElementById('taskScheduledDatePicker');
+        const nativeInput = document.getElementById('{{ task_form.scheduled_date.id_for_label }}');
+        const displayBtn = document.getElementById('taskDateDisplayBtn');
+        const displayText = document.getElementById('taskDateDisplayText');
+        const calendar = document.getElementById('taskDateCalendar');
+        const monthLabel = document.getElementById('taskDateMonthLabel');
+        const weekdaysEl = document.getElementById('taskDateWeekdays');
+        const daysEl = document.getElementById('taskDateDays');
+        if (!picker || !nativeInput || !displayBtn || !calendar || !monthLabel || !weekdaysEl || !daysEl) {
+            return;
+        }
+
+        const GREEK_MONTHS = [
+            'Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος',
+            'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος',
+        ];
+        const GREEK_MONTHS_GENITIVE = [
+            '', 'Ιανουαρίου', 'Φεβρουαρίου', 'Μαρτίου', 'Απριλίου', 'Μαΐου', 'Ιουνίου',
+            'Ιουλίου', 'Αυγούστου', 'Σεπτεμβρίου', 'Οκτωβρίου', 'Νοεμβρίου', 'Δεκεμβρίου',
+        ];
+        const GREEK_WEEKDAYS = ['Δε', 'Τρ', 'Τε', 'Πε', 'Πα', 'Σα', 'Κυ'];
+
+        let viewDate = new Date();
+        viewDate.setDate(1);
+        let selectedDate = null;
+
+        weekdaysEl.innerHTML = GREEK_WEEKDAYS.map(function(day) {
+            return '<div class="task-date-weekday">' + day + '</div>';
+        }).join('');
+
+        function pad(value) {
+            return String(value).padStart(2, '0');
+        }
+
+        function toIso(date) {
+            return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+        }
+
+        function parseIso(value) {
+            if (!value) return null;
+            const parts = value.split('-');
+            if (parts.length !== 3) return null;
+            const year = Number(parts[0]);
+            const month = Number(parts[1]) - 1;
+            const day = Number(parts[2]);
+            const date = new Date(year, month, day);
+            if (date.getFullYear() !== year || date.getMonth() !== month || date.getDate() !== day) {
+                return null;
+            }
+            return date;
+        }
+
+        function formatDisplay(date) {
+            return date.getDate() + ' ' + GREEK_MONTHS_GENITIVE[date.getMonth() + 1] + ' ' + date.getFullYear();
+        }
+
+        function updateDisplay() {
+            if (!selectedDate) {
+                displayText.textContent = 'Επιλέξτε ημερομηνία';
+                displayText.classList.add('is-placeholder');
+                nativeInput.value = '';
+                return;
+            }
+            displayText.textContent = formatDisplay(selectedDate);
+            displayText.classList.remove('is-placeholder');
+            nativeInput.value = toIso(selectedDate);
+        }
+
+        function positionCalendar() {
+            if (calendar.hidden) return;
+            const rect = displayBtn.getBoundingClientRect();
+            calendar.style.top = (rect.bottom + 6) + 'px';
+            calendar.style.left = rect.left + 'px';
+            calendar.style.width = Math.max(rect.width, 300) + 'px';
+        }
+
+        function renderCalendar() {
+            monthLabel.textContent = GREEK_MONTHS[viewDate.getMonth()] + ' ' + viewDate.getFullYear();
+            daysEl.innerHTML = '';
+
+            const year = viewDate.getFullYear();
+            const month = viewDate.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const startOffset = (firstDay.getDay() + 6) % 7;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const todayIso = toIso(new Date());
+
+            for (let i = 0; i < startOffset; i += 1) {
+                const empty = document.createElement('div');
+                empty.className = 'task-date-day-empty';
+                daysEl.appendChild(empty);
+            }
+
+            for (let day = 1; day <= daysInMonth; day += 1) {
+                const date = new Date(year, month, day);
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'task-date-day';
+                button.textContent = String(day);
+                const iso = toIso(date);
+                if (iso === todayIso) {
+                    button.classList.add('is-today');
+                }
+                if (selectedDate && toIso(selectedDate) === iso) {
+                    button.classList.add('is-selected');
+                }
+                button.addEventListener('click', function() {
+                    selectedDate = date;
+                    updateDisplay();
+                    renderCalendar();
+                    closeCalendar();
+                });
+                daysEl.appendChild(button);
+            }
+            positionCalendar();
+        }
+
+        function openCalendar() {
+            if (selectedDate) {
+                viewDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+            } else {
+                viewDate = new Date();
+                viewDate.setDate(1);
+            }
+            renderCalendar();
+            calendar.hidden = false;
+            displayBtn.classList.add('is-open');
+            displayBtn.setAttribute('aria-expanded', 'true');
+            positionCalendar();
+        }
+
+        function closeCalendar() {
+            calendar.hidden = true;
+            displayBtn.classList.remove('is-open');
+            displayBtn.setAttribute('aria-expanded', 'false');
+        }
+
+        displayBtn.addEventListener('click', function() {
+            if (calendar.hidden) {
+                openCalendar();
+            } else {
+                closeCalendar();
+            }
+        });
+
+        calendar.querySelectorAll('[data-nav]').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const direction = button.getAttribute('data-nav') === 'next' ? 1 : -1;
+                viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + direction, 1);
+                renderCalendar();
+            });
+        });
+
+        document.addEventListener('click', function(event) {
+            if (!picker.contains(event.target) && !calendar.contains(event.target)) {
+                closeCalendar();
+            }
+        });
+
+        window.addEventListener('resize', positionCalendar);
+        window.addEventListener('scroll', positionCalendar, true);
+
+        window.taskDatePickerApi = {
+            setValue: function(value) {
+                selectedDate = parseIso(value);
+                if (selectedDate) {
+                    viewDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+                }
+                updateDisplay();
+                renderCalendar();
+            },
+        };
+
+        if (nativeInput.value) {
+            window.taskDatePickerApi.setValue(nativeInput.value);
+        } else {
+            updateDisplay();
+        }
+    })();
+})();
+</script>
 {% endblock %}

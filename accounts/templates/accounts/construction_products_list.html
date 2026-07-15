@@ -1,0 +1,262 @@
+{% extends 'accounts/base.html' %}
+{% load greek_date %}
+
+{% block title %}Προϊόντα προς Κατασκευή{% endblock %}
+
+{% block content %}
+<style>
+    .content-wrapper { border: none !important; }
+
+    .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+        background: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 2px 4px var(--shadow);
+    }
+
+    .page-header h1 {
+        margin: 0;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.25rem;
+    }
+
+    .page-header-meta {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .page-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .products-section {
+        background: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: 0 2px 4px var(--shadow);
+        padding: 1.5rem;
+    }
+
+    .products-section-header {
+        margin-bottom: 1rem;
+    }
+
+    .products-section-header h2 {
+        margin: 0 0 0.35rem 0;
+        font-size: 1.05rem;
+        color: var(--text-primary);
+    }
+
+    .products-section-header p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .table-wrapper { overflow-x: auto; }
+
+    .products-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+    }
+
+    .products-table th,
+    .products-table td {
+        padding: 0.85rem 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--card-border);
+        vertical-align: top;
+    }
+
+    .products-table th {
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .products-table tbody tr:hover {
+        background: rgba(59, 130, 246, 0.06);
+    }
+
+    .product-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .product-thumb {
+        width: 48px;
+        height: 48px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 1px solid var(--card-border);
+        background: var(--bg-primary);
+        flex-shrink: 0;
+    }
+
+    .product-thumb-placeholder {
+        width: 48px;
+        height: 48px;
+        border-radius: 6px;
+        border: 1px dashed var(--card-border);
+        background: var(--bg-primary);
+        color: var(--text-secondary);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .product-info strong {
+        display: block;
+        color: var(--text-primary);
+        margin-bottom: 0.15rem;
+    }
+
+    .product-info span {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+    }
+
+    .quantity-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2rem;
+        padding: 0.25rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(59, 130, 246, 0.18);
+        color: #60a5fa;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .task-entry {
+        display: block;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        line-height: 1.45;
+    }
+
+    .task-entry + .task-entry {
+        margin-top: 0.2rem;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.45rem 0.75rem;
+        border: none;
+        border-radius: 0.5rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .btn-secondary { background: #64748b; color: #fff; }
+    .btn-sm { padding: 0.35rem 0.6rem; font-size: 0.78rem; }
+
+    .empty-state {
+        text-align: center;
+        padding: 2.5rem 1rem;
+        color: var(--text-secondary);
+    }
+
+    .empty-state i {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+        opacity: 0.7;
+    }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-hammer"></i> Λίστα με προϊόντα προς κατασκευή</h1>
+        <p class="page-header-meta">Από εκκρεμείς κατασκευές · {{ total_products }} προϊόντα · {{ total_quantity }} τεμάχια συνολικά</p>
+    </div>
+    <div class="page-header-actions">
+        <a href="{% url 'construction_products_print' %}"
+           class="btn btn-secondary btn-sm"
+           target="_blank"
+           rel="noopener">
+            <i class="fas fa-print"></i> Εκτύπωση
+        </a>
+        <a href="{% url 'task_scheduling' %}?filter=all" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Πίσω
+        </a>
+    </div>
+</div>
+
+<div class="products-section">
+    <div class="products-section-header">
+        <h2>Προϊόντα υπό κατασκευή</h2>
+        <p>Εμφανίζονται μόνο προϊόντα από κατασκευές σε εκκρεμότητα που δεν έχουν ολοκληρωθεί ακόμα.</p>
+    </div>
+
+    {% if products %}
+    <div class="table-wrapper">
+        <table class="products-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Προϊόν</th>
+                    <th>Συνολική ποσότητα</th>
+                    <th>Εργασίες / Πελάτες</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in products %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <div class="product-cell">
+                            {% if row.product.photo %}
+                            <img src="{{ row.product.photo.url }}" alt="{{ row.product.name }}" class="product-thumb">
+                            {% else %}
+                            <div class="product-thumb-placeholder" title="Χωρίς φωτογραφία">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            {% endif %}
+                            <div class="product-info">
+                                <strong>{{ row.product.code }} - {{ row.product.name }}</strong>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="quantity-badge">x{{ row.total_quantity }}</span></td>
+                    <td>
+                        {% for entry in row.entries %}
+                        <span class="task-entry">
+                            {{ entry.customer }} · {{ entry.scheduled_date|greek_date }} · x{{ entry.quantity }}
+                        </span>
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-box-open"></i>
+        <p>Δεν υπάρχουν προϊόντα προς κατασκευή από εκκρεμείς εργασίες.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
