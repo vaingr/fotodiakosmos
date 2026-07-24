@@ -99,7 +99,9 @@ def _get_warehouse_products_data():
             'construction_stage': stock.construction_stage,
             'stage_label': stock.get_construction_stage_display(),
             'label': _format_warehouse_stock_label(stock),
-            'stock_quantity': stock.quantity,
+            'stock_quantity': stock.available_quantity,
+            'reserved_quantity': stock.reserved_quantity,
+            'total_quantity': stock.quantity,
         })
     return products
 
@@ -271,9 +273,11 @@ def _add_product_to_warehouse(product, quantity, construction_stage, user, compl
 
 
 def _remove_product_from_warehouse(stock, quantity, user):
+    if quantity > stock.available_quantity:
+        quantity = stock.available_quantity
     quantity_before = stock.quantity
     quantity_after = quantity_before - quantity
-    fully_removed = quantity_after <= 0
+    fully_removed = quantity_after <= 0 and stock.reserved_quantity == 0
 
     ProductStockMovement.objects.create(
         stock=stock,
@@ -287,7 +291,7 @@ def _remove_product_from_warehouse(stock, quantity, user):
     if fully_removed:
         stock.delete()
     else:
-        stock.quantity = quantity_after
+        stock.quantity = max(quantity_after, stock.reserved_quantity)
         stock.save(update_fields=['quantity', 'updated_at'])
 
     return fully_removed

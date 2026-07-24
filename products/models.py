@@ -49,6 +49,10 @@ class ProductStock(models.Model):
         validators=[MinValueValidator(0)],
         verbose_name='Ποσότητα',
     )
+    reserved_quantity = models.PositiveIntegerField(
+        default=0,
+        verbose_name='Δεσμευμένη ποσότητα',
+    )
     low_stock_threshold = models.IntegerField(
         default=5,
         validators=[MinValueValidator(0)],
@@ -83,8 +87,24 @@ class ProductStock(models.Model):
     def __str__(self):
         return f'{self.product.name} ({self.quantity})'
 
+    @property
+    def available_quantity(self):
+        return max(0, self.quantity - self.reserved_quantity)
+
     def is_low_stock(self):
-        return self.quantity <= self.low_stock_threshold
+        return self.available_quantity <= self.low_stock_threshold
+
+    def variant_label(self):
+        parts = []
+        if self.carpet:
+            parts.append(f'ΜΟΚΕΤΑ: {self.carpet}')
+        if self.bulb:
+            parts.append(f'ΛΑΜΠΑΚΙ: {self.bulb}')
+        if self.photocell:
+            parts.append(f'ΦΩΤΟΣΩΛΗΝΑΣ: {self.photocell}')
+        if self.dimensions:
+            parts.append(f'ΔΙΑΣΤΑΣΕΙΣ: {self.dimensions}')
+        return ' · '.join(parts) if parts else 'Χωρίς λεπτομέρειες'
 
 
 class ProductStockMovement(models.Model):

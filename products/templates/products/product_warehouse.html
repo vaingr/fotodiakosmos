@@ -124,7 +124,13 @@
                     <td>{{ item.bulb|default:"—" }}</td>
                     <td>{{ item.photocell|default:"—" }}</td>
                     <td>{{ item.dimensions|default:"—" }}</td>
-                    <td>{{ item.quantity }}</td>
+                    <td>
+                        {{ item.quantity }}
+                        {% if item.reserved_quantity %}
+                        <div><small style="color: #f59e0b;">Δεσμευμένα: {{ item.reserved_quantity }}</small></div>
+                        <div><small>Διαθέσιμα: {{ item.available_quantity }}</small></div>
+                        {% endif %}
+                    </td>
                     <td>{{ item.created_at|date:"d/m/Y H:i" }}</td>
                     <td>{{ item.added_by_username|default:"—" }}</td>
                     <td class="actions-col">

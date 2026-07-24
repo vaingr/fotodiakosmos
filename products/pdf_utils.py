@@ -120,6 +120,8 @@ def generate_warehouse_pdf(warehouse_items):
         Paragraph('<b>ΦΩΤΟΣΩΛΗΝΑΣ</b>', cell_style),
         Paragraph('<b>ΔΙΑΣΤΑΣΕΙΣ</b>', cell_style),
         Paragraph('<b>Ποσότητα</b>', cell_style),
+        Paragraph('<b>Δεσμευμένα</b>', cell_style),
+        Paragraph('<b>Διαθέσιμα</b>', cell_style),
     ]]
 
     for index, item in enumerate(warehouse_items, start=1):
@@ -134,19 +136,25 @@ def generate_warehouse_pdf(warehouse_items):
             Paragraph(item.photocell or '—', cell_style),
             Paragraph(item.dimensions or '—', cell_style),
             Paragraph(str(item.quantity), cell_style),
+            Paragraph(
+                str(item.reserved_quantity) if item.reserved_quantity else '—',
+                cell_style,
+            ),
+            Paragraph(str(item.available_quantity), cell_style),
         ])
 
     if warehouse_items.count() == 0:
         table_data.append([
             Paragraph('Δεν υπάρχουν προϊόντα στην αποθήκη.', cell_style),
-            '', '', '', '', '', '', '', '', '',
+            '', '', '', '', '', '', '', '', '', '', '',
         ])
 
     table = Table(
         table_data,
         colWidths=[
-            0.7 * cm, 1.4 * cm, 1.8 * cm, 3.5 * cm, 1.8 * cm,
-            1.8 * cm, 1.8 * cm, 2.0 * cm, 2.0 * cm, 1.4 * cm,
+            0.6 * cm, 1.2 * cm, 1.6 * cm, 2.8 * cm, 1.6 * cm,
+            1.5 * cm, 1.5 * cm, 1.7 * cm, 1.7 * cm, 1.3 * cm,
+            1.5 * cm, 1.4 * cm,
         ],
         repeatRows=1,
     )
@@ -158,7 +166,7 @@ def generate_warehouse_pdf(warehouse_items):
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#fafafa')]),
         ('ALIGN', (0, 1), (0, -1), 'CENTER'),
         ('ALIGN', (1, 1), (1, -1), 'CENTER'),
-        ('ALIGN', (9, 1), (9, -1), 'CENTER'),
+        ('ALIGN', (9, 1), (11, -1), 'CENTER'),
     ]))
     story.append(table)
 

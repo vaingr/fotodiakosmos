@@ -297,6 +297,19 @@
     }
 
     .task-product-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px dashed var(--card-border);
+    }
+
+    .task-product-row:last-of-type {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .task-product-row-fields {
         display: grid;
         grid-template-columns: minmax(0, 1fr) 90px 36px;
         gap: 0.5rem;
@@ -309,6 +322,125 @@
         color: var(--text-secondary);
         margin-bottom: 0.25rem;
         display: block;
+    }
+
+    .task-stock-reserve-panel {
+        padding: 0.65rem 0.75rem;
+        border: 1px solid var(--card-border);
+        border-radius: 0.5rem;
+        background: var(--bg-primary);
+    }
+
+    .task-stock-reserve-panel[hidden] {
+        display: none !important;
+    }
+
+    .task-stock-reserve-title {
+        margin: 0 0 0.5rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+
+    .task-stock-reserve-options {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .task-stock-reserve-option {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 72px;
+        gap: 0.65rem;
+        align-items: center;
+        padding: 0.5rem 0.65rem;
+        border: 1px solid var(--card-border);
+        border-radius: 0.45rem;
+        color: var(--text-primary);
+        font-size: 0.82rem;
+        line-height: 1.35;
+    }
+
+    .task-stock-reserve-option.is-active {
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.12);
+    }
+
+    .task-stock-reserve-option-text strong {
+        display: block;
+        font-weight: 600;
+    }
+
+    .task-stock-reserve-option-text span {
+        color: var(--text-secondary);
+        font-size: 0.78rem;
+    }
+
+    .task-stock-reserve-qty {
+        width: 100%;
+        padding: 0.4rem 0.45rem;
+        border: 1px solid var(--card-border);
+        border-radius: 0.4rem;
+        background: var(--card-bg);
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 0.85rem;
+        text-align: center;
+    }
+
+    .task-stock-reserve-qty:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+
+    .task-stock-reserve-summary {
+        margin: 0.55rem 0 0;
+        padding-top: 0.5rem;
+        border-top: 1px dashed var(--card-border);
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .task-stock-reserve-summary strong {
+        color: var(--text-primary);
+    }
+
+    .task-stock-reserve-summary .is-reserve-count {
+        color: #fbbf24;
+    }
+
+    .task-stock-reserve-summary .is-build-count {
+        color: #60a5fa;
+    }
+
+    .task-stock-reserve-summary .is-error {
+        color: #f87171;
+        width: 100%;
+    }
+
+    .task-reserved-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        margin-top: 0.25rem;
+        padding: 0.15rem 0.45rem;
+        border-radius: 999px;
+        background: rgba(245, 158, 11, 0.18);
+        color: #fbbf24;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+
+    .task-product-line.is-reserved .task-product-line-text {
+        color: #fbbf24;
+    }
+
+    .item-status-option.is-reserved:has(input:checked) {
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.12);
     }
 
     .task-quantity-input {
@@ -492,6 +624,10 @@
         box-shadow: 0 12px 32px var(--shadow);
         padding: 1.5rem;
         color: var(--text-primary);
+    }
+
+    #taskCreateModal .task-modal {
+        max-width: 960px;
     }
 
     .task-modal-header {
@@ -832,28 +968,62 @@
     .item-status-option {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 0.4rem;
-        padding: 0.45rem 0.7rem;
-        border: 1px solid var(--card-border);
+        padding: 0.5rem 0.85rem;
+        border: 2px solid var(--card-border);
         border-radius: 0.5rem;
         background: var(--card-bg);
         cursor: pointer;
-        font-size: 0.85rem;
-        color: var(--text-primary);
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--text-secondary);
+        user-select: none;
+        transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+
+    .item-status-option input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+        width: 0;
+        height: 0;
     }
 
     .item-status-option:has(input:checked) {
         border-color: var(--accent);
-        background: rgba(59, 130, 246, 0.12);
-    }
-
-    .item-status-option input {
-        margin: 0;
+        background: rgba(59, 130, 246, 0.15);
+        color: var(--text-primary);
     }
 
     .item-status-option.is-completed:has(input:checked) {
         border-color: #22c55e;
-        background: rgba(34, 197, 94, 0.12);
+        background: rgba(34, 197, 94, 0.15);
+        color: #4ade80;
+    }
+
+    .item-status-option.is-reserved:has(input:checked) {
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.15);
+        color: #fbbf24;
+    }
+
+    .item-ship-toggle {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    .item-status-option.is-not-shipped:has(input:checked),
+    .item-status-option.is-shipped:has(input:checked) {
+        border-color: #38bdf8;
+        background: rgba(56, 189, 248, 0.18);
+        color: #7dd3fc;
+    }
+
+    .item-status-option:hover {
+        border-color: var(--accent);
     }
 
     @media (max-width: 640px) {
@@ -1030,6 +1200,10 @@
         cursor: pointer;
         text-decoration: none;
         white-space: nowrap;
+    }
+
+    .btn[hidden] {
+        display: none !important;
     }
 
     .btn-primary { background: var(--accent); color: #fff; }
@@ -1233,7 +1407,7 @@
                             {% if task.items.all %}
                             <div class="task-description task-products-summary">
                                 {% for item in task.items.all %}
-                                <div class="task-product-line{% if item.item_status == 'completed' %} task-product-completed{% endif %}">
+                                <div class="task-product-line{% if item.item_status == 'completed' or item.item_status == 'shipped' %} task-product-completed{% elif item.item_status == 'reserved' %} is-reserved{% endif %}">
                                     <div class="task-product-line-photo">
                                         {% if item.product.photo %}
                                         <img src="{{ item.product.photo.url }}" alt="{{ item.product.name }}" class="task-product-line-thumb">
@@ -1243,7 +1417,16 @@
                                         </div>
                                         {% endif %}
                                     </div>
-                                    <span class="task-product-line-text">{{ item.product.code }} - {{ item.product.name }} x{{ item.quantity }}</span>
+                                    <span class="task-product-line-text">
+                                        {{ item.product.code }} - {{ item.product.name }} x{{ item.quantity }}
+                                        {% if item.item_status == 'reserved' %}
+                                        <span class="task-reserved-badge"><i class="fas fa-lock"></i> Δεσμευμένο</span>
+                                        {% elif item.item_status == 'shipped' %}
+                                        <span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί</span>
+                                        {% elif item.has_active_reservation %}
+                                        <span class="task-reserved-badge"><i class="fas fa-lock"></i> Δεσμευμένο</span>
+                                        {% endif %}
+                                    </span>
                                 </div>
                                 {% endfor %}
                             </div>
@@ -1286,7 +1469,8 @@
                                 </a>
                                 <form method="post"
                                       class="inline-task-form task-delete-form"
-                                      data-task-label="{{ task.display_label|escape }}">
+                                      data-task-label="{{ task.display_label|escape }}"
+                                      data-has-shipped="{% if task.has_shipped_items %}1{% else %}0{% endif %}">
                                     {% csrf_token %}
                                     <input type="hidden" name="task_action" value="delete">
                                     <input type="hidden" name="task_id" value="{{ task.pk }}">
@@ -1438,70 +1622,6 @@
                 {% endif %}
             </div>
 
-            <div class="task-products-section">
-                <div class="task-products-title" id="taskProductsTitle">Προϊόντα προς κατασκευή</div>
-                {% if not catalog_products %}
-                <p class="task-modal-warning">Δεν υπάρχουν προϊόντα στον κατάλογο.</p>
-                {% else %}
-                {{ item_formset.management_form }}
-                <div id="taskProductsFormset">
-                    {% for item_form in item_formset %}
-                    <div class="task-product-row" data-form-row>
-                        <div>
-                            <label>Προϊόν</label>
-                            <div class="product-picker" data-product-picker>
-                                <input type="text"
-                                       class="product-search-input task-product-search"
-                                       placeholder="Αναζήτηση με κωδικό ή όνομα..."
-                                       autocomplete="off"
-                                       readonly>
-                                <div class="product-results" hidden></div>
-                                {{ item_form.product }}
-                            </div>
-                            {% if item_form.product.errors %}
-                            <div class="error-message">{{ item_form.product.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                        <div>
-                            <label>Ποσότητα</label>
-                            {{ item_form.quantity }}
-                            {% if item_form.quantity.errors %}
-                            <div class="error-message">{{ item_form.quantity.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                        <div>
-                            <label>&nbsp;</label>
-                            <button type="button" class="btn btn-danger btn-sm remove-task-product-btn" title="Αφαίρεση">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
-                        {% if item_form.DELETE %}
-                        <input type="checkbox"
-                               name="{{ item_form.DELETE.html_name }}"
-                               id="{{ item_form.DELETE.id_for_label }}"
-                               hidden>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
-                <button type="button" class="btn btn-success btn-sm task-add-product-btn" id="addTaskProductRow">
-                    <i class="fas fa-plus"></i> Προσθήκη προϊόντος
-                </button>
-                {% if item_formset.non_form_errors %}
-                <div class="error-message">{{ item_formset.non_form_errors.0 }}</div>
-                {% endif %}
-                {% endif %}
-            </div>
-
-            <div class="task-form-row">
-                <label for="{{ task_form.description.id_for_label }}">{{ task_form.description.label }}</label>
-                {{ task_form.description }}
-                {% if task_form.description.errors %}
-                <div class="error-message">{{ task_form.description.errors.0 }}</div>
-                {% endif %}
-            </div>
-
             <div class="task-form-grid">
                 <div class="task-form-row">
                     <label for="{{ task_form.scheduled_date.id_for_label }}">{{ task_form.scheduled_date.label }}</label>
@@ -1537,6 +1657,82 @@
                     <div class="error-message">{{ task_form.priority.errors.0 }}</div>
                     {% endif %}
                 </div>
+            </div>
+
+            <div class="task-products-section">
+                <div class="task-products-title" id="taskProductsTitle">Προϊόντα προς κατασκευή</div>
+                {% if not catalog_products %}
+                <p class="task-modal-warning">Δεν υπάρχουν προϊόντα στον κατάλογο.</p>
+                {% else %}
+                {{ item_formset.management_form }}
+                <div id="taskProductsFormset">
+                    {% for item_form in item_formset %}
+                    <div class="task-product-row" data-form-row
+                         data-item-status="{{ item_form.instance.item_status|default:'' }}"
+                         {% if item_form.instance.pk and item_form.instance.reserved_stock_id and item_form.instance.item_status != 'shipped' %}
+                         data-existing-reserved-stock="{{ item_form.instance.reserved_stock_id }}"
+                         data-existing-reserved-qty="{{ item_form.instance.quantity }}"
+                         {% endif %}>
+                        <div class="task-product-row-fields">
+                            <div>
+                                <label>Προϊόν</label>
+                                <div class="product-picker" data-product-picker>
+                                    <input type="text"
+                                           class="product-search-input task-product-search"
+                                           placeholder="Αναζήτηση με κωδικό ή όνομα..."
+                                           autocomplete="off"
+                                           readonly>
+                                    <div class="product-results" hidden></div>
+                                    {{ item_form.product }}
+                                </div>
+                                {% if item_form.product.errors %}
+                                <div class="error-message">{{ item_form.product.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <label>Ποσότητα</label>
+                                {{ item_form.quantity }}
+                                {% if item_form.quantity.errors %}
+                                <div class="error-message">{{ item_form.quantity.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <label>&nbsp;</label>
+                                <button type="button" class="btn btn-danger btn-sm remove-task-product-btn" title="Αφαίρεση">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="task-stock-reserve-panel" data-stock-reserve-panel hidden></div>
+                        {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+                        {% if item_form.DELETE %}
+                        <input type="checkbox"
+                               name="{{ item_form.DELETE.html_name }}"
+                               id="{{ item_form.DELETE.id_for_label }}"
+                               {% if item_form.DELETE.value %}checked{% endif %}
+                               hidden>
+                        {% endif %}
+                        {% if item_form.reserved_stock.errors %}
+                        <div class="error-message">{{ item_form.reserved_stock.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                <button type="button" class="btn btn-success btn-sm task-add-product-btn" id="addTaskProductRow">
+                    <i class="fas fa-plus"></i> Προσθήκη προϊόντος
+                </button>
+                {% if item_formset.non_form_errors %}
+                <div class="error-message">{{ item_formset.non_form_errors.0 }}</div>
+                {% endif %}
+                {% endif %}
+            </div>
+
+            <div class="task-form-row">
+                <label for="{{ task_form.description.id_for_label }}">{{ task_form.description.label }}</label>
+                {{ task_form.description }}
+                {% if task_form.description.errors %}
+                <div class="error-message">{{ task_form.description.errors.0 }}</div>
+                {% endif %}
             </div>
 
             {% if task_form.non_field_errors %}
@@ -1648,10 +1844,57 @@
 
         taskDetailItems.innerHTML = task.items.map(function(item) {
             const underWorkChecked = item.item_status === 'under_work' ? ' checked' : '';
-            const completedChecked = item.item_status === 'completed' ? ' checked' : '';
+            const completedChecked = (item.item_status === 'completed' || item.item_status === 'shipped') ? ' checked' : '';
+            const shippedChecked = item.is_shipped || item.item_status === 'shipped' ? ' checked' : '';
+            const notShippedChecked = !shippedChecked ? ' checked' : '';
             const photoHtml = item.product_photo_url
                 ? '<img src="' + item.product_photo_url + '" alt="' + item.product_name + '" class="task-detail-item-thumb">'
                 : '<div class="task-detail-item-thumb-placeholder" title="Χωρίς φωτογραφία"><i class="fas fa-image"></i></div>';
+            const isReservedItem = item.can_ship_toggle
+                || item.has_active_reservation
+                || item.is_reserved
+                || item.item_status === 'reserved'
+                || Boolean(item.reserved_stock_id);
+            const showShipToggle = isReservedItem
+                || item.item_status === 'completed'
+                || item.item_status === 'shipped';
+            const reservedMeta = item.item_status === 'shipped'
+                ? '<span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί'
+                    + (item.reserved_label ? ': ' + item.reserved_label : '')
+                    + '</span>'
+                : ((item.has_active_reservation || item.is_reserved || item.reserved_label)
+                    ? '<span class="task-reserved-badge"><i class="fas fa-lock"></i> Δεσμευμένο'
+                        + (item.reserved_label ? ': ' + item.reserved_label : '')
+                        + '</span>'
+                    : '');
+            const shipToggleHtml = showShipToggle
+                ? ('<div class="item-ship-toggle">'
+                    + '<label class="item-status-option is-not-shipped">'
+                    + '<input type="radio" name="item_' + item.id + '_ship" value="not_shipped"' + notShippedChecked + '>'
+                    + '<span>ΔΕΝ ΕΧΕΙ ΑΠΟΣΤΑΛΕΙ</span>'
+                    + '</label>'
+                    + '<label class="item-status-option is-shipped">'
+                    + '<input type="radio" name="item_' + item.id + '_ship" value="shipped"' + shippedChecked + '>'
+                    + '<span>ΕΧΕΙ ΑΠΟΣΤΑΛΕΙ</span>'
+                    + '</label>'
+                    + '</div>')
+                : '';
+            let statusOptions = '';
+            if (isReservedItem) {
+                statusOptions = shipToggleHtml;
+            } else {
+                const workDisabled = item.item_status === 'shipped' ? ' disabled' : '';
+                statusOptions = ''
+                    + '<label class="item-status-option">'
+                    + '<input type="radio" name="item_' + item.id + '" value="under_work"' + underWorkChecked + workDisabled + '>'
+                    + '<span>' + task.under_work_label + '</span>'
+                    + '</label>'
+                    + '<label class="item-status-option is-completed">'
+                    + '<input type="radio" name="item_' + item.id + '" value="completed"' + completedChecked + workDisabled + '>'
+                    + '<span>Ολοκληρώθηκε</span>'
+                    + '</label>'
+                    + shipToggleHtml;
+            }
             return ''
                 + '<div class="task-detail-item" data-item-id="' + item.id + '">'
                 + '<div class="task-detail-item-product">'
@@ -1659,17 +1902,11 @@
                 + '<div class="task-detail-item-info">'
                 + '<strong>' + item.product_code + ' - ' + item.product_name + '</strong>'
                 + '<span>Ποσότητα: ' + item.quantity + '</span>'
+                + reservedMeta
                 + '</div>'
                 + '</div>'
                 + '<div class="item-status-options">'
-                + '<label class="item-status-option">'
-                + '<input type="radio" name="item_' + item.id + '" value="under_work"' + underWorkChecked + '>'
-                + '<span>' + task.under_work_label + '</span>'
-                + '</label>'
-                + '<label class="item-status-option is-completed">'
-                + '<input type="radio" name="item_' + item.id + '" value="completed"' + completedChecked + '>'
-                + '<span>Ολοκληρώθηκε</span>'
-                + '</label>'
+                + statusOptions
                 + '</div>'
                 + '</div>';
         }).join('');
@@ -1712,19 +1949,33 @@
         const summary = row.querySelector('.task-products-summary');
         if (summary && task.items && task.items.length) {
             summary.innerHTML = task.items.map(function(item) {
-                const completedClass = item.item_status === 'completed'
+                const completedClass = (item.item_status === 'completed' || item.item_status === 'shipped')
                     ? ' task-product-completed'
-                    : '';
+                    : (item.item_status === 'reserved' ? ' is-reserved' : '');
                 const photoHtml = item.product_photo_url
                     ? '<img src="' + item.product_photo_url + '" alt="' + item.product_name + '" class="task-product-line-thumb">'
                     : '<div class="task-product-line-thumb-placeholder" title="Χωρίς φωτογραφία"><i class="fas fa-image"></i></div>';
+                let statusBadge = '';
+                if (item.item_status === 'reserved' || item.has_active_reservation) {
+                    statusBadge = ' <span class="task-reserved-badge"><i class="fas fa-lock"></i> Δεσμευμένο</span>';
+                } else if (item.item_status === 'shipped') {
+                    statusBadge = ' <span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί</span>';
+                }
                 return ''
                     + '<div class="task-product-line' + completedClass + '">'
                     + '<div class="task-product-line-photo">' + photoHtml + '</div>'
                     + '<span class="task-product-line-text">' + item.product_code
-                    + ' - ' + item.product_name + ' x' + item.quantity + '</span>'
+                    + ' - ' + item.product_name + ' x' + item.quantity + statusBadge + '</span>'
                     + '</div>';
             }).join('');
+        }
+
+        const deleteForm = row.querySelector('.task-delete-form');
+        if (deleteForm && task.items) {
+            const hasShipped = task.items.some(function(item) {
+                return item.item_status === 'shipped' || item.is_shipped;
+            });
+            deleteForm.dataset.hasShipped = hasShipped ? '1' : '0';
         }
     }
 
@@ -1740,31 +1991,44 @@
         taskDetailItems.querySelectorAll('input[type="radio"]').forEach(function(radio) {
             radio.addEventListener('change', function() {
                 const task = tasksById[taskDetailTaskId.value];
-                const itemId = radio.name.replace('item_', '');
+                const isShipToggle = radio.name.indexOf('_ship') !== -1;
+                const itemId = radio.name.replace('item_', '').replace('_ship', '');
                 let previousValue = null;
                 if (task) {
                     const item = task.items.find(function(entry) {
                         return String(entry.id) === itemId;
                     });
                     if (item) {
-                        previousValue = item.item_status;
+                        if (isShipToggle) {
+                            previousValue = (item.is_shipped || item.item_status === 'shipped')
+                                ? 'shipped'
+                                : 'not_shipped';
+                        } else {
+                            previousValue = item.item_status;
+                        }
                     }
                 }
-                saveTaskItemStatus(radio, previousValue);
+                saveTaskItemStatus(radio, previousValue, itemId, isShipToggle);
             });
         });
     }
 
-    function saveTaskItemStatus(radio, previousValue) {
+    function saveTaskItemStatus(radio, previousValue, itemId, isShipToggle) {
         if (!csrfToken || !taskDetailTaskId || !radio) return;
 
         const itemRow = radio.closest('.task-detail-item');
+        const postName = 'item_' + (itemId || radio.name.replace('item_', '').replace('_ship', ''));
+        const postValue = radio.value;
 
         const formData = new FormData();
         formData.append('task_action', 'update_items');
         formData.append('task_id', taskDetailTaskId.value);
         formData.append('csrfmiddlewaretoken', csrfToken.value);
-        formData.append(radio.name, radio.value);
+        formData.append(postName, postValue);
+        if (isShipToggle) {
+            // Fallback key για συμβατότητα με το backend
+            formData.append(postName + '_ship', postValue);
+        }
 
         if (itemRow) {
             itemRow.classList.add('is-saving');
@@ -1796,7 +2060,7 @@
                 }
                 tasksById[String(data.task.id)] = data.task;
                 updateTaskRowFromDetail(data.task);
-                updateTaskDetailStatusMeta(data.task);
+                renderTaskDetail(data.task);
                 showTaskDetailSaveStatus('saved', data.task.status === 'completed' ? 'Ολοκληρώθηκε' : (data.message || 'Αποθηκεύτηκε'));
             })
             .catch(function(error) {
@@ -1804,9 +2068,10 @@
                     return;
                 }
                 if (previousValue) {
-                    const revertRadio = itemRow
-                        ? itemRow.querySelector('input[type="radio"][value="' + previousValue + '"]')
-                        : null;
+                    const selector = isShipToggle
+                        ? 'input[name="item_' + itemId + '_ship"][value="' + previousValue + '"]'
+                        : 'input[name="item_' + itemId + '"][value="' + previousValue + '"]';
+                    const revertRadio = itemRow ? itemRow.querySelector(selector) : null;
                     if (revertRadio) {
                         revertRadio.checked = true;
                     }
@@ -1882,7 +2147,34 @@
         if (!taskDeleteConfirmModal || !taskDeleteConfirmMessage) return;
         pendingDeleteForm = form;
         const label = form.dataset.taskLabel || 'αυτή την εργασία';
-        taskDeleteConfirmMessage.textContent = 'Είστε σίγουροι ότι θέλετε να διαγράψετε την εργασία «' + label + '»;';
+        const hasShipped = form.dataset.hasShipped === '1';
+        const titleEl = document.getElementById('taskDeleteConfirmTitle');
+        if (hasShipped) {
+            if (titleEl) {
+                titleEl.innerHTML = '<i class="fas fa-ban"></i> Δεν επιτρέπεται η διαγραφή';
+            }
+            taskDeleteConfirmMessage.textContent =
+                'Η εργασία «' + label + '» δεν μπορεί να διαγραφεί επειδή περιέχει προϊόντα που έχουν αποσταλεί.';
+            if (confirmTaskDeleteBtn) {
+                confirmTaskDeleteBtn.hidden = true;
+            }
+            if (cancelTaskDeleteConfirmBtn) {
+                cancelTaskDeleteConfirmBtn.textContent = 'Κλείσιμο';
+            }
+            pendingDeleteForm = null;
+        } else {
+            if (titleEl) {
+                titleEl.innerHTML = '<i class="fas fa-trash"></i> Διαγραφή εργασίας';
+            }
+            taskDeleteConfirmMessage.textContent =
+                'Είστε σίγουροι ότι θέλετε να διαγράψετε την εργασία «' + label + '»;';
+            if (confirmTaskDeleteBtn) {
+                confirmTaskDeleteBtn.hidden = false;
+            }
+            if (cancelTaskDeleteConfirmBtn) {
+                cancelTaskDeleteConfirmBtn.textContent = 'Ακύρωση';
+            }
+        }
         taskDeleteConfirmModal.hidden = false;
     }
 
@@ -1992,36 +2284,41 @@
 
         formset.innerHTML = `
             <div class="task-product-row" data-form-row>
-                <div>
-                    <label>Προϊόν</label>
-                    <div class="product-picker" data-product-picker>
-                        <input type="text" class="product-search-input task-product-search"
-                               placeholder="Αναζήτηση με κωδικό ή όνομα..." autocomplete="off" readonly>
-                        <div class="product-results" hidden></div>
-                        <select class="task-product-select" name="items-0-product" id="id_items-0-product">
-                            <option value="">Επιλέξτε προϊόν...</option>
-                            ${options}
-                        </select>
+                <div class="task-product-row-fields">
+                    <div>
+                        <label>Προϊόν</label>
+                        <div class="product-picker" data-product-picker>
+                            <input type="text" class="product-search-input task-product-search"
+                                   placeholder="Αναζήτηση με κωδικό ή όνομα..." autocomplete="off" readonly>
+                            <div class="product-results" hidden></div>
+                            <select class="task-product-select" name="items-0-product" id="id_items-0-product">
+                                <option value="">Επιλέξτε προϊόν...</option>
+                                ${options}
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label>Ποσότητα</label>
+                        <input type="number" class="task-quantity-input" name="items-0-quantity"
+                               id="id_items-0-quantity" min="1" step="1" value="1">
+                    </div>
+                    <div>
+                        <label>&nbsp;</label>
+                        <button type="button" class="btn btn-danger btn-sm remove-task-product-btn" title="Αφαίρεση">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 </div>
-                <div>
-                    <label>Ποσότητα</label>
-                    <input type="number" class="task-quantity-input" name="items-0-quantity"
-                           id="id_items-0-quantity" min="1" step="1" value="1">
-                </div>
-                <div>
-                    <label>&nbsp;</label>
-                    <button type="button" class="btn btn-danger btn-sm remove-task-product-btn" title="Αφαίρεση">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
+                <div class="task-stock-reserve-panel" data-stock-reserve-panel hidden></div>
                 <input type="hidden" name="items-0-id" id="id_items-0-id">
+                <input type="hidden" name="items-0-reserved_stock" id="id_items-0-reserved_stock" class="task-reserved-stock-input" value="">
                 <input type="checkbox" name="items-0-DELETE" id="id_items-0-DELETE" hidden>
             </div>
         `;
         totalFormsInput.value = '1';
         initTaskProductPickers(formset);
         bindTaskProductRemoveButtons(formset);
+        initTaskStockReservePanels(formset);
     }
 
     function setTaskFormCreateMode() {
@@ -2300,6 +2597,13 @@
                 select.value = String(item.id);
                 searchInput.value = item.label;
                 results.hidden = true;
+                const row = picker.closest('[data-form-row]');
+                if (row) {
+                    writeRowAllocations(row, {});
+                    delete row.dataset.existingReservedStock;
+                    delete row.dataset.existingReservedQty;
+                    updateTaskStockReservePanel(row);
+                }
             }
 
             function renderResults(items) {
@@ -2332,6 +2636,13 @@
             searchInput.addEventListener('input', function() {
                 if (!searchInput.value.trim()) {
                     select.value = '';
+                    const row = picker.closest('[data-form-row]');
+                    if (row) {
+                        clearTaskStockReservation(row);
+                        delete row.dataset.existingReservedStock;
+                        delete row.dataset.existingReservedQty;
+                        updateTaskStockReservePanel(row);
+                    }
                 }
                 renderResults(filterProducts(searchInput.value));
             });
@@ -2350,7 +2661,638 @@
                 if (selected) {
                     searchInput.value = selected.label;
                 }
+                const row = picker.closest('[data-form-row]');
+                if (row) {
+                    updateTaskStockReservePanel(row);
+                }
             }
+        }
+
+        function getSelectedTaskType() {
+            const selected = document.querySelector('input[name="task_type"]:checked');
+            return selected ? selected.value : 'construction';
+        }
+
+        function getRowReservedInput(row) {
+            return row.querySelector('.task-reserved-stock-input, input[name$="-reserved_stock"]');
+        }
+
+        function getRowExistingAllocations(row) {
+            try {
+                if (row.dataset.existingAllocations) {
+                    return JSON.parse(row.dataset.existingAllocations) || {};
+                }
+            } catch (error) {
+                // fall through
+            }
+            const stockId = row.dataset.existingReservedStock || '';
+            const qty = parseInt(row.dataset.existingReservedQty || '0', 10) || 0;
+            if (stockId && qty > 0) {
+                const single = {};
+                single[stockId] = qty;
+                return single;
+            }
+            return {};
+        }
+
+        function clearTaskStockReservation(row) {
+            const reservedInput = getRowReservedInput(row);
+            if (reservedInput) {
+                reservedInput.value = '';
+            }
+            row.dataset.allocations = '{}';
+        }
+
+        function readRowAllocations(row) {
+            try {
+                return JSON.parse(row.dataset.allocations || '{}') || {};
+            } catch (error) {
+                return {};
+            }
+        }
+
+        function writeRowAllocations(row, allocations) {
+            row.dataset.allocations = JSON.stringify(allocations || {});
+        }
+
+        function getRowAllocationEntries(row) {
+            const allocations = readRowAllocations(row);
+            return Object.keys(allocations).map(function(stockId) {
+                return {
+                    stockId: stockId,
+                    qty: parseInt(allocations[stockId], 10) || 0,
+                };
+            }).filter(function(entry) {
+                return entry.qty > 0;
+            });
+        }
+
+        function updateTaskStockReserveSummary(row) {
+            const panel = row.querySelector('[data-stock-reserve-panel]');
+            const quantityInput = row.querySelector('.task-quantity-input, input[name$="-quantity"]');
+            const summary = panel ? panel.querySelector('[data-reserve-summary]') : null;
+            if (!summary || !quantityInput) return;
+
+            const totalQty = parseInt(quantityInput.value, 10) || 0;
+            const reservedTotal = getRowAllocationEntries(row).reduce(function(sum, entry) {
+                return sum + entry.qty;
+            }, 0);
+            const manufactureQty = totalQty - reservedTotal;
+            let html = ''
+                + '<span class="is-reserve-count">Δεσμευμένα: <strong>' + reservedTotal + '</strong></span>'
+                + '<span class="is-build-count">Προς κατασκευή: <strong>' + Math.max(manufactureQty, 0) + '</strong></span>';
+            if (reservedTotal > totalQty) {
+                html += '<span class="is-error">Οι δεσμεύσεις υπερβαίνουν την ποσότητα (' + totalQty + ').</span>';
+            }
+            summary.innerHTML = html;
+        }
+
+        function updateTaskStockReservePanel(row) {
+            const panel = row.querySelector('[data-stock-reserve-panel]');
+            const productSelect = row.querySelector('select.task-product-select, select[name$="-product"]');
+            const quantityInput = row.querySelector('.task-quantity-input, input[name$="-quantity"]');
+            const reservedInput = getRowReservedInput(row);
+            if (!panel || !productSelect) return;
+
+            if (getSelectedTaskType() !== 'construction' || !productSelect.value) {
+                panel.hidden = true;
+                panel.innerHTML = '';
+                clearTaskStockReservation(row);
+                return;
+            }
+
+            if (row.dataset.itemStatus === 'shipped') {
+                panel.hidden = true;
+                panel.innerHTML = '';
+                return;
+            }
+
+            const product = window.taskProductsData.find(function(item) {
+                return String(item.id) === String(productSelect.value);
+            });
+            const stocks = (product && product.complete_stocks) ? product.complete_stocks : [];
+            if (!stocks.length) {
+                panel.hidden = true;
+                panel.innerHTML = '';
+                clearTaskStockReservation(row);
+                return;
+            }
+
+            const totalQty = quantityInput ? parseInt(quantityInput.value, 10) || 1 : 1;
+            const existingAllocations = getRowExistingAllocations(row);
+            let allocations = readRowAllocations(row);
+
+            if (Object.keys(allocations).length === 0 && Object.keys(existingAllocations).length > 0) {
+                allocations = Object.assign({}, existingAllocations);
+                writeRowAllocations(row, allocations);
+            }
+
+            function stockDisplayAvailable(stock) {
+                let available = stock.available;
+                const stockId = String(stock.id);
+                if (existingAllocations[stockId]) {
+                    available += existingAllocations[stockId];
+                }
+                return available;
+            }
+
+            // Clamp allocations to available / remaining total
+            let reservedSoFar = 0;
+            const nextAllocations = {};
+            stocks.forEach(function(stock) {
+                const stockId = String(stock.id);
+                let qty = parseInt(allocations[stockId], 10) || 0;
+                const available = stockDisplayAvailable(stock);
+                qty = Math.max(0, Math.min(qty, available));
+                const remaining = Math.max(0, totalQty - reservedSoFar);
+                qty = Math.min(qty, remaining);
+                if (qty > 0) {
+                    nextAllocations[stockId] = qty;
+                    reservedSoFar += qty;
+                }
+            });
+            writeRowAllocations(row, nextAllocations);
+            if (reservedInput) {
+                reservedInput.value = '';
+            }
+
+            let optionsHtml = '';
+            stocks.forEach(function(stock) {
+                const stockId = String(stock.id);
+                const displayAvailable = stockDisplayAvailable(stock);
+                const currentQty = nextAllocations[stockId] || 0;
+                const othersTotal = reservedSoFar - currentQty;
+                const maxForInput = Math.min(
+                    displayAvailable,
+                    Math.max(0, totalQty - othersTotal),
+                );
+                optionsHtml += ''
+                    + '<div class="task-stock-reserve-option' + (currentQty > 0 ? ' is-active' : '') + '" data-stock-id="' + stockId + '">'
+                    + '<div class="task-stock-reserve-option-text">'
+                    + '<strong>' + stock.label + '</strong>'
+                    + '<span>Διαθέσιμα: ' + displayAvailable + '</span>'
+                    + '</div>'
+                    + '<input type="number" class="task-stock-reserve-qty" min="0" step="1"'
+                    + ' max="' + Math.max(maxForInput, 0) + '"'
+                    + ' value="' + currentQty + '"'
+                    + ' data-reserve-qty data-stock-id="' + stockId + '"'
+                    + ' aria-label="Ποσότητα δέσμευσης">'
+                    + '</div>';
+            });
+
+            panel.innerHTML = ''
+                + '<p class="task-stock-reserve-title">Δέσμευση από ολοκληρωμένα αποθήκης (ίδιος κωδικός · διαφορετικές παραλλαγές)</p>'
+                + '<div class="task-stock-reserve-options">' + optionsHtml + '</div>'
+                + '<div class="task-stock-reserve-summary" data-reserve-summary></div>';
+            panel.hidden = false;
+            updateTaskStockReserveSummary(row);
+
+            panel.querySelectorAll('[data-reserve-qty]').forEach(function(input) {
+                input.addEventListener('input', function() {
+                    input.value = input.value.replace(/[^\d]/g, '');
+                    const stockId = String(input.dataset.stockId || '');
+                    let qty = parseInt(input.value, 10) || 0;
+                    const current = readRowAllocations(row);
+                    const othersTotal = Object.keys(current).reduce(function(sum, key) {
+                        if (key === stockId) return sum;
+                        return sum + (parseInt(current[key], 10) || 0);
+                    }, 0);
+                    const stock = stocks.find(function(entry) {
+                        return String(entry.id) === stockId;
+                    });
+                    const available = stock ? stockDisplayAvailable(stock) : 0;
+                    const maxAllowed = Math.min(available, Math.max(0, totalQty - othersTotal));
+                    if (qty > maxAllowed) {
+                        qty = maxAllowed;
+                        input.value = String(qty);
+                    }
+                    if (qty > 0) {
+                        current[stockId] = qty;
+                    } else {
+                        delete current[stockId];
+                    }
+                    writeRowAllocations(row, current);
+
+                    const option = input.closest('.task-stock-reserve-option');
+                    if (option) {
+                        option.classList.toggle('is-active', qty > 0);
+                    }
+                    panel.querySelectorAll('[data-reserve-qty]').forEach(function(otherInput) {
+                        const otherId = String(otherInput.dataset.stockId || '');
+                        const otherStock = stocks.find(function(entry) {
+                            return String(entry.id) === otherId;
+                        });
+                        const otherQty = parseInt(current[otherId], 10) || 0;
+                        const otherOthers = Object.keys(current).reduce(function(sum, key) {
+                            if (key === otherId) return sum;
+                            return sum + (parseInt(current[key], 10) || 0);
+                        }, 0);
+                        const otherAvailable = otherStock ? stockDisplayAvailable(otherStock) : 0;
+                        otherInput.max = String(Math.min(
+                            otherAvailable,
+                            Math.max(0, totalQty - otherOthers),
+                        ));
+                    });
+                    updateTaskStockReserveSummary(row);
+                });
+            });
+        }
+
+        function buildExpandedTaskRowHtml(index, productId, quantity, reservedStockId, itemId, extraAttrs) {
+            const options = window.taskProductsData.map(function(item) {
+                const selected = String(item.id) === String(productId) ? ' selected' : '';
+                return '<option value="' + item.id + '"' + selected + '>' + item.label + '</option>';
+            }).join('');
+            const product = window.taskProductsData.find(function(item) {
+                return String(item.id) === String(productId);
+            });
+            const productLabel = product ? product.label : '';
+            const hasCustomAllocations = extraAttrs && extraAttrs.indexOf('data-allocations') !== -1;
+            const existingAttrs = (!hasCustomAllocations && reservedStockId)
+                ? ' data-existing-reserved-stock="' + reservedStockId + '" data-existing-reserved-qty="' + quantity + '"'
+                : '';
+            const allocationsAttr = hasCustomAllocations
+                ? ''
+                : (reservedStockId
+                    ? ' data-allocations=\'' + JSON.stringify({ [String(reservedStockId)]: quantity }) + '\''
+                    : ' data-allocations="{}"');
+
+            return `
+                <div class="task-product-row" data-form-row${existingAttrs}${allocationsAttr}${extraAttrs || ''}>
+                    <div class="task-product-row-fields">
+                        <div>
+                            <label>Προϊόν</label>
+                            <div class="product-picker" data-product-picker>
+                                <input type="text" class="product-search-input task-product-search"
+                                       placeholder="Αναζήτηση με κωδικό ή όνομα..." autocomplete="off" readonly
+                                       value="${productLabel.replace(/"/g, '&quot;')}">
+                                <div class="product-results" hidden></div>
+                                <select class="task-product-select" name="items-${index}-product" id="id_items-${index}-product">
+                                    <option value="">Επιλέξτε προϊόν...</option>
+                                    ${options}
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label>Ποσότητα</label>
+                            <input type="number" class="task-quantity-input" name="items-${index}-quantity"
+                                   id="id_items-${index}-quantity" min="1" step="1" value="${quantity}">
+                        </div>
+                        <div>
+                            <label>&nbsp;</label>
+                            <button type="button" class="btn btn-danger btn-sm remove-task-product-btn" title="Αφαίρεση">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="task-stock-reserve-panel" data-stock-reserve-panel hidden></div>
+                    <input type="hidden" name="items-${index}-id" id="id_items-${index}-id" value="${itemId || ''}">
+                    <input type="hidden" name="items-${index}-reserved_stock" id="id_items-${index}-reserved_stock"
+                           class="task-reserved-stock-input" value="${reservedStockId || ''}">
+                    <input type="checkbox" name="items-${index}-DELETE" id="id_items-${index}-DELETE" hidden>
+                </div>
+            `;
+        }
+
+        function buildConsolidatedTaskRowHtml(index, group) {
+            const allocationsJson = JSON.stringify(group.allocations || {});
+            const originalIds = (group.itemIds || []).join(',');
+            const extraAttrs = ''
+                + ' data-existing-allocations=\'' + allocationsJson + '\''
+                + ' data-allocations=\'' + allocationsJson + '\''
+                + (originalIds ? ' data-original-item-ids="' + originalIds + '"' : '');
+            return buildExpandedTaskRowHtml(
+                index,
+                group.productId,
+                group.totalQty,
+                '',
+                group.itemIds[0] || '',
+                extraAttrs,
+            );
+        }
+
+        function collectOriginalItemIds(row) {
+            const ids = [];
+            const fromAttr = (row.dataset.originalItemIds || '').split(',').map(function(value) {
+                return value.trim();
+            }).filter(Boolean);
+            fromAttr.forEach(function(id) {
+                if (ids.indexOf(id) === -1) {
+                    ids.push(id);
+                }
+            });
+            const idField = row.querySelector('input[name$="-id"]');
+            if (idField && idField.value && ids.indexOf(idField.value) === -1) {
+                ids.push(idField.value);
+            }
+            return ids;
+        }
+
+        function consolidateEditTaskProductRows() {
+            const actionInput = document.getElementById('taskFormAction');
+            if (!taskProductsFormset || !window.taskProductsData || !actionInput || actionInput.value !== 'update') {
+                return;
+            }
+
+            const rows = Array.from(taskProductsFormset.querySelectorAll('[data-form-row]')).filter(function(row) {
+                const deleteField = row.querySelector('input[name$="-DELETE"]');
+                return row.style.display !== 'none' && !(deleteField && deleteField.checked);
+            });
+            if (rows.length < 2) {
+                // Ακόμα και με 1 γραμμή, συμπλήρωσε existing allocations αν υπάρχει δέσμευση
+                rows.forEach(function(row) {
+                    const existing = getRowExistingAllocations(row);
+                    if (Object.keys(existing).length && !row.dataset.allocations) {
+                        writeRowAllocations(row, existing);
+                        row.dataset.existingAllocations = JSON.stringify(existing);
+                    }
+                });
+                return;
+            }
+
+            const groups = {};
+            const groupOrder = [];
+            const shippedGroups = [];
+            let hasMergeCandidate = false;
+
+            rows.forEach(function(row) {
+                const productSelect = row.querySelector('select.task-product-select, select[name$="-product"]');
+                const quantityInput = row.querySelector('.task-quantity-input, input[name$="-quantity"]');
+                const productId = productSelect ? productSelect.value : '';
+                const qty = quantityInput ? parseInt(quantityInput.value, 10) || 0 : 0;
+                const itemIds = collectOriginalItemIds(row);
+                const status = row.dataset.itemStatus || '';
+                const reservedInput = getRowReservedInput(row);
+                const stockId = (reservedInput && reservedInput.value)
+                    || row.dataset.existingReservedStock
+                    || '';
+
+                if (!productId || qty < 1) {
+                    return;
+                }
+
+                if (status === 'shipped') {
+                    shippedGroups.push({
+                        productId: productId,
+                        totalQty: qty,
+                        allocations: {},
+                        itemIds: itemIds,
+                        itemStatus: 'shipped',
+                    });
+                    return;
+                }
+
+                if (!groups[productId]) {
+                    groups[productId] = {
+                        productId: productId,
+                        totalQty: 0,
+                        allocations: {},
+                        itemIds: [],
+                    };
+                    groupOrder.push(productId);
+                } else {
+                    hasMergeCandidate = true;
+                }
+
+                const group = groups[productId];
+                group.totalQty += qty;
+                itemIds.forEach(function(id) {
+                    if (group.itemIds.indexOf(id) === -1) {
+                        group.itemIds.push(id);
+                    }
+                });
+                if (stockId) {
+                    hasMergeCandidate = true;
+                    group.allocations[String(stockId)] = (
+                        parseInt(group.allocations[String(stockId)], 10) || 0
+                    ) + qty;
+                }
+            });
+
+            if (!hasMergeCandidate && shippedGroups.length === 0) {
+                Object.keys(groups).forEach(function(productId) {
+                    const group = groups[productId];
+                    if (Object.keys(group.allocations).length) {
+                        hasMergeCandidate = true;
+                    }
+                });
+            }
+
+            if (!hasMergeCandidate && Object.keys(groups).length <= 1 && shippedGroups.length === 0) {
+                Object.keys(groups).forEach(function(productId) {
+                    const group = groups[productId];
+                    if (Object.keys(group.allocations).length) {
+                        // single reserved row: still set multi-allocation attrs for panel
+                        const row = rows.find(function(entry) {
+                            const select = entry.querySelector('select.task-product-select, select[name$="-product"]');
+                            return select && select.value === productId;
+                        });
+                        if (row) {
+                            row.dataset.existingAllocations = JSON.stringify(group.allocations);
+                            writeRowAllocations(row, group.allocations);
+                            if (group.itemIds.length) {
+                                row.dataset.originalItemIds = group.itemIds.join(',');
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+
+            let html = '';
+            let index = 0;
+            groupOrder.forEach(function(productId) {
+                html += buildConsolidatedTaskRowHtml(index, groups[productId]);
+                index += 1;
+            });
+            shippedGroups.forEach(function(group) {
+                html += buildExpandedTaskRowHtml(
+                    index,
+                    group.productId,
+                    group.totalQty,
+                    '',
+                    group.itemIds[0] || '',
+                    ' data-item-status="shipped"'
+                        + (group.itemIds.length
+                            ? ' data-original-item-ids="' + group.itemIds.join(',') + '"'
+                            : ''),
+                );
+                index += 1;
+            });
+
+            if (!index) {
+                return;
+            }
+
+            taskProductsFormset.innerHTML = html;
+            if (totalFormsInput) {
+                totalFormsInput.value = String(index);
+            }
+        }
+
+        function expandTaskRowsForReservations() {
+            if (!taskProductsFormset || !window.taskProductsData) {
+                return true;
+            }
+
+            const allRows = Array.from(taskProductsFormset.querySelectorAll('[data-form-row]'));
+            const originalIds = [];
+            allRows.forEach(function(row) {
+                collectOriginalItemIds(row).forEach(function(id) {
+                    if (originalIds.indexOf(id) === -1) {
+                        originalIds.push(id);
+                    }
+                });
+            });
+
+            const visibleRows = allRows.filter(function(row) {
+                const deleteField = row.querySelector('input[name$="-DELETE"]');
+                return row.style.display !== 'none' && !(deleteField && deleteField.checked);
+            });
+            const plans = [];
+
+            for (let i = 0; i < visibleRows.length; i += 1) {
+                const row = visibleRows[i];
+                const productSelect = row.querySelector('select.task-product-select, select[name$="-product"]');
+                const quantityInput = row.querySelector('.task-quantity-input, input[name$="-quantity"]');
+                const idField = row.querySelector('input[name$="-id"]');
+                const productId = productSelect ? productSelect.value : '';
+                const totalQty = quantityInput ? parseInt(quantityInput.value, 10) || 0 : 0;
+                const itemId = idField && idField.value ? idField.value : '';
+                if (!productId || totalQty < 1) {
+                    continue;
+                }
+
+                if (row.dataset.itemStatus === 'shipped') {
+                    plans.push({
+                        productId: productId,
+                        totalQty: totalQty,
+                        allocations: [],
+                        manufactureQty: totalQty,
+                        itemId: itemId,
+                        shipped: true,
+                    });
+                    continue;
+                }
+
+                const allocations = getRowAllocationEntries(row);
+                const reservedTotal = allocations.reduce(function(sum, entry) {
+                    return sum + entry.qty;
+                }, 0);
+                if (reservedTotal > totalQty) {
+                    alert('Οι δεσμεύσεις δεν μπορούν να υπερβαίνουν την ποσότητα του προϊόντος.');
+                    return false;
+                }
+                plans.push({
+                    productId: productId,
+                    totalQty: totalQty,
+                    allocations: allocations,
+                    manufactureQty: totalQty - reservedTotal,
+                    itemId: itemId,
+                    shipped: false,
+                });
+            }
+
+            if (!plans.length) {
+                return true;
+            }
+
+            const usedIds = [];
+            let html = '';
+            let index = 0;
+
+            function takeId(preferredId) {
+                if (preferredId && originalIds.indexOf(preferredId) !== -1 && usedIds.indexOf(preferredId) === -1) {
+                    usedIds.push(preferredId);
+                    return preferredId;
+                }
+                const fallback = originalIds.find(function(id) {
+                    return usedIds.indexOf(id) === -1;
+                });
+                if (fallback) {
+                    usedIds.push(fallback);
+                    return fallback;
+                }
+                return '';
+            }
+
+            plans.forEach(function(plan) {
+                if (plan.shipped) {
+                    html += buildExpandedTaskRowHtml(
+                        index,
+                        plan.productId,
+                        plan.totalQty,
+                        '',
+                        takeId(plan.itemId),
+                        ' data-item-status="shipped"',
+                    );
+                    index += 1;
+                    return;
+                }
+                let preferredId = plan.itemId;
+                plan.allocations.forEach(function(entry) {
+                    const rowId = takeId(preferredId);
+                    preferredId = '';
+                    html += buildExpandedTaskRowHtml(
+                        index,
+                        plan.productId,
+                        entry.qty,
+                        entry.stockId,
+                        rowId,
+                    );
+                    index += 1;
+                });
+                if (plan.manufactureQty > 0) {
+                    const rowId = takeId(preferredId);
+                    html += buildExpandedTaskRowHtml(
+                        index,
+                        plan.productId,
+                        plan.manufactureQty,
+                        '',
+                        rowId,
+                    );
+                    index += 1;
+                }
+            });
+
+            originalIds.forEach(function(itemId) {
+                if (usedIds.indexOf(itemId) !== -1) {
+                    return;
+                }
+                html += `
+                    <div class="task-product-row" data-form-row style="display:none">
+                        <input type="hidden" name="items-${index}-id" value="${itemId}">
+                        <input type="hidden" name="items-${index}-product" value="">
+                        <input type="hidden" name="items-${index}-quantity" value="1">
+                        <input type="hidden" name="items-${index}-reserved_stock" value="">
+                        <input type="checkbox" name="items-${index}-DELETE" checked hidden>
+                    </div>
+                `;
+                index += 1;
+            });
+
+            taskProductsFormset.innerHTML = html;
+            if (totalFormsInput) {
+                totalFormsInput.value = String(index);
+            }
+            return true;
+        }
+
+        function initTaskStockReservePanels(scope) {
+            (scope || document).querySelectorAll('[data-form-row]').forEach(function(row) {
+                if (!row.dataset.allocations) {
+                    const existing = getRowExistingAllocations(row);
+                    writeRowAllocations(row, existing);
+                }
+                updateTaskStockReservePanel(row);
+                const quantityInput = row.querySelector('.task-quantity-input, input[name$="-quantity"]');
+                if (quantityInput && !quantityInput.dataset.reserveBound) {
+                    quantityInput.dataset.reserveBound = '1';
+                    quantityInput.addEventListener('input', function() {
+                        updateTaskStockReservePanel(row);
+                    });
+                }
+            });
         }
 
         function initTaskProductPickers(scope) {
@@ -2395,7 +3337,17 @@
                     }
                     const idField = row.querySelector('input[name$="-id"]');
                     const deleteField = row.querySelector('input[name$="-DELETE"]');
-                    if (idField && idField.value && deleteField) {
+                    const originalIds = collectOriginalItemIds(row);
+                    if (originalIds.length && deleteField) {
+                        if (idField && !idField.value) {
+                            idField.value = originalIds[0];
+                        }
+                        if (originalIds.length > 1) {
+                            row.dataset.originalItemIds = originalIds.join(',');
+                        }
+                        deleteField.checked = true;
+                        row.style.display = 'none';
+                    } else if (idField && idField.value && deleteField) {
                         deleteField.checked = true;
                         row.style.display = 'none';
                     } else {
@@ -2413,30 +3365,34 @@
 
             return `
                 <div class="task-product-row" data-form-row>
-                    <div>
-                        <label>Προϊόν</label>
-                        <div class="product-picker" data-product-picker>
-                            <input type="text" class="product-search-input task-product-search"
-                                   placeholder="Αναζήτηση με κωδικό ή όνομα..." autocomplete="off" readonly>
-                            <div class="product-results" hidden></div>
-                            <select class="task-product-select" name="items-${index}-product" id="id_items-${index}-product">
-                                <option value="">Επιλέξτε προϊόν...</option>
-                                ${options}
-                            </select>
+                    <div class="task-product-row-fields">
+                        <div>
+                            <label>Προϊόν</label>
+                            <div class="product-picker" data-product-picker>
+                                <input type="text" class="product-search-input task-product-search"
+                                       placeholder="Αναζήτηση με κωδικό ή όνομα..." autocomplete="off" readonly>
+                                <div class="product-results" hidden></div>
+                                <select class="task-product-select" name="items-${index}-product" id="id_items-${index}-product">
+                                    <option value="">Επιλέξτε προϊόν...</option>
+                                    ${options}
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label>Ποσότητα</label>
+                            <input type="number" class="task-quantity-input" name="items-${index}-quantity"
+                                   id="id_items-${index}-quantity" min="1" step="1" value="1">
+                        </div>
+                        <div>
+                            <label>&nbsp;</label>
+                            <button type="button" class="btn btn-danger btn-sm remove-task-product-btn" title="Αφαίρεση">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                     </div>
-                    <div>
-                        <label>Ποσότητα</label>
-                        <input type="number" class="task-quantity-input" name="items-${index}-quantity"
-                               id="id_items-${index}-quantity" min="1" step="1" value="1">
-                    </div>
-                    <div>
-                        <label>&nbsp;</label>
-                        <button type="button" class="btn btn-danger btn-sm remove-task-product-btn" title="Αφαίρεση">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
+                    <div class="task-stock-reserve-panel" data-stock-reserve-panel hidden></div>
                     <input type="hidden" name="items-${index}-id" id="id_items-${index}-id">
+                    <input type="hidden" name="items-${index}-reserved_stock" id="id_items-${index}-reserved_stock" class="task-reserved-stock-input" value="">
                     <input type="checkbox" name="items-${index}-DELETE" id="id_items-${index}-DELETE" hidden>
                 </div>
             `;
@@ -2454,17 +3410,32 @@
                 }
                 initTaskProductPickers(row);
                 bindTaskProductRemoveButtons(row);
+                initTaskStockReservePanels(row);
             });
         }
 
         if (taskCreateForm) {
-            taskCreateForm.addEventListener('submit', function() {
+            taskCreateForm.addEventListener('submit', function(event) {
+                if (!expandTaskRowsForReservations()) {
+                    event.preventDefault();
+                    return;
+                }
                 syncTaskProductIndices();
             });
         }
 
+        document.querySelectorAll('input[name="task_type"]').forEach(function(input) {
+            input.addEventListener('change', function() {
+                initTaskStockReservePanels(taskProductsFormset);
+            });
+        });
+
         initTaskProductPickers(taskProductsFormset);
         bindTaskProductRemoveButtons(taskProductsFormset);
+        consolidateEditTaskProductRows();
+        initTaskProductPickers(taskProductsFormset);
+        bindTaskProductRemoveButtons(taskProductsFormset);
+        initTaskStockReservePanels(taskProductsFormset);
     }
 
     (function initTaskDatePicker() {

@@ -122,20 +122,27 @@ class ScheduledTask(models.Model):
             for item in items
         )
 
+    def has_shipped_items(self):
+        return any(
+            item.item_status == ScheduledTaskItem.STATUS_SHIPPED
+            for item in self.items.all()
+        )
+
     def get_under_work_label(self):
         if self.task_type == self.TYPE_REPAIR:
             return 'Υπό Επισκευή'
         return 'Υπό Κατασκευή'
 
     def refresh_status_from_items(self):
-        items = list(self.items.all())
+        # Αγνόηση prefetch cache — αλλιώς μετά από AJAX update
+        # χρησιμοποιούνται παλιές καταστάσεις προϊόντων.
+        items = list(
+            ScheduledTaskItem.objects.filter(task_id=self.pk)
+        )
         if not items:
             return
 
-        all_completed = all(
-            item.item_status == ScheduledTaskItem.STATUS_COMPLETED
-            for item in items
-        )
+        all_completed = all(item.is_finished() for item in items)
         new_status = (
             self.STATUS_COMPLETED if all_completed else self.STATUS_PENDING
         )
@@ -150,10 +157,14 @@ class ScheduledTask(models.Model):
 
 class ScheduledTaskItem(models.Model):
     STATUS_UNDER_WORK = 'under_work'
+    STATUS_RESERVED = 'reserved'
     STATUS_COMPLETED = 'completed'
+    STATUS_SHIPPED = 'shipped'
     STATUS_CHOICES = [
         (STATUS_UNDER_WORK, 'Υπό κατασκευή'),
+        (STATUS_RESERVED, 'Δεσμευμένο'),
         (STATUS_COMPLETED, 'Ολοκληρώθηκε'),
+        (STATUS_SHIPPED, 'Έχει αποσταλεί'),
     ]
 
     task = models.ForeignKey(
@@ -179,6 +190,14 @@ class ScheduledTaskItem(models.Model):
         default=STATUS_UNDER_WORK,
         verbose_name='Κατάσταση προϊόντος',
     )
+    reserved_stock = models.ForeignKey(
+        'products.ProductStock',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='task_reservations',
+        verbose_name='Δεσμευμένο απόθεμα',
+    )
 
     class Meta:
         verbose_name = 'Προϊόν εργασίας'
@@ -189,8 +208,28 @@ class ScheduledTaskItem(models.Model):
         return f'{self.product.code} x {self.quantity}'
 
     def get_status_label(self):
+        if self.item_status == self.STATUS_SHIPPED:
+            return 'Έχει αποσταλεί'
         if self.item_status == self.STATUS_COMPLETED:
             return 'Ολοκληρώθηκε'
+        if self.item_status == self.STATUS_RESERVED:
+            return 'Δεσμευμένο'
         if self.task.task_type == ScheduledTask.TYPE_REPAIR:
             return 'Υπό Επισκευή'
         return 'Υπό Κατασκευή'
+
+    def is_reserved(self):
+        return (
+            self.item_status == self.STATUS_RESERVED
+            and self.reserved_stock_id is not None
+        )
+
+    def has_active_reservation(self):
+        """Δέσμευση που κρατάει ακόμα απόθεμα (δεσμευμένο ή ολοκληρωμένο πριν την αποστολή)."""
+        return (
+            self.reserved_stock_id is not None
+            and self.item_status in (self.STATUS_RESERVED, self.STATUS_COMPLETED)
+        )
+
+    def is_finished(self):
+        return self.item_status in (self.STATUS_COMPLETED, self.STATUS_SHIPPED)

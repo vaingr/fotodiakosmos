@@ -68,7 +68,7 @@ def _get_task_queryset():
         'assigned_to',
         'created_by',
         'customer',
-    ).prefetch_related('items__product')
+    ).prefetch_related('items__product', 'items__reserved_stock')
 
 
 def _build_task_filter_query(
@@ -303,8 +303,25 @@ def _get_task_detail_dict(task):
                 'quantity': item.quantity,
                 'item_status': item.item_status,
                 'status_label': item.get_status_label(),
+                'is_reserved': item.is_reserved(),
+                'has_active_reservation': item.has_active_reservation(),
+                'can_ship_toggle': bool(
+                    item.reserved_stock_id
+                    and item.item_status in (
+                        ScheduledTaskItem.STATUS_RESERVED,
+                        ScheduledTaskItem.STATUS_COMPLETED,
+                        ScheduledTaskItem.STATUS_SHIPPED,
+                    )
+                ),
+                'is_shipped': item.item_status == ScheduledTaskItem.STATUS_SHIPPED,
+                'reserved_stock_id': item.reserved_stock_id or '',
+                'reserved_label': (
+                    item.reserved_stock.variant_label()
+                    if item.reserved_stock_id
+                    else ''
+                ),
             }
-            for item in task.items.all()
+            for item in task.items.select_related('product', 'reserved_stock')
         ],
     }
 
@@ -313,34 +330,133 @@ def _get_tasks_detail_data(tasks):
     return [_get_task_detail_dict(task) for task in tasks]
 
 
-def _update_task_item_statuses(task, post_data):
+def _update_task_item_statuses(task, post_data, user=None):
+    from django.db import transaction
+    from .task_stock import consume_item_reservation, restore_item_shipment
+
     valid_statuses = {
         ScheduledTaskItem.STATUS_UNDER_WORK,
+        ScheduledTaskItem.STATUS_RESERVED,
         ScheduledTaskItem.STATUS_COMPLETED,
+        ScheduledTaskItem.STATUS_SHIPPED,
+        'not_shipped',
     }
+
+    def _posted_status(item_id):
+        value = post_data.get(f'item_{item_id}')
+        if value in valid_statuses:
+            return value
+        # Fallback αν το frontend στείλει το ship radio name
+        value = post_data.get(f'item_{item_id}_ship')
+        if value in (ScheduledTaskItem.STATUS_SHIPPED, 'not_shipped'):
+            return value
+        return None
+
     updated = False
-    for item in task.items.all():
-        new_status = post_data.get(f'item_{item.pk}')
-        if new_status in valid_statuses and item.item_status != new_status:
+    with transaction.atomic():
+        items = list(
+            task.items.select_related('reserved_stock').select_for_update()
+        )
+        for item in items:
+            new_status = _posted_status(item.pk)
+            if new_status not in valid_statuses:
+                continue
+            if new_status == 'not_shipped':
+                if item.item_status != ScheduledTaskItem.STATUS_SHIPPED:
+                    continue
+            elif item.item_status == new_status:
+                continue
+
+            has_stock_link = bool(item.reserved_stock_id)
+            reservation_flow = (
+                has_stock_link
+                or item.has_active_reservation()
+                or item.item_status == ScheduledTaskItem.STATUS_RESERVED
+            )
+
+            if reservation_flow and has_stock_link:
+                if new_status == ScheduledTaskItem.STATUS_UNDER_WORK:
+                    continue
+
+                if new_status == ScheduledTaskItem.STATUS_SHIPPED:
+                    if item.item_status != ScheduledTaskItem.STATUS_SHIPPED:
+                        consume_item_reservation(item, user=user)
+                        item.item_status = ScheduledTaskItem.STATUS_SHIPPED
+                        item.save(update_fields=['item_status'])
+                        updated = True
+                    continue
+
+                if new_status == 'not_shipped':
+                    restore_item_shipment(item, user=user)
+                    item.item_status = ScheduledTaskItem.STATUS_COMPLETED
+                    item.save(update_fields=['item_status'])
+                    updated = True
+                    continue
+
+                if new_status in (
+                    ScheduledTaskItem.STATUS_RESERVED,
+                    ScheduledTaskItem.STATUS_COMPLETED,
+                ):
+                    if item.item_status == ScheduledTaskItem.STATUS_SHIPPED:
+                        continue
+                    item.item_status = new_status
+                    item.save(update_fields=['item_status'])
+                    updated = True
+                    continue
+
+                continue
+
+            # Κατασκευή χωρίς δέσμευση: μόνο σήμανση, χωρίς αποθήκη
+            if new_status == ScheduledTaskItem.STATUS_SHIPPED:
+                if item.item_status != ScheduledTaskItem.STATUS_COMPLETED:
+                    continue
+                item.item_status = ScheduledTaskItem.STATUS_SHIPPED
+                item.save(update_fields=['item_status'])
+                updated = True
+                continue
+
+            if new_status == 'not_shipped':
+                item.item_status = ScheduledTaskItem.STATUS_COMPLETED
+                item.save(update_fields=['item_status'])
+                updated = True
+                continue
+
+            if item.item_status == ScheduledTaskItem.STATUS_SHIPPED:
+                continue
+
             item.item_status = new_status
             item.save(update_fields=['item_status'])
             updated = True
+
     task.refresh_status_from_items()
     return updated
 
 
 def _get_task_products_data():
-    from products.models import FinishedProduct
+    from products.models import FinishedProduct, ProductStock
+    from .task_stock import get_complete_stocks_for_product
 
-    return [
-        {
+    products = []
+    for product in FinishedProduct.objects.order_by('name'):
+        products.append({
             'id': product.pk,
             'code': product.code,
             'name': product.name,
             'label': f'{product.code} - {product.name}',
-        }
-        for product in FinishedProduct.objects.order_by('name')
-    ]
+            'complete_stocks': get_complete_stocks_for_product(product.pk),
+        })
+    return products
+
+
+def _release_task_reservations(task):
+    from .task_stock import release_reservation_counters
+
+    for item in task.items.all():
+        if (
+            item.item_status == ScheduledTaskItem.STATUS_RESERVED
+            and item.reserved_stock_id
+        ):
+            release_reservation_counters(item.reserved_stock_id, item.quantity)
 
 
 def _get_task_print_filter_label(
@@ -377,8 +493,9 @@ def _get_task_print_filter_label(
 def _get_pending_construction_products():
     items = ScheduledTaskItem.objects.filter(
         task__task_type=ScheduledTask.TYPE_CONSTRUCTION,
-        task__status=ScheduledTask.STATUS_PENDING,
         item_status=ScheduledTaskItem.STATUS_UNDER_WORK,
+    ).exclude(
+        task__status=ScheduledTask.STATUS_CANCELLED,
     ).select_related(
         'product',
         'task',
@@ -554,7 +671,7 @@ def task_scheduling(request):
             editing_task = True
         elif task_action == 'update_items':
             task = get_object_or_404(base_queryset, pk=request.POST.get('task_id'))
-            _update_task_item_statuses(task, request.POST)
+            _update_task_item_statuses(task, request.POST, user=request.user)
             task.refresh_from_db()
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 if task.status == ScheduledTask.STATUS_COMPLETED:
@@ -591,10 +708,37 @@ def task_scheduling(request):
                 priority_filter=priority_filter,
             )
         elif task_action == 'delete':
+            from django.db import transaction
+
             task = get_object_or_404(base_queryset, pk=request.POST.get('task_id'))
             task_title = task.display_label()
-            task.delete()
-            messages.success(request, f'Η εργασία «{task_title}» διαγράφηκε.')
+            if task.has_shipped_items():
+                messages.error(
+                    request,
+                    f'Η εργασία «{task_title}» δεν μπορεί να διαγραφεί επειδή '
+                    f'περιέχει προϊόντα που έχουν αποσταλεί.',
+                )
+                return _redirect_task_dashboard(
+                    task_filter,
+                    search_query,
+                    task_type_filter=task_type_filter,
+                    priority_filter=priority_filter,
+                )
+            reserved_count = sum(
+                1
+                for item in task.items.all()
+                if item.has_active_reservation()
+            )
+            with transaction.atomic():
+                task.delete()
+            if reserved_count:
+                messages.success(
+                    request,
+                    f'Η εργασία «{task_title}» διαγράφηκε και αποδεσμεύτηκαν '
+                    f'{reserved_count} προϊόντα από την αποθήκη.',
+                )
+            else:
+                messages.success(request, f'Η εργασία «{task_title}» διαγράφηκε.')
             return _redirect_task_dashboard(
                 task_filter,
                 search_query,

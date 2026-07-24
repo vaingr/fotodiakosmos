@@ -402,10 +402,14 @@ class ProductWarehouseRemoveForm(forms.Form):
         stock = cleaned_data.get('stock')
         quantity = cleaned_data.get('quantity')
 
-        if stock and quantity is not None and quantity > stock.quantity:
+        if stock and quantity is not None and quantity > stock.available_quantity:
             self.add_error(
                 'quantity',
-                f'Η ποσότητα δεν μπορεί να υπερβαίνει το διαθέσιμο απόθεμα ({stock.quantity}).',
+                (
+                    f'Η ποσότητα δεν μπορεί να υπερβαίνει το διαθέσιμο απόθεμα '
+                    f'({stock.available_quantity}'
+                    f'{f", δεσμευμένα: {stock.reserved_quantity}" if stock.reserved_quantity else ""}).'
+                ),
             )
 
         return cleaned_data
@@ -414,13 +418,24 @@ class ProductWarehouseRemoveForm(forms.Form):
 def _format_warehouse_stock_label(stock):
     product = stock.product
     label = f'{product.code} - {product.name}'
+    reserved_note = (
+        f', δεσμευμένα: {stock.reserved_quantity}'
+        if stock.reserved_quantity
+        else ''
+    )
     if stock.construction_stage == ProductStock.STAGE_COMPLETE:
         details = ' / '.join(
             part for part in (stock.carpet, stock.bulb, stock.dimensions) if part
         )
         if details:
-            return f'{label} ({stock.get_construction_stage_display()}: {details}: {stock.quantity})'
-    return f'{label} ({stock.get_construction_stage_display()}: {stock.quantity})'
+            return (
+                f'{label} ({stock.get_construction_stage_display()}: {details}: '
+                f'διαθ. {stock.available_quantity}{reserved_note})'
+            )
+    return (
+        f'{label} ({stock.get_construction_stage_display()}: '
+        f'διαθ. {stock.available_quantity}{reserved_note})'
+    )
 
 
 def get_customer_delivery_email(customer):

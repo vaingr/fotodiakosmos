@@ -126,6 +126,8 @@
                 <th>ΦΩΤΟΣΩΛΗΝΑΣ</th>
                 <th>ΔΙΑΣΤΑΣΕΙΣ</th>
                 <th class="text-center">Ποσότητα</th>
+                <th class="text-center">Δεσμευμένα</th>
+                <th class="text-center">Διαθέσιμα</th>
             </tr>
         </thead>
         <tbody>
@@ -149,10 +151,12 @@
                 <td>{{ item.photocell|default:"—" }}</td>
                 <td>{{ item.dimensions|default:"—" }}</td>
                 <td class="text-center">{{ item.quantity }}</td>
+                <td class="text-center">{% if item.reserved_quantity %}{{ item.reserved_quantity }}{% else %}—{% endif %}</td>
+                <td class="text-center">{{ item.available_quantity }}</td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="10" class="text-center">Δεν υπάρχουν προϊόντα στην αποθήκη.</td>
+                <td colspan="12" class="text-center">Δεν υπάρχουν προϊόντα στην αποθήκη.</td>
             </tr>
             {% endfor %}
         </tbody>

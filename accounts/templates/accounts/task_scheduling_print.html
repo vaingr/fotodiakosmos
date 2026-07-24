@@ -63,19 +63,46 @@
         }
         .print-task-type {
             font-weight: 700;
-            margin-bottom: 0.2rem;
+            margin-bottom: 0.35rem;
         }
         .print-task-product {
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
             color: #333;
             line-height: 1.35;
+            margin-top: 0.25rem;
         }
         .print-task-product.is-completed {
             color: #15803d;
             font-weight: 600;
         }
+        .print-product-thumb {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            flex-shrink: 0;
+            display: block;
+        }
+        .print-photo-empty {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            border: 1px dashed #ccc;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 0.7rem;
+            flex-shrink: 0;
+        }
+        .print-task-product-text {
+            min-width: 0;
+        }
         .print-task-description {
-            margin-top: 0.25rem;
+            margin-top: 0.35rem;
             color: #555;
             font-size: 0.75rem;
             white-space: pre-wrap;
@@ -97,6 +124,10 @@
             .print-table th,
             .print-table td { padding: 0.35rem 0.45rem; }
             .print-task-product.is-completed {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .print-product-thumb {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
@@ -142,9 +173,25 @@
                     <div class="print-task-type">{{ task.get_task_type_display }}</div>
                     {% if task.items.all %}
                         {% for item in task.items.all %}
-                        <span class="print-task-product{% if item.item_status == 'completed' %} is-completed{% endif %}">
-                            {{ item.product.code }} - {{ item.product.name }} x{{ item.quantity }}
-                        </span>
+                        <div class="print-task-product{% if item.item_status == 'completed' or item.item_status == 'shipped' %} is-completed{% elif item.item_status == 'reserved' %} is-reserved{% endif %}">
+                            {% if item.product.photo %}
+                            <img src="{{ request.scheme }}://{{ request.get_host }}{{ item.product.photo.url }}"
+                                 alt="{{ item.product.name }}"
+                                 class="print-product-thumb">
+                            {% else %}
+                            <span class="print-photo-empty">—</span>
+                            {% endif %}
+                            <span class="print-task-product-text">
+                                {{ item.product.code }} - {{ item.product.name }} x{{ item.quantity }}
+                                {% if item.item_status == 'reserved' %}
+                                <strong> · Δεσμευμένο</strong>
+                                {% elif item.item_status == 'shipped' %}
+                                <strong> · Έχει αποσταλεί</strong>
+                                {% elif item.has_active_reservation %}
+                                <strong> · Δεσμευμένο</strong>
+                                {% endif %}
+                            </span>
+                        </div>
                         {% endfor %}
                     {% endif %}
                     {% if task.description %}
