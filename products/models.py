@@ -1,5 +1,11 @@
-from django.core.validators import MinValueValidator
+from decimal import Decimal, ROUND_HALF_UP
+
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+
+
+def _money(value):
+    return Decimal(value).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
 
 class FinishedProduct(models.Model):
@@ -282,11 +288,29 @@ class Offer(models.Model):
 
     def recalculate_total(self):
         total = sum(
-            (item.quantity * item.unit_price)
-            for item in OfferItem.objects.filter(offer_id=self.pk)
+            (item.line_total for item in OfferItem.objects.filter(offer_id=self.pk)),
+            Decimal('0.00'),
         )
-        self.total_amount = total
+        self.total_amount = _money(total)
         self.save(update_fields=['total_amount'])
+
+    @property
+    def has_discount(self):
+        return any((item.discount_percent or 0) > 0 for item in self.items.all())
+
+    @property
+    def gross_subtotal_amount(self):
+        return sum(
+            (item.gross_line_total for item in self.items.all()),
+            Decimal('0.00'),
+        )
+
+    @property
+    def discount_total_amount(self):
+        return sum(
+            (item.discount_amount for item in self.items.all()),
+            Decimal('0.00'),
+        )
 
     @property
     def subtotal_amount(self):
@@ -334,6 +358,13 @@ class OfferItem(models.Model):
         validators=[MinValueValidator(0)],
         verbose_name='Τιμή μονάδας',
     )
+    discount_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        verbose_name='Έκπτωση %',
+    )
 
     class Meta:
         verbose_name = 'Γραμμή προσφοράς'
@@ -344,8 +375,19 @@ class OfferItem(models.Model):
         return f'{self.product.name} x {self.quantity}'
 
     @property
+    def gross_line_total(self):
+        return _money(Decimal(self.quantity) * self.unit_price)
+
+    @property
+    def discount_amount(self):
+        percent = self.discount_percent or Decimal('0')
+        if percent <= 0:
+            return Decimal('0.00')
+        return _money(self.gross_line_total * percent / Decimal('100'))
+
+    @property
     def line_total(self):
-        return self.quantity * self.unit_price
+        return self.gross_line_total - self.discount_amount
 
 
 class OfferSettings(models.Model):
