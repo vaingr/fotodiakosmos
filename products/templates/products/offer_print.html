@@ -418,6 +418,9 @@
                     <th>Προϊόν</th>
                     <th class="text-center">Ποσότητα</th>
                     <th class="text-right">Τιμή μονάδας</th>
+                    {% if offer.has_line_discounts %}
+                    <th class="text-right">Έκπτωση</th>
+                    {% endif %}
                     <th class="text-right">Σύνολο</th>
                 </tr>
             </thead>
@@ -443,6 +446,9 @@
                     <td>{{ item.product.name }}</td>
                     <td class="text-center">{{ item.quantity }}</td>
                     <td class="text-right">{{ item.unit_price|floatformat:2 }} €</td>
+                    {% if offer.has_line_discounts %}
+                    <td class="text-right">{% if item.discount_percent %}{{ item.discount_percent|floatformat:-2 }}%{% else %}—{% endif %}</td>
+                    {% endif %}
                     <td class="text-right">{{ item.line_total|floatformat:2 }} €</td>
                 </tr>
                 {% endfor %}

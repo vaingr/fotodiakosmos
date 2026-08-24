@@ -153,8 +153,8 @@
 }
 .offer-row-fields {
     display: grid;
-    grid-template-columns: 2fr 0.8fr 0.9fr 0.9fr auto;
-    gap: 0.5rem 1rem;
+    grid-template-columns: 2fr 0.7fr 0.85fr 0.7fr 0.85fr auto;
+    gap: 0.5rem 0.75rem;
     align-items: end;
 }
 .line-total-display {
@@ -407,6 +407,13 @@
                             <div class="error-message">{{ item_form.unit_price.errors.0 }}</div>
                             {% endif %}
                         </div>
+                        <div class="form-group discount-field">
+                            <label>{{ item_form.discount_percent.label }}</label>
+                            {{ item_form.discount_percent }}
+                            {% if item_form.discount_percent.errors %}
+                            <div class="error-message">{{ item_form.discount_percent.errors.0 }}</div>
+                            {% endif %}
+                        </div>
                         <div class="form-group total-field">
                             <label>Σύνολο γραμμής</label>
                             <div class="line-total-display">{% if item_form.instance.pk %}{{ item_form.instance.line_total|floatformat:2 }} €{% else %}0,00 €{% endif %}</div>
@@ -498,12 +505,18 @@ document.addEventListener('DOMContentLoaded', function() {
         return parseFloat(String(value).replace(',', '.')) || 0;
     }
 
+    function lineTotal(quantity, price, discount) {
+        const factor = (100 - Math.min(100, Math.max(0, discount || 0))) / 100;
+        return quantity * price * factor;
+    }
+
     function updateLineTotal(row) {
         const quantity = parseNumber(row.querySelector('.offer-quantity-input')?.value);
         const price = parseNumber(row.querySelector('.offer-price-input')?.value);
+        const discount = parseNumber(row.querySelector('.offer-discount-input')?.value);
         const display = row.querySelector('.line-total-display');
         if (display) {
-            display.textContent = formatMoney(quantity * price);
+            display.textContent = formatMoney(lineTotal(quantity, price, discount));
         }
         updateGrandTotal();
     }
@@ -514,7 +527,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (row.style.display === 'none') return;
             const quantity = parseNumber(row.querySelector('.offer-quantity-input')?.value);
             const price = parseNumber(row.querySelector('.offer-price-input')?.value);
-            subtotal += quantity * price;
+            const discount = parseNumber(row.querySelector('.offer-discount-input')?.value);
+            subtotal += lineTotal(quantity, price, discount);
         });
 
         const customerSelect = document.getElementById('id_offer_customer');
@@ -543,7 +557,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function bindTotals(row) {
-        row.querySelectorAll('.offer-quantity-input, .offer-price-input').forEach(function(input) {
+        row.querySelectorAll('.offer-quantity-input, .offer-price-input, .offer-discount-input').forEach(function(input) {
             input.addEventListener('input', function() {
                 updateLineTotal(row);
             });
@@ -866,6 +880,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         <label>Τιμή μονάδας (€)</label>
                         <input type="number" class="form-control offer-price-input" name="items-${index}-unit_price"
                                id="id_items-${index}-unit_price" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="form-group discount-field">
+                        <label>Έκπτωση (%)</label>
+                        <input type="number" class="form-control offer-discount-input" name="items-${index}-discount_percent"
+                               id="id_items-${index}-discount_percent" min="0" max="100" step="0.01" value="0">
                     </div>
                     <div class="form-group total-field">
                         <label>Σύνολο γραμμής</label>

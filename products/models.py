@@ -1,5 +1,21 @@
-from django.core.validators import MinValueValidator
+from decimal import Decimal, ROUND_HALF_UP
+
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+
+_MONEY_QUANTUM = Decimal('0.01')
+
+
+def calculate_offer_line_total(quantity, unit_price, discount_percent=0):
+    qty = Decimal(quantity or 0)
+    price = Decimal(unit_price or 0)
+    discount = Decimal(discount_percent or 0)
+    if discount < 0:
+        discount = Decimal('0')
+    if discount > 100:
+        discount = Decimal('100')
+    factor = (Decimal('100') - discount) / Decimal('100')
+    return (qty * price * factor).quantize(_MONEY_QUANTUM, rounding=ROUND_HALF_UP)
 
 
 class FinishedProduct(models.Model):
@@ -282,11 +298,18 @@ class Offer(models.Model):
 
     def recalculate_total(self):
         total = sum(
-            (item.quantity * item.unit_price)
-            for item in OfferItem.objects.filter(offer_id=self.pk)
+            (item.line_total for item in OfferItem.objects.filter(offer_id=self.pk)),
+            Decimal('0.00'),
         )
         self.total_amount = total
         self.save(update_fields=['total_amount'])
+
+    @property
+    def has_line_discounts(self):
+        return any(
+            (item.discount_percent or 0) > 0
+            for item in self.items.all()
+        )
 
     @property
     def subtotal_amount(self):
@@ -334,6 +357,13 @@ class OfferItem(models.Model):
         validators=[MinValueValidator(0)],
         verbose_name='Τιμή μονάδας',
     )
+    discount_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        verbose_name='Έκπτωση (%)',
+    )
 
     class Meta:
         verbose_name = 'Γραμμή προσφοράς'
@@ -345,7 +375,11 @@ class OfferItem(models.Model):
 
     @property
     def line_total(self):
-        return self.quantity * self.unit_price
+        return calculate_offer_line_total(
+            self.quantity,
+            self.unit_price,
+            self.discount_percent,
+        )
 
 
 class OfferSettings(models.Model):
