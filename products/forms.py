@@ -141,6 +141,8 @@ ProductMaterialFormSet = inlineformset_factory(
 
 
 class ProductWarehouseAddForm(forms.Form):
+    use_required_attribute = False
+
     product = forms.ModelChoiceField(
         queryset=FinishedProduct.objects.none(),
         label='Προϊόν',
@@ -213,8 +215,12 @@ class ProductWarehouseAddForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['product'].queryset = FinishedProduct.objects.order_by('name')
+        products = FinishedProduct.objects.order_by('name')
         self.fields['product'].label_from_instance = lambda product: f'{product.code} - {product.name}'
+        if self.is_bound:
+            self.fields['product'].queryset = products
+        else:
+            self.fields['product'].queryset = products.none()
 
     def _clean_uppercase_field(self, value):
         if value:
@@ -304,7 +310,11 @@ class ProductWarehouseEditForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['stock'].queryset = ProductStock.objects.filter(quantity__gt=0)
+        stocks = ProductStock.objects.filter(quantity__gt=0)
+        if self.is_bound:
+            self.fields['stock'].queryset = stocks
+        else:
+            self.fields['stock'].queryset = stocks.none()
 
     def _clean_uppercase_field(self, value):
         if value:
@@ -366,6 +376,8 @@ class ProductWarehouseEditForm(forms.Form):
 
 
 class ProductWarehouseRemoveForm(forms.Form):
+    use_required_attribute = False
+
     stock = forms.ModelChoiceField(
         queryset=ProductStock.objects.none(),
         label='Προϊόν',
@@ -390,12 +402,16 @@ class ProductWarehouseRemoveForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['stock'].queryset = (
+        stocks = (
             ProductStock.objects.filter(quantity__gt=0).select_related('product').order_by(
                 'product__name', 'construction_stage'
             )
         )
         self.fields['stock'].label_from_instance = lambda stock: _format_warehouse_stock_label(stock)
+        if self.is_bound:
+            self.fields['stock'].queryset = stocks
+        else:
+            self.fields['stock'].queryset = stocks.none()
 
     def clean(self):
         cleaned_data = super().clean()
@@ -481,6 +497,8 @@ def get_offer_attention_display(customer, contact_recipient=None):
 
 
 class ProductWarehouseEmailForm(forms.Form):
+    use_required_attribute = False
+
     customer = forms.ModelChoiceField(
         queryset=Customer.objects.none(),
         label='Παραλήπτης',
@@ -503,12 +521,16 @@ class ProductWarehouseEmailForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['customer'].queryset = Customer.objects.all().order_by(
+        customers = Customer.objects.all().order_by(
             'last_name', 'first_name', 'company_name',
         )
         self.fields['customer'].label_from_instance = lambda customer: (
             f'{customer.display_name()} ({get_customer_delivery_email(customer) or "χωρίς email"})'
         )
+        if self.is_bound:
+            self.fields['customer'].queryset = customers
+        else:
+            self.fields['customer'].queryset = customers.none()
 
     def clean_customer(self):
         customer = self.cleaned_data['customer']

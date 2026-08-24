@@ -638,7 +638,7 @@ body.email-sending-active .email-sending-overlay {
             </button>
         </div>
     </div>
-    <p class="warehouse-stock-results-note" id="warehouseStockResultsNote"></p>
+    <p class="warehouse-stock-results-note" id="warehouseStockResultsNote">Εμφανίζονται {{ warehouse_items|length }} από {{ warehouse_items|length }} εγγραφές</p>
     <div class="table-wrapper">
         <table class="warehouse-stock-table">
             <thead>
@@ -665,7 +665,7 @@ body.email-sending-active .email-sending-overlay {
                     data-search="{{ item.product.code|upper }} {{ item.product.name|upper }} {{ item.get_construction_stage_display|upper }} {{ item.carpet|upper }} {{ item.bulb|upper }} {{ item.photocell|upper }} {{ item.dimensions|upper }} {{ item.added_by_username|default:''|upper }}">
                     <td class="photo-col">
                         {% if item.product.photo %}
-                        <img src="{{ item.product.photo.url }}" alt="{{ item.product.name }}" class="product-thumb">
+                        <img src="{{ item.product.photo.url }}" alt="{{ item.product.name }}" class="product-thumb" width="48" height="48">
                         {% else %}
                         <div class="product-thumb-placeholder"><i class="fas fa-image"></i></div>
                         {% endif %}
@@ -733,7 +733,7 @@ body.email-sending-active .email-sending-overlay {
             Επιλέξτε προϊόν από τον κατάλογο και καταχωρήστε ποσότητα.
         </p>
 
-        <form method="post" class="add-product-form" id="addProductForm" autocomplete="off" data-preserve-form="{% if open_add_modal %}true{% else %}false{% endif %}">
+        <form method="post" class="add-product-form" id="addProductForm" autocomplete="off" novalidate data-preserve-form="{% if open_add_modal %}true{% else %}false{% endif %}">
             {% csrf_token %}
             <input type="hidden" name="warehouse_action" value="add">
             <div class="product-picker" data-product-picker="add">
@@ -842,7 +842,7 @@ body.email-sending-active .email-sending-overlay {
             Επιλέξτε προϊόν από την αποθήκη και καταχωρήστε ποσότητα αφαίρεσης.
         </p>
 
-        <form method="post" class="add-product-form" id="removeProductForm" autocomplete="off" data-preserve-form="{% if open_remove_modal %}true{% else %}false{% endif %}">
+        <form method="post" class="add-product-form" id="removeProductForm" autocomplete="off" novalidate data-preserve-form="{% if open_remove_modal %}true{% else %}false{% endif %}">
             {% csrf_token %}
             <input type="hidden" name="warehouse_action" value="remove">
             <div class="product-picker" data-product-picker="remove">
@@ -1002,7 +1002,7 @@ body.email-sending-active .email-sending-overlay {
             Δεν υπάρχουν πελάτες με καταχωρημένο email.
         </p>
         {% else %}
-        <form method="post" action="{% url 'products:product_warehouse_email' %}" id="emailWarehouseForm" autocomplete="off">
+        <form method="post" action="{% url 'products:product_warehouse_email' %}" id="emailWarehouseForm" autocomplete="off" novalidate>
             {% csrf_token %}
             <p class="email-modal-description">
                 Επιλέξτε παραλήπτη από τη λίστα πελατών. Θα σταλεί PDF με τα τρέχοντα φιλτραρισμένα προϊόντα της αποθήκης.
@@ -1257,7 +1257,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function selectProduct(item) {
-            productSelect.value = String(item.id);
+            const value = String(item.id);
+            if (!Array.prototype.some.call(productSelect.options, function(option) {
+                return option.value === value;
+            })) {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = item.label;
+                productSelect.appendChild(option);
+            }
+            productSelect.value = value;
             searchInput.value = item.label;
             results.hidden = true;
             updateSelectedStockNote();
@@ -1296,6 +1305,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         searchInput.addEventListener('focus', function() {
+            searchInput.removeAttribute('readonly');
             renderResults(filterProducts(searchInput.value));
         });
 
@@ -1443,18 +1453,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function openAddProductModal() {
         if (!addProductModal) return;
+        ensureAddPicker();
 
         const preserveForm = addProductForm
             && addProductForm.dataset.preserveForm === 'true';
         if (!preserveForm) {
             resetAddProductForm();
-        } else if (warehouseProductSearch) {
-            warehouseProductSearch.removeAttribute('readonly');
         }
 
         updateCompleteDetailsVisibility();
         addProductModal.hidden = false;
         if (warehouseProductSearch) {
+            warehouseProductSearch.removeAttribute('readonly');
             warehouseProductSearch.focus();
         }
     }
@@ -1523,17 +1533,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function openRemoveProductModal() {
         if (!removeProductModal) return;
+        ensureRemovePicker();
 
         const preserveForm = removeProductForm
             && removeProductForm.dataset.preserveForm === 'true';
         if (!preserveForm) {
             resetRemoveProductForm();
-        } else if (removeWarehouseProductSearch) {
-            removeWarehouseProductSearch.removeAttribute('readonly');
         }
 
         removeProductModal.hidden = false;
         if (removeWarehouseProductSearch) {
+            removeWarehouseProductSearch.removeAttribute('readonly');
             removeWarehouseProductSearch.focus();
         }
     }
@@ -1567,7 +1577,14 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCompleteDetailsVisibility();
     }
 
-    if (document.getElementById('catalog-products-data')) {
+    let addPickerInitialized = false;
+    let removePickerInitialized = false;
+
+    function ensureAddPicker() {
+        if (addPickerInitialized || !document.getElementById('catalog-products-data')) {
+            return;
+        }
+        addPickerInitialized = true;
         initProductPicker({
             pickerSelector: '[data-product-picker="add"]',
             searchInputId: 'warehouseProductSearch',
@@ -1580,7 +1597,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    if (document.getElementById('warehouse-products-data')) {
+    function ensureRemovePicker() {
+        if (removePickerInitialized || !document.getElementById('warehouse-products-data')) {
+            return;
+        }
+        removePickerInitialized = true;
         initProductPicker({
             pickerSelector: '[data-product-picker="remove"]',
             searchInputId: 'removeWarehouseProductSearch',
@@ -1591,6 +1612,13 @@ document.addEventListener('DOMContentLoaded', function() {
             productsDataId: 'warehouse-products-data',
             mode: 'remove',
         });
+    }
+
+    if (addProductModal && !addProductModal.hidden) {
+        ensureAddPicker();
+    }
+    if (removeProductModal && !removeProductModal.hidden) {
+        ensureRemovePicker();
     }
 
     const editStockModal = document.getElementById('editStockModal');
@@ -1794,6 +1822,7 @@ document.addEventListener('DOMContentLoaded', function() {
         emailWarehouseBtn.addEventListener('click', function() {
             updateEmailFilterFields();
             resetEmailCustomerSearch();
+            ensureEmailPicker();
             if (emailModal) {
                 emailModal.hidden = false;
             }
@@ -1827,7 +1856,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    if (document.getElementById('customers-email-data') && emailWarehouseForm) {
+    let emailPickerInitialized = false;
+    function ensureEmailPicker() {
+        if (emailPickerInitialized) {
+            return;
+        }
+        if (!document.getElementById('customers-email-data') || !emailWarehouseForm) {
+            return;
+        }
+        emailPickerInitialized = true;
         const emailPicker = document.querySelector('[data-product-picker="email"]');
         const emailSearchInput = document.getElementById('emailCustomerSearch');
         const emailCustomerSelect = document.getElementById('id_email_customer');
@@ -1866,7 +1903,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             function selectCustomer(item) {
-                emailCustomerSelect.value = String(item.id);
+                const value = String(item.id);
+                if (!Array.prototype.some.call(emailCustomerSelect.options, function(option) {
+                    return option.value === value;
+                })) {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = item.label;
+                    emailCustomerSelect.appendChild(option);
+                }
+                emailCustomerSelect.value = value;
                 emailSearchInput.value = item.label;
                 emailResults.hidden = true;
             }

@@ -65,13 +65,12 @@ def _get_catalog_products_data():
             })
 
     products = []
-    for product in FinishedProduct.objects.order_by('name').only('code', 'name'):
+    for product in FinishedProduct.objects.order_by('name'):
         stocks = stock_by_product.get(product.pk, {
             ProductStock.STAGE_SKELETON: None,
             'complete_stocks': [],
         })
-        complete_stocks = stocks.get('complete_stocks', [])
-        payload = {
+        products.append({
             'id': product.pk,
             'code': product.code,
             'name': product.name,
@@ -79,10 +78,8 @@ def _get_catalog_products_data():
             'stocks': {
                 ProductStock.STAGE_SKELETON: stocks.get(ProductStock.STAGE_SKELETON),
             },
-        }
-        if complete_stocks:
-            payload['complete_stocks'] = complete_stocks
-        products.append(payload)
+            'complete_stocks': stocks.get('complete_stocks', []),
+        })
     return products
 
 
