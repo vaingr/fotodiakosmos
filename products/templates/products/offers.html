@@ -2,6 +2,11 @@
 
 {% block title %}Προσφορές{% endblock %}
 
+{% block extra_head %}
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+{% endblock %}
+
 {% block content %}
 <style>
     .content-wrapper {
@@ -45,9 +50,10 @@
 <div class="offers-section">
     <div class="offers-section-header">
         <h2><i class="fas fa-list"></i> Προσφορές</h2>
-        <form method="get" class="offers-search-form">
+        <form method="get" class="offers-search-form" id="offersSearchForm">
             <input type="search"
                    name="search"
+                   id="offersSearchInput"
                    class="offers-search-input"
                    placeholder="Αναζήτηση με αριθμό προσφοράς ή όνομα πελάτη..."
                    value="{{ search_query }}"
@@ -55,80 +61,18 @@
             <button type="submit" class="btn btn-secondary btn-sm">
                 <i class="fas fa-search"></i> Αναζήτηση
             </button>
-            {% if search_query %}
-            <a href="{% url 'products:offers' %}" class="btn btn-secondary btn-sm">
+            <a href="{% url 'products:offers' %}"
+               class="btn btn-secondary btn-sm"
+               id="offersClearSearch"
+               {% if not search_query %}hidden{% endif %}>
                 <i class="fas fa-times"></i> Καθαρισμός
             </a>
-            {% endif %}
         </form>
     </div>
 
-    {% if offers %}
-    <div class="table-wrapper">
-        <table class="offers-table">
-            <thead>
-                <tr>
-                    <th>Αριθμός</th>
-                    <th>Πελάτης</th>
-                    <th>Ημ/νία</th>
-                    <th>Σύνολο (με ΦΠΑ)</th>
-                    <th>Δημιουργός</th>
-                    <th>Ενέργειες</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for offer in offers %}
-                <tr>
-                    <td>{{ offer.offer_number }}</td>
-                    <td>{{ offer.customer.display_name }}</td>
-                    <td>{{ offer.created_at|date:"d/m/Y H:i" }}</td>
-                    <td>{{ offer.grand_total_amount|floatformat:2 }} €</td>
-                    <td>{{ offer.created_by.username|default:"—" }}</td>
-                    <td>
-                        <div class="table-actions">
-                            <a href="{% url 'products:offer_edit' offer.pk %}"
-                               class="btn btn-warning btn-sm btn-icon-action"
-                               title="Επεξεργασία"
-                               aria-label="Επεξεργασία">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <a href="{% url 'products:offer_print' offer.pk %}"
-                               class="btn btn-secondary btn-sm btn-icon-action"
-                               title="Προεπίσκοπηση"
-                               aria-label="Προεπίσκοπηση"
-                               target="_blank"
-                               rel="noopener">
-                                <i class="fas fa-print"></i>
-                            </a>
-                            <a href="{% url 'task_scheduling' %}?from_offer={{ offer.pk }}"
-                               class="btn btn-primary btn-sm btn-icon-action"
-                               title="Μετασχηματισμός σε Εργασία"
-                               aria-label="Μετασχηματισμός σε Εργασία">
-                                <i class="fas fa-hammer"></i>
-                            </a>
-                            <a href="{% url 'products:offer_delete' offer.pk %}"
-                               class="btn btn-danger btn-sm btn-icon-action"
-                               title="Διαγραφή"
-                               aria-label="Διαγραφή">
-                                <i class="fas fa-trash"></i>
-                            </a>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div id="offersList" data-list-version="{{ list_version }}">
+        {% include 'products/_offers_list.html' %}
     </div>
-    {% else %}
-    <div class="empty-state">
-        <i class="fas fa-file-invoice"></i>
-        {% if search_query %}
-        <p>Δεν βρέθηκαν προσφορές για «{{ search_query }}».</p>
-        {% else %}
-        <p>Δεν υπάρχουν προσφορές ακόμα.</p>
-        {% endif %}
-    </div>
-    {% endif %}
 </div>
 
 <style>
@@ -340,4 +284,105 @@
     color: var(--accent);
 }
 </style>
+<script>
+(function() {
+    const listEl = document.getElementById('offersList');
+    const searchForm = document.getElementById('offersSearchForm');
+    const searchInput = document.getElementById('offersSearchInput');
+    const clearBtn = document.getElementById('offersClearSearch');
+    const offersUrl = "{% url 'products:offers' %}";
+    if (!listEl) return;
+
+    let currentVersion = listEl.dataset.listVersion || '';
+    let syncRequestId = 0;
+
+    function currentSearch() {
+        return (searchInput && searchInput.value ? searchInput.value : '').trim();
+    }
+
+    function updateClearButton(query) {
+        if (!clearBtn) return;
+        clearBtn.hidden = !query;
+    }
+
+    function refreshOffersList(query, updateHistory) {
+        const requestId = ++syncRequestId;
+        const params = new URLSearchParams();
+        params.set('live', '1');
+        if (query) {
+            params.set('search', query);
+        }
+        const qs = params.toString();
+        return fetch(offersUrl + '?' + qs, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+            cache: 'no-store',
+        }).then(function(response) {
+            if (!response.ok) {
+                throw new Error('offers refresh failed');
+            }
+            return response.json();
+        }).then(function(data) {
+            if (requestId !== syncRequestId) return;
+            if (data.html !== undefined) {
+                listEl.innerHTML = data.html;
+            }
+            if (data.version) {
+                currentVersion = data.version;
+                listEl.dataset.listVersion = data.version;
+            }
+            updateClearButton(query);
+            if (updateHistory) {
+                const historyQs = query ? ('search=' + encodeURIComponent(query)) : '';
+                const nextUrl = historyQs ? window.location.pathname + '?' + historyQs : window.location.pathname;
+                window.history.replaceState({}, '', nextUrl);
+            }
+        }).catch(function() {});
+    }
+
+    function checkOffersVersion() {
+        if (document.hidden) return;
+        fetch(offersUrl + '?version=1', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+            cache: 'no-store',
+        }).then(function(response) {
+            if (!response.ok) throw new Error('offers version failed');
+            return response.json();
+        }).then(function(data) {
+            if (data.version && data.version !== currentVersion) {
+                refreshOffersList(currentSearch(), false);
+            }
+        }).catch(function() {});
+    }
+
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            refreshOffersList(currentSearch(), true);
+        });
+    }
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function(event) {
+            event.preventDefault();
+            if (searchInput) searchInput.value = '';
+            refreshOffersList('', true);
+        });
+    }
+
+    setInterval(checkOffersVersion, 2000);
+
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            checkOffersVersion();
+        }
+    });
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            checkOffersVersion();
+        }
+    });
+    window.addEventListener('focus', checkOffersVersion);
+})();
+</script>
 {% endblock %}

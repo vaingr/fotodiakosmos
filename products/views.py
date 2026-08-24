@@ -1,10 +1,12 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.cache import never_cache
 from django.core.paginator import Paginator
 from django.db.models.deletion import ProtectedError
-from django.db.models import OuterRef, Q, Subquery
+from django.db.models import Count, Max, OuterRef, Q, Subquery, Sum
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 from email_utils import get_email_settings, is_email_configured, send_email_with_attachment
@@ -29,7 +31,7 @@ from .forms import (
     get_offer_email_recipients,
     _format_warehouse_stock_label,
 )
-from .models import FinishedProduct, Offer, OfferSettings, ProductStock, ProductStockMovement
+from .models import FinishedProduct, Offer, OfferItem, OfferSettings, ProductStock, ProductStockMovement
 from .pdf_utils import generate_offer_pdf, generate_warehouse_pdf
 
 
@@ -781,8 +783,33 @@ def product_warehouse_email(request):
     return redirect('products:product_warehouse')
 
 
+def _get_offers_live_version():
+    stats = Offer.objects.aggregate(
+        total=Count('pk'),
+        max_id=Max('pk'),
+        latest=Max('created_at'),
+        amount=Sum('total_amount'),
+        customers=Sum('customer_id'),
+    )
+    item_stats = OfferItem.objects.aggregate(
+        total=Count('pk'),
+        max_id=Max('pk'),
+    )
+    latest_ts = int(stats['latest'].timestamp()) if stats['latest'] else 0
+    amount = stats['amount'] or 0
+    customers = stats['customers'] or 0
+    return (
+        f"{stats['total']}-{stats['max_id'] or 0}-{latest_ts}-"
+        f"{amount}-{customers}-{item_stats['total']}-{item_stats['max_id'] or 0}"
+    )
+
+
+@never_cache
 @require_module_perm('perm_offers')
 def offers(request):
+    if request.GET.get('version') == '1':
+        return JsonResponse({'version': _get_offers_live_version()})
+
     offer_list = (
         Offer.objects
         .select_related('customer', 'created_by')
@@ -798,10 +825,23 @@ def offers(request):
             | Q(customer__last_name__icontains=search_query)
         )
 
-    return render(request, 'products/offers.html', {
+    context = {
         'offers': offer_list,
         'search_query': search_query,
-    })
+        'list_version': _get_offers_live_version(),
+    }
+    if request.GET.get('live') == '1':
+        return JsonResponse({
+            'html': render_to_string(
+                'products/_offers_list.html',
+                context,
+                request=request,
+            ),
+            'version': context['list_version'],
+        })
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render(request, 'products/_offers_list.html', context)
+    return render(request, 'products/offers.html', context)
 
 
 @require_module_perm('perm_offers')

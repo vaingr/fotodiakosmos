@@ -1,0 +1,66 @@
+{% if offers %}
+<div class="table-wrapper">
+    <table class="offers-table">
+        <thead>
+            <tr>
+                <th>Αριθμός</th>
+                <th>Πελάτης</th>
+                <th>Ημ/νία</th>
+                <th>Σύνολο (με ΦΠΑ)</th>
+                <th>Δημιουργός</th>
+                <th>Ενέργειες</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for offer in offers %}
+            <tr>
+                <td>{{ offer.offer_number }}</td>
+                <td>{{ offer.customer.display_name }}</td>
+                <td>{{ offer.created_at|date:"d/m/Y H:i" }}</td>
+                <td>{{ offer.grand_total_amount|floatformat:2 }} €</td>
+                <td>{{ offer.created_by.username|default:"—" }}</td>
+                <td>
+                    <div class="table-actions">
+                        <a href="{% url 'products:offer_edit' offer.pk %}"
+                           class="btn btn-warning btn-sm btn-icon-action"
+                           title="Επεξεργασία"
+                           aria-label="Επεξεργασία">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'products:offer_print' offer.pk %}"
+                           class="btn btn-secondary btn-sm btn-icon-action"
+                           title="Προεπίσκοπηση"
+                           aria-label="Προεπίσκοπηση"
+                           target="_blank"
+                           rel="noopener">
+                            <i class="fas fa-print"></i>
+                        </a>
+                        <a href="{% url 'task_scheduling' %}?from_offer={{ offer.pk }}"
+                           class="btn btn-primary btn-sm btn-icon-action"
+                           title="Μετασχηματισμός σε Εργασία"
+                           aria-label="Μετασχηματισμός σε Εργασία">
+                            <i class="fas fa-hammer"></i>
+                        </a>
+                        <a href="{% url 'products:offer_delete' offer.pk %}"
+                           class="btn btn-danger btn-sm btn-icon-action"
+                           title="Διαγραφή"
+                           aria-label="Διαγραφή">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-file-invoice"></i>
+    {% if search_query %}
+    <p>Δεν βρέθηκαν προσφορές για «{{ search_query }}».</p>
+    {% else %}
+    <p>Δεν υπάρχουν προσφορές ακόμα.</p>
+    {% endif %}
+</div>
+{% endif %}
