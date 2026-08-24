@@ -214,23 +214,6 @@
         }
         .text-right { text-align: right; }
         .text-center { text-align: center; }
-        .print-table.has-discount {
-            font-size: 0.7rem;
-        }
-        .discount-col {
-            white-space: nowrap;
-            text-align: right;
-            min-width: 4.5rem;
-        }
-        .print-discount-pct {
-            display: block;
-            font-weight: 600;
-        }
-        .print-discount-amt {
-            display: block;
-            color: #555;
-            font-size: 0.6875rem;
-        }
         .grand-total {
             margin-top: 0.35rem;
             margin-bottom: 0.35rem;
@@ -426,7 +409,7 @@
             </div>
         </div>
 
-        <table class="print-table{% if offer.has_discount %} has-discount{% endif %}" data-block="products" id="sourceProductsTable">
+        <table class="print-table" data-block="products" id="sourceProductsTable">
             <thead>
                 <tr>
                     <th>#</th>
@@ -435,9 +418,6 @@
                     <th>Προϊόν</th>
                     <th class="text-center">Ποσότητα</th>
                     <th class="text-right">Τιμή μονάδας</th>
-                    {% if offer.has_discount %}
-                    <th class="discount-col">Έκπτωση</th>
-                    {% endif %}
                     <th class="text-right">Σύνολο</th>
                 </tr>
             </thead>
@@ -463,16 +443,6 @@
                     <td>{{ item.product.name }}</td>
                     <td class="text-center">{{ item.quantity }}</td>
                     <td class="text-right">{{ item.unit_price|floatformat:2 }} €</td>
-                    {% if offer.has_discount %}
-                    <td class="discount-col">
-                        {% if item.discount_percent %}
-                        <span class="print-discount-pct">{{ item.discount_percent|floatformat:2 }}%</span>
-                        <span class="print-discount-amt">−{{ item.discount_amount|floatformat:2 }} €</span>
-                        {% else %}
-                        —
-                        {% endif %}
-                    </td>
-                    {% endif %}
                     <td class="text-right">{{ item.line_total|floatformat:2 }} €</td>
                 </tr>
                 {% endfor %}
@@ -481,10 +451,6 @@
 
         <div class="content-block" data-block="total">
             <div class="offer-totals">
-                {% if offer.has_discount %}
-                <div>Αξία: {{ offer.gross_subtotal_amount|floatformat:2 }} €</div>
-                <div>Έκπτωση: −{{ offer.discount_total_amount|floatformat:2 }} €</div>
-                {% endif %}
                 <div>Υποσύνολο: {{ offer.subtotal_amount|floatformat:2 }} €</div>
                 <div>ΦΠΑ ({{ offer.customer.get_vat_rate_label }}): {{ offer.vat_amount|floatformat:2 }} €</div>
                 <div class="grand-total">
@@ -661,7 +627,7 @@
     function createProductTable() {
         const sourceTable = document.getElementById('sourceProductsTable');
         const table = document.createElement('table');
-        table.className = sourceTable.className || 'print-table';
+        table.className = 'print-table';
         table.innerHTML = sourceTable.querySelector('thead').outerHTML;
         const tbody = document.createElement('tbody');
         table.appendChild(tbody);

@@ -150,7 +150,7 @@
 }
 .offer-row-fields {
     display: grid;
-    grid-template-columns: 2fr 0.7fr 0.85fr 0.7fr 0.9fr auto;
+    grid-template-columns: 2fr 0.8fr 0.9fr 0.9fr auto;
     gap: 1rem;
     align-items: end;
 }
@@ -404,13 +404,6 @@
                             <div class="error-message">{{ item_form.unit_price.errors.0 }}</div>
                             {% endif %}
                         </div>
-                        <div class="form-group discount-field">
-                            <label>{{ item_form.discount_percent.label }}</label>
-                            {{ item_form.discount_percent }}
-                            {% if item_form.discount_percent.errors %}
-                            <div class="error-message">{{ item_form.discount_percent.errors.0 }}</div>
-                            {% endif %}
-                        </div>
                         <div class="form-group total-field">
                             <label>Σύνολο γραμμής</label>
                             <div class="line-total-display">{% if item_form.instance.pk %}{{ item_form.instance.line_total|floatformat:2 }} €{% else %}0,00 €{% endif %}</div>
@@ -442,14 +435,6 @@
             {% endif %}
 
             <div class="offer-totals-panel">
-                <div class="offer-total-line" id="offerGrossLine"{% if not offer or not offer.has_discount %} hidden{% endif %}>
-                    <span>Αξία:</span>
-                    <strong id="offerGrossTotal">{% if offer %}{{ offer.gross_subtotal_amount|floatformat:2 }} €{% else %}0,00 €{% endif %}</strong>
-                </div>
-                <div class="offer-total-line" id="offerDiscountLine"{% if not offer or not offer.has_discount %} hidden{% endif %}>
-                    <span>Έκπτωση:</span>
-                    <strong id="offerDiscountTotal">{% if offer %}−{{ offer.discount_total_amount|floatformat:2 }} €{% else %}−0,00 €{% endif %}</strong>
-                </div>
                 <div class="offer-total-line">
                     <span>Υποσύνολο:</span>
                     <strong id="offerSubtotal">{% if offer %}{{ offer.subtotal_amount|floatformat:2 }} €{% else %}0,00 €{% endif %}</strong>
@@ -510,47 +495,24 @@ document.addEventListener('DOMContentLoaded', function() {
         return parseFloat(String(value).replace(',', '.')) || 0;
     }
 
-    function roundMoney(value) {
-        return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
-    }
-
-    function getRowAmounts(row) {
+    function updateLineTotal(row) {
         const quantity = parseNumber(row.querySelector('.offer-quantity-input')?.value);
         const price = parseNumber(row.querySelector('.offer-price-input')?.value);
-        let discount = parseNumber(row.querySelector('.offer-discount-input')?.value);
-        if (discount < 0) discount = 0;
-        if (discount > 100) discount = 100;
-        const gross = roundMoney(quantity * price);
-        const discountAmount = roundMoney(gross * discount / 100);
-        return {
-            gross: gross,
-            discountAmount: discountAmount,
-            net: roundMoney(gross - discountAmount),
-        };
-    }
-
-    function updateLineTotal(row) {
         const display = row.querySelector('.line-total-display');
         if (display) {
-            display.textContent = formatMoney(getRowAmounts(row).net);
+            display.textContent = formatMoney(quantity * price);
         }
         updateGrandTotal();
     }
 
     function updateGrandTotal() {
-        let grossTotal = 0;
-        let discountTotal = 0;
         let subtotal = 0;
         formsetContainer.querySelectorAll('[data-form-row]').forEach(function(row) {
             if (row.style.display === 'none') return;
-            const amounts = getRowAmounts(row);
-            grossTotal += amounts.gross;
-            discountTotal += amounts.discountAmount;
-            subtotal += amounts.net;
+            const quantity = parseNumber(row.querySelector('.offer-quantity-input')?.value);
+            const price = parseNumber(row.querySelector('.offer-price-input')?.value);
+            subtotal += quantity * price;
         });
-        grossTotal = roundMoney(grossTotal);
-        discountTotal = roundMoney(discountTotal);
-        subtotal = roundMoney(subtotal);
 
         const customerSelect = document.getElementById('id_offer_customer');
         let vatRate = 24;
@@ -565,21 +527,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        const vatAmount = roundMoney(subtotal * vatRate / 100);
-        const grandTotal = roundMoney(subtotal + vatAmount);
-        const hasDiscount = discountTotal > 0;
+        const vatAmount = subtotal * vatRate / 100;
+        const grandTotal = subtotal + vatAmount;
 
-        const grossLine = document.getElementById('offerGrossLine');
-        const discountLine = document.getElementById('offerDiscountLine');
-        const grossTotalEl = document.getElementById('offerGrossTotal');
-        const discountTotalEl = document.getElementById('offerDiscountTotal');
         const subtotalEl = document.getElementById('offerSubtotal');
         const vatRateLabelEl = document.getElementById('offerVatRateLabel');
         const vatAmountEl = document.getElementById('offerVatAmount');
-        if (grossLine) grossLine.hidden = !hasDiscount;
-        if (discountLine) discountLine.hidden = !hasDiscount;
-        if (grossTotalEl) grossTotalEl.textContent = formatMoney(grossTotal);
-        if (discountTotalEl) discountTotalEl.textContent = '−' + formatMoney(discountTotal);
         if (subtotalEl) subtotalEl.textContent = formatMoney(subtotal);
         if (vatRateLabelEl) vatRateLabelEl.textContent = vatLabel;
         if (vatAmountEl) vatAmountEl.textContent = formatMoney(vatAmount);
@@ -587,7 +540,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function bindTotals(row) {
-        row.querySelectorAll('.offer-quantity-input, .offer-price-input, .offer-discount-input').forEach(function(input) {
+        row.querySelectorAll('.offer-quantity-input, .offer-price-input').forEach(function(input) {
             input.addEventListener('input', function() {
                 updateLineTotal(row);
             });
@@ -898,6 +851,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <select class="offer-product-select" name="items-${index}-product" id="id_items-${index}-product">
                                 <option value="">Επιλέξτε προϊόν...</option>
                             </select>
+                            </select>
                         </div>
                     </div>
                     <div class="form-group quantity-field">
@@ -909,11 +863,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <label>Τιμή μονάδας (€)</label>
                         <input type="number" class="form-control offer-price-input" name="items-${index}-unit_price"
                                id="id_items-${index}-unit_price" min="0" step="0.01" value="0">
-                    </div>
-                    <div class="form-group discount-field">
-                        <label>Έκπτωση %</label>
-                        <input type="number" class="form-control offer-discount-input" name="items-${index}-discount_percent"
-                               id="id_items-${index}-discount_percent" min="0" max="100" step="0.01" placeholder="0">
                     </div>
                     <div class="form-group total-field">
                         <label>Σύνολο γραμμής</label>
@@ -937,9 +886,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const wrapper = document.createElement('div');
             wrapper.innerHTML = buildOfferRowHtml(index).trim();
             const row = wrapper.firstElementChild;
-            if (!row) {
-                return;
-            }
             formsetContainer.appendChild(row);
             totalFormsInput.value = String(index + 1);
             initProductPickers(row);

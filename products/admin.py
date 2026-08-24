@@ -6,7 +6,6 @@ from .models import FinishedProduct, Offer, OfferItem, OfferBankAccount, OfferSe
 class OfferItemInline(admin.TabularInline):
     model = OfferItem
     extra = 0
-    fields = ('product', 'quantity', 'unit_price', 'discount_percent')
 
 
 @admin.register(Offer)

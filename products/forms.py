@@ -585,12 +585,11 @@ class OfferItemForm(forms.ModelForm):
 
     class Meta:
         model = OfferItem
-        fields = ['product', 'quantity', 'unit_price', 'discount_percent']
+        fields = ['product', 'quantity', 'unit_price']
         labels = {
             'product': 'Προϊόν',
             'quantity': 'Ποσότητα',
             'unit_price': 'Τιμή μονάδας (€)',
-            'discount_percent': 'Έκπτωση %',
         }
         widgets = {
             'product': forms.Select(attrs={'class': 'offer-product-select'}),
@@ -603,13 +602,6 @@ class OfferItemForm(forms.ModelForm):
                 'class': 'form-control offer-price-input',
                 'min': 0,
                 'step': '0.01',
-            }),
-            'discount_percent': forms.NumberInput(attrs={
-                'class': 'form-control offer-discount-input',
-                'min': 0,
-                'max': 100,
-                'step': '0.01',
-                'placeholder': '0',
             }),
         }
 
@@ -626,18 +618,8 @@ class OfferItemForm(forms.ModelForm):
         self.fields['product'].error_messages['required'] = 'Επιλέξτε προϊόν.'
         self.fields['quantity'].error_messages['required'] = 'Η ποσότητα είναι υποχρεωτική.'
         self.fields['unit_price'].error_messages['required'] = 'Η τιμή είναι υποχρεωτική.'
-        self.fields['discount_percent'].required = False
-        self.fields['discount_percent'].initial = 0
-        self.fields['discount_percent'].error_messages['min_value'] = 'Η έκπτωση δεν μπορεί να είναι αρνητική.'
-        self.fields['discount_percent'].error_messages['max_value'] = 'Η έκπτωση δεν μπορεί να είναι πάνω από 100%.'
         if not self.instance.pk:
             self.empty_permitted = True
-
-    def clean_discount_percent(self):
-        value = self.cleaned_data.get('discount_percent')
-        if value in (None, ''):
-            return 0
-        return value
 
     def has_changed(self):
         if self.instance.pk:
