@@ -205,6 +205,8 @@
             border: 1px solid #ccc;
             display: block;
             margin: 0 auto;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
         .print-photo-empty {
             color: #999;
@@ -281,7 +283,12 @@
             vertical-align: bottom;
         }
         #printSource {
-            display: none;
+            position: absolute;
+            left: -10000px;
+            top: 0;
+            width: 190mm;
+            visibility: hidden;
+            pointer-events: none;
         }
         body.pdf-export {
             background: #fff;
@@ -369,9 +376,11 @@
             <div class="customer-box">
                 {% if offer_settings.logo %}
                 <div class="offer-logo-wrap">
-                    <img src="{{ request.scheme }}://{{ request.get_host }}{{ offer_settings.logo.url }}"
+                    <img src="{{ offer_settings.logo.url }}"
                          alt="Λογότυπο"
-                         class="offer-logo">
+                         class="offer-logo"
+                         loading="eager"
+                         decoding="sync">
                 </div>
                 {% endif %}
                 <div class="customer-box-layout">
@@ -418,9 +427,14 @@
                     <td>{{ forloop.counter }}</td>
                     <td class="photo-col">
                         {% if item.product.photo %}
-                        <img src="{{ request.scheme }}://{{ request.get_host }}{{ item.product.photo.url }}"
+                        <img src="{{ item.product.photo.url }}"
                              alt="{{ item.product.name }}"
-                             class="print-product-thumb">
+                             class="print-product-thumb"
+                             width="40"
+                             height="40"
+                             loading="eager"
+                             decoding="sync"
+                             onerror="this.onerror=null;var s=document.createElement('span');s.className='print-photo-empty';s.textContent='—';this.replaceWith(s);">
                         {% else %}
                         <span class="print-photo-empty">—</span>
                         {% endif %}
@@ -747,18 +761,39 @@
         });
 
         updatePageNumbers();
-        document.documentElement.setAttribute('data-pages-ready', 'true');
     }
 
-    function waitForImages() {
-        const images = Array.from(document.querySelectorAll('#printSource img'));
+    function waitForImages(root) {
+        if (!root) {
+            return Promise.resolve();
+        }
+        const images = Array.from(root.querySelectorAll('img[src]'));
+        if (!images.length) {
+            return Promise.resolve();
+        }
         return Promise.all(images.map(function(img) {
-            if (img.complete) {
-                return Promise.resolve();
-            }
             return new Promise(function(resolve) {
-                img.addEventListener('load', resolve, { once: true });
-                img.addEventListener('error', resolve, { once: true });
+                var settled = false;
+                function finish() {
+                    if (settled) {
+                        return;
+                    }
+                    settled = true;
+                    resolve();
+                }
+                img.addEventListener('load', finish, { once: true });
+                img.addEventListener('error', finish, { once: true });
+                if (img.complete && img.naturalWidth > 0) {
+                    finish();
+                    return;
+                }
+                if (img.complete) {
+                    var src = img.getAttribute('src');
+                    if (src) {
+                        img.src = src;
+                    }
+                }
+                setTimeout(finish, 8000);
             });
         }));
     }
@@ -767,14 +802,25 @@
     function scheduleLayout() {
         clearTimeout(layoutTimer);
         layoutTimer = setTimeout(function() {
-            waitForImages().then(buildPages);
+            const source = document.getElementById('printSource');
+            const pages = document.getElementById('printPages');
+            waitForImages(source).then(function() {
+                buildPages();
+                return waitForImages(pages);
+            }).then(function() {
+                buildPages();
+                document.documentElement.setAttribute('data-pages-ready', 'true');
+            });
         }, 50);
     }
 
     document.addEventListener('DOMContentLoaded', scheduleLayout);
     window.addEventListener('load', scheduleLayout);
     window.addEventListener('resize', scheduleLayout);
-    window.addEventListener('beforeprint', buildPages);
+    window.addEventListener('beforeprint', function() {
+        buildPages();
+        document.documentElement.setAttribute('data-pages-ready', 'true');
+    });
     </script>
 </body>
 </html>

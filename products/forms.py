@@ -518,6 +518,8 @@ class ProductWarehouseEmailForm(forms.Form):
 
 
 class OfferForm(forms.ModelForm):
+    use_required_attribute = False
+
     customer = forms.ModelChoiceField(
         queryset=Customer.objects.none(),
         label='Πελάτης',
@@ -566,6 +568,7 @@ class OfferForm(forms.ModelForm):
             'last_name', 'first_name', 'company_name',
         )
         self.fields['customer'].label_from_instance = lambda customer: customer.display_name()
+        self.fields['customer'].error_messages['required'] = 'Επιλέξτε πελάτη.'
         self.fields['notes'].required = False
 
         if not self.instance.pk:
@@ -578,6 +581,8 @@ class OfferForm(forms.ModelForm):
 
 
 class OfferItemForm(forms.ModelForm):
+    use_required_attribute = False
+
     class Meta:
         model = OfferItem
         fields = ['product', 'quantity', 'unit_price']
@@ -602,14 +607,56 @@ class OfferItemForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['product'].queryset = FinishedProduct.objects.order_by('name')
+        products = FinishedProduct.objects.order_by('name')
         self.fields['product'].label_from_instance = lambda product: f'{product.code} - {product.name}'
+        if self.is_bound:
+            self.fields['product'].queryset = products
+        elif getattr(self.instance, 'product_id', None):
+            self.fields['product'].queryset = products.filter(pk=self.instance.product_id)
+        else:
+            self.fields['product'].queryset = products.none()
+        self.fields['product'].error_messages['required'] = 'Επιλέξτε προϊόν.'
+        self.fields['quantity'].error_messages['required'] = 'Η ποσότητα είναι υποχρεωτική.'
+        self.fields['unit_price'].error_messages['required'] = 'Η τιμή είναι υποχρεωτική.'
+        if not self.instance.pk:
+            self.empty_permitted = True
+
+    def has_changed(self):
+        if self.instance.pk:
+            return super().has_changed()
+        product_name = self.add_prefix('product')
+        if self.is_bound:
+            product_value = str(self.data.get(product_name) or '').strip()
+        else:
+            product_value = str(self.initial.get('product') or '').strip()
+        if not product_value:
+            return False
+        return super().has_changed()
+
+
+class BaseOfferItemFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        has_item = False
+        for form in self.forms:
+            if self._should_delete_form(form):
+                continue
+            if form.cleaned_data and form.cleaned_data.get('product'):
+                has_item = True
+                break
+        if not has_item:
+            raise forms.ValidationError(
+                'Προσθέστε τουλάχιστον ένα προϊόν στην προσφορά.',
+            )
 
 
 OfferItemFormSet = inlineformset_factory(
     Offer,
     OfferItem,
     form=OfferItemForm,
+    formset=BaseOfferItemFormSet,
     extra=0,
     min_num=1,
     validate_min=True,

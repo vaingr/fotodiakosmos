@@ -65,12 +65,13 @@ def _get_catalog_products_data():
             })
 
     products = []
-    for product in FinishedProduct.objects.order_by('name'):
+    for product in FinishedProduct.objects.order_by('name').only('code', 'name'):
         stocks = stock_by_product.get(product.pk, {
             ProductStock.STAGE_SKELETON: None,
             'complete_stocks': [],
         })
-        products.append({
+        complete_stocks = stocks.get('complete_stocks', [])
+        payload = {
             'id': product.pk,
             'code': product.code,
             'name': product.name,
@@ -78,9 +79,23 @@ def _get_catalog_products_data():
             'stocks': {
                 ProductStock.STAGE_SKELETON: stocks.get(ProductStock.STAGE_SKELETON),
             },
-            'complete_stocks': stocks.get('complete_stocks', []),
-        })
+        }
+        if complete_stocks:
+            payload['complete_stocks'] = complete_stocks
+        products.append(payload)
     return products
+
+
+def _get_offer_catalog_data():
+    return [
+        {
+            'id': product.pk,
+            'code': product.code,
+            'name': product.name,
+            'label': f'{product.code} - {product.name}',
+        }
+        for product in FinishedProduct.objects.order_by('name').only('code', 'name')
+    ]
 
 
 def _get_warehouse_products_data():
@@ -809,6 +824,10 @@ def offer_create(request):
                 f'Η προσφορά {offer.offer_number} δημιουργήθηκε επιτυχώς.',
             )
             return redirect('products:offers')
+        messages.error(
+            request,
+            'Η προσφορά δεν αποθηκεύτηκε. Ελέγξτε τα στοιχεία και δοκιμάστε ξανά.',
+        )
     else:
         form = OfferForm()
         formset = OfferItemFormSet(prefix='items')
@@ -816,7 +835,7 @@ def offer_create(request):
     return render(request, 'products/offer_form.html', {
         'form': form,
         'formset': formset,
-        'catalog_products': _get_catalog_products_data(),
+        'catalog_products': _get_offer_catalog_data(),
         'customers_data': _get_all_customers_data(),
         'page_title': 'Νέα Προσφορά',
         'is_edit': False,
@@ -843,6 +862,10 @@ def offer_edit(request, pk):
                 f'Η προσφορά {offer.offer_number} ενημερώθηκε επιτυχώς.',
             )
             return redirect('products:offers')
+        messages.error(
+            request,
+            'Η προσφορά δεν αποθηκεύτηκε. Ελέγξτε τα στοιχεία και δοκιμάστε ξανά.',
+        )
     else:
         form = OfferForm(instance=offer)
         formset = OfferItemFormSet(instance=offer, prefix='items')
@@ -850,7 +873,7 @@ def offer_edit(request, pk):
     return render(request, 'products/offer_form.html', {
         'form': form,
         'formset': formset,
-        'catalog_products': _get_catalog_products_data(),
+        'catalog_products': _get_offer_catalog_data(),
         'customers_data': _get_all_customers_data(),
         'page_title': f'Επεξεργασία Προσφοράς {offer.offer_number}',
         'offer': offer,

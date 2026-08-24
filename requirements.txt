@@ -2,7 +2,11 @@
 Django==5.0.2
 
 # HTTP client (SMS API – sms_utils.py, customers/sms_utils.py)
-requests==2.31.0
+# 2.32.x υποστηρίζει επίσημα Python 3.12
+requests==2.32.5
+# Το reportlab τραβάει chardet χωρίς pin. Το requests δέχεται μόνο chardet<6,
+# αλλιώς βγαίνει RequestsDependencyWarning στο runserver.
+chardet==5.2.0
 
 # ImageField uploads (προϊόντα, λογότυπα προσφορών)
 Pillow==10.4.0

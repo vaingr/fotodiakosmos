@@ -212,6 +212,11 @@ def generate_offer_pdf(offer, request, contact_recipient=None):
             page = context.new_page()
             page.goto(print_url, wait_until='networkidle', timeout=60000)
             page.wait_for_selector('[data-pages-ready="true"]', timeout=60000)
+            page.wait_for_function(
+                """() => Array.from(document.querySelectorAll('#printPages img'))
+                    .every(img => img.complete)""",
+                timeout=60000,
+            )
             page.wait_for_timeout(300)
             pdf_bytes = page.pdf(
                 format='A4',
