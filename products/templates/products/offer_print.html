@@ -196,11 +196,13 @@
             background: #f3f4f6;
             font-weight: 700;
         }
-        .photo-col { width: 96px; text-align: center; }
+        .photo-col { width: 136px; text-align: center; }
         .print-product-thumb {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            object-position: center;
+            background: #fff;
             border-radius: 4px;
             border: 1px solid #ccc;
             display: block;
@@ -433,8 +435,8 @@
                         <img src="{{ item.product.photo.url }}"
                              alt="{{ item.product.name }}"
                              class="print-product-thumb"
-                             width="80"
-                             height="80"
+                             width="120"
+                             height="120"
                              loading="eager"
                              decoding="sync"
                              onerror="this.onerror=null;var s=document.createElement('span');s.className='print-photo-empty';s.textContent='—';this.replaceWith(s);">
