@@ -1,10 +1,11 @@
 {% load greek_date %}
+{% with print_task=tasks|first %}
 <!DOCTYPE html>
 <html lang="el">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Εκτύπωση Εργασιών</title>
+    <title>{% if single_task_print %}Εκτύπωση Εργασίας{% else %}Εκτύπωση Εργασιών{% endif %}</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -46,6 +47,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.8125rem;
+            table-layout: fixed;
         }
         .print-table th,
         .print-table td {
@@ -61,6 +63,11 @@
         .print-table tbody tr:nth-child(even) {
             background: #fafafa;
         }
+        .col-num { width: 2.4rem; text-align: center; }
+        .col-customer { width: 16%; }
+        .col-date { width: 11%; white-space: nowrap; }
+        .col-priority { width: 8%; }
+        .col-status { width: 10%; }
         .print-task-type {
             font-weight: 700;
             margin-bottom: 0.35rem;
@@ -121,6 +128,134 @@
             font-size: 0.8125rem;
             color: #555;
         }
+
+        .print-task-sheet {
+            width: 100%;
+        }
+        .print-task-sheet + .print-task-sheet {
+            margin-top: 1.75rem;
+            padding-top: 1.25rem;
+            border-top: 2px solid #222;
+            break-before: page;
+            page-break-before: always;
+        }
+        .print-task-sheet-index {
+            margin: 0 0 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #555;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .print-task-meta {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr 0.7fr 0.9fr;
+            border: 1px solid #ccc;
+            background: #f8f8f8;
+            margin-bottom: 1.15rem;
+        }
+        .print-task-meta > div {
+            padding: 0.55rem 0.75rem;
+            border-right: 1px solid #ccc;
+            min-width: 0;
+        }
+        .print-task-meta > div:last-child { border-right: none; }
+        .print-task-meta-label {
+            display: block;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 0.2rem;
+        }
+        .print-task-meta-value {
+            font-size: 0.92rem;
+            font-weight: 700;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+        .print-products-title {
+            margin: 0 0 0.75rem;
+            font-size: 1rem;
+        }
+        .print-products-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.85rem 1rem;
+            width: 100%;
+        }
+        .print-task-sheet .print-task-product {
+            margin-top: 0;
+            width: auto;
+            min-width: 0;
+            align-items: stretch;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .print-task-sheet .print-product-thumb,
+        .print-task-sheet .print-photo-empty {
+            width: 100%;
+            height: auto;
+            max-width: 100%;
+            aspect-ratio: 1;
+            object-fit: contain;
+        }
+        .print-task-sheet .print-task-product-text {
+            max-width: none;
+            display: block;
+            font-size: 13pt;
+            font-weight: 700;
+            color: #111;
+            line-height: 1.35;
+        }
+        .print-task-sheet .print-task-product-text .print-task-description {
+            margin-top: 0.3rem;
+            font-size: 12pt;
+            font-weight: 700;
+            color: #111;
+        }
+        .print-task-notes {
+            margin-top: 1rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #ddd;
+        }
+        .print-task-notes-label {
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        @page {
+            size: A4 portrait;
+            margin: 14mm 12mm 16mm 12mm;
+
+            @top-left {
+                content: "{% if single_task_print %}{{ print_task.get_task_type_display }} · {{ print_task.customer.display_name|addslashes|safe }}{% else %}Προγραμματισμός Εργασιών{% endif %}";
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 8pt;
+                color: #444;
+            }
+            @top-right {
+                content: "Σελίδα " counter(page) " από " counter(pages);
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 10pt;
+                font-weight: 700;
+                color: #111;
+            }
+            @bottom-left {
+                content: "{{ printed_at|date:'d/m/Y H:i' }}";
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 8pt;
+                color: #666;
+            }
+            @bottom-right {
+                content: "Σελίδα " counter(page) " από " counter(pages);
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 10pt;
+                font-weight: 700;
+                color: #111;
+            }
+        }
         @media print {
             body { padding: 0; }
             .print-toolbar { display: none !important; }
@@ -135,11 +270,50 @@
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
+            .print-task-meta {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                grid-template-columns: 1.4fr 1fr 0.7fr 0.9fr !important;
+            }
+            .print-task-meta > div {
+                border-right: 1px solid #ccc !important;
+                border-bottom: none !important;
+            }
+            .print-task-meta > div:last-child { border-right: none !important; }
+            .print-products-grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 6mm 8mm;
+            }
+            .print-task-sheet .print-task-product {
+                width: auto !important;
+            }
+            .print-task-sheet .print-product-thumb,
+            .print-task-sheet .print-photo-empty {
+                width: 100%;
+                max-width: 82mm;
+                height: 82mm;
+                object-fit: contain;
+            }
+            .print-task-sheet .print-task-product-text {
+                font-size: 13pt;
+                font-weight: 700;
+                color: #111;
+            }
+            .print-task-sheet .print-task-product-text .print-task-description {
+                font-size: 12pt;
+                font-weight: 700;
+                color: #111;
+            }
         }
-        @media (max-width: 768px) {
+        @media screen and (max-width: 768px) {
             body { padding: 1rem; }
             .print-toolbar { flex-direction: column; }
             .btn { width: 100%; justify-content: center; }
+            .print-task-meta {
+                grid-template-columns: 1fr;
+            }
+            .print-task-meta > div { border-right: none; border-bottom: 1px solid #ccc; }
+            .print-task-meta > div:last-child { border-bottom: none; }
         }
     </style>
 </head>
@@ -154,78 +328,86 @@
         <div class="print-meta">
             <p>Ημερομηνία εκτύπωσης: {{ printed_at|date:"d/m/Y H:i" }}</p>
             {% if filter_label %}<p>{% if single_task_print %}{{ filter_label }}{% else %}Φίλτρο: {{ filter_label }}{% endif %}</p>{% endif %}
-            <p>Σύνολο εργασιών: {{ total_count }}</p>
+            {% if not single_task_print %}<p>Σύνολο εργασιών: {{ total_count }}</p>{% endif %}
         </div>
     </div>
 
-    <table class="print-table">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Είδος / Προϊόντα</th>
-                <th>Πελάτης</th>
-                <th>Ημερομηνία</th>
-                <th>Προτεραιότητα</th>
-                <th>Κατάσταση</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for task in tasks %}
-            <tr>
-                <td class="text-center">{{ forloop.counter }}</td>
-                <td>
-                    <div class="print-task-type">{{ task.get_task_type_display }}</div>
-                    {% if task.items.all %}
-                        {% for item in task.items.all %}
-                        <div class="print-task-product{% if item.item_status == 'completed' or item.item_status == 'shipped' %} is-completed{% elif item.item_status == 'reserved' %} is-reserved{% endif %}">
-                            {% if item.product.photo %}
-                            <img src="{{ request.scheme }}://{{ request.get_host }}{{ item.product.photo.url }}"
-                                 alt="{{ item.product.name }}"
-                                 class="print-product-thumb"
-                                 width="240"
-                                 height="240">
-                            {% else %}
-                            <span class="print-photo-empty">—</span>
-                            {% endif %}
-                            <span class="print-task-product-text">
-                                {{ item.product.code }} - {{ item.product.name }} x{{ item.quantity }}
-                                {% if item.item_status == 'reserved' %}
-                                <strong> · Δεσμευμένο</strong>
-                                {% elif item.item_status == 'shipped' %}
-                                <strong> · Έχει αποσταλεί</strong>
-                                {% elif item.has_active_reservation %}
-                                <strong> · Δεσμευμένο</strong>
-                                {% endif %}
-                                {% if item.notes %}
-                                <div class="print-task-description">{{ item.notes }}</div>
-                                {% endif %}
-                            </span>
-                        </div>
-                        {% endfor %}
-                    {% endif %}
-                    {% if task.description %}
-                    <div class="print-task-description">{{ task.description }}</div>
-                    {% endif %}
-                </td>
-                <td>{{ task.customer.display_name }}</td>
-                <td class="{% if task.is_overdue %}print-overdue{% endif %}">
-                    {{ task.scheduled_date|greek_date }}
-                    {% if task.is_overdue %}<div>Καθυστέρηση</div>{% endif %}
-                </td>
-                <td>{{ task.get_priority_display }}</td>
-                <td>{{ task.get_status_display }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" class="text-center">Δεν υπάρχουν εργασίες για το επιλεγμένο φίλτρο.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    {% if tasks %}
+        {% for task in tasks %}
+        <div class="print-task-sheet">
+            {% if not single_task_print %}
+            <div class="print-task-sheet-index">Εργασία {{ forloop.counter }} από {{ total_count }}</div>
+            {% endif %}
+            <div class="print-task-meta">
+                <div>
+                    <span class="print-task-meta-label">Πελάτης</span>
+                    <span class="print-task-meta-value">{{ task.customer.display_name }}</span>
+                </div>
+                <div>
+                    <span class="print-task-meta-label">Ημερομηνία</span>
+                    <span class="print-task-meta-value{% if task.is_overdue %} print-overdue{% endif %}">
+                        {{ task.scheduled_date|greek_date }}
+                        {% if task.is_overdue %}<div>Καθυστέρηση</div>{% endif %}
+                    </span>
+                </div>
+                <div>
+                    <span class="print-task-meta-label">Προτεραιότητα</span>
+                    <span class="print-task-meta-value">{{ task.get_priority_display }}</span>
+                </div>
+                <div>
+                    <span class="print-task-meta-label">Κατάσταση</span>
+                    <span class="print-task-meta-value">{{ task.get_status_display }}</span>
+                </div>
+            </div>
 
-    <div class="print-footer">
-        Σύνολο εγγραφών: {{ total_count }}
-    </div>
+            <h2 class="print-products-title">{{ task.get_task_type_display }} — Προϊόντα</h2>
+            {% if task.items.all %}
+            <div class="print-products-grid">
+                {% for item in task.items.all %}
+                <div class="print-task-product{% if item.item_status == 'completed' or item.item_status == 'shipped' %} is-completed{% elif item.item_status == 'reserved' %} is-reserved{% endif %}">
+                    {% if item.product.photo %}
+                    <img src="{{ request.scheme }}://{{ request.get_host }}{{ item.product.photo.url }}"
+                         alt="{{ item.product.name }}"
+                         class="print-product-thumb"
+                         width="180"
+                         height="180">
+                    {% else %}
+                    <span class="print-photo-empty">—</span>
+                    {% endif %}
+                    <span class="print-task-product-text">
+                        {{ item.product.code }} - {{ item.product.name }} x{{ item.quantity }}
+                        {% if item.item_status == 'reserved' %}
+                        <strong> · Δεσμευμένο</strong>
+                        {% elif item.item_status == 'shipped' %}
+                        <strong> · Έχει αποσταλεί</strong>
+                        {% elif item.has_active_reservation %}
+                        <strong> · Δεσμευμένο</strong>
+                        {% endif %}
+                        {% if item.notes %}
+                        <div class="print-task-description">{{ item.notes }}</div>
+                        {% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if task.description %}
+            <div class="print-task-notes">
+                <div class="print-task-notes-label">Περιγραφή</div>
+                <div class="print-task-description">{{ task.description }}</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% if not single_task_print %}
+        <div class="print-footer">
+            Σύνολο εγγραφών: {{ total_count }}
+        </div>
+        {% endif %}
+    {% else %}
+    <p class="text-center">Δεν υπάρχουν εργασίες για το επιλεγμένο φίλτρο.</p>
+    {% endif %}
 
     <script>
     function closePrintPage() {
@@ -237,3 +419,4 @@
     </script>
 </body>
 </html>
+{% endwith %}
