@@ -184,6 +184,11 @@ class ScheduledTaskItem(models.Model):
         validators=[MinValueValidator(1)],
         verbose_name='Ποσότητα',
     )
+    notes = models.CharField(
+        max_length=500,
+        blank=True,
+        verbose_name='Σημειώσεις',
+    )
     item_status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,

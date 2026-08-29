@@ -157,7 +157,7 @@
                 <td>
                     {% for entry in row.entries %}
                     <span class="print-task-entry">
-                        {{ entry.customer }} · {{ entry.scheduled_date|greek_date }} · x{{ entry.quantity }}
+                        {{ entry.customer }} · {{ entry.scheduled_date|greek_date }} · x{{ entry.quantity }}{% if entry.notes %} · {{ entry.notes }}{% endif %}
                     </span>
                     {% endfor %}
                 </td>

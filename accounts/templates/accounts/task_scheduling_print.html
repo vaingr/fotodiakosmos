@@ -196,6 +196,9 @@
                                 {% elif item.has_active_reservation %}
                                 <strong> · Δεσμευμένο</strong>
                                 {% endif %}
+                                {% if item.notes %}
+                                <div class="print-task-description">{{ item.notes }}</div>
+                                {% endif %}
                             </span>
                         </div>
                         {% endfor %}

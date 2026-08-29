@@ -301,6 +301,7 @@ def _get_task_detail_dict(task):
                     item.product.photo.url if item.product.photo else ''
                 ),
                 'quantity': item.quantity,
+                'notes': item.notes or '',
                 'item_status': item.item_status,
                 'status_label': item.get_status_label(),
                 'is_reserved': item.is_reserved(),
@@ -517,6 +518,7 @@ def _get_pending_construction_products():
             'quantity': item.quantity,
             'customer': item.task.customer.display_name(),
             'scheduled_date': item.task.scheduled_date,
+            'notes': item.notes,
         })
 
     return sorted(grouped.values(), key=lambda row: row['product'].name.lower())

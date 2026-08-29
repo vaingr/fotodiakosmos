@@ -52,7 +52,7 @@ class TaskCreateForm(forms.ModelForm):
 class TaskItemForm(forms.ModelForm):
     class Meta:
         model = ScheduledTaskItem
-        fields = ['product', 'quantity', 'reserved_stock']
+        fields = ['product', 'quantity', 'notes', 'reserved_stock']
         widgets = {
             'product': forms.Select(attrs={
                 'class': 'task-product-select',
@@ -61,6 +61,11 @@ class TaskItemForm(forms.ModelForm):
                 'class': 'task-quantity-input',
                 'min': 1,
                 'step': 1,
+            }),
+            'notes': forms.TextInput(attrs={
+                'class': 'task-item-notes-input',
+                'maxlength': 500,
+                'placeholder': 'Προαιρετικές σημειώσεις...',
             }),
             'reserved_stock': forms.HiddenInput(attrs={
                 'class': 'task-reserved-stock-input',
@@ -73,6 +78,7 @@ class TaskItemForm(forms.ModelForm):
         self.fields['product'].empty_label = 'Επιλέξτε προϊόν...'
         self.fields['product'].required = False
         self.fields['quantity'].required = False
+        self.fields['notes'].required = False
         self.fields['reserved_stock'].queryset = ProductStock.objects.filter(
             construction_stage=ProductStock.STAGE_COMPLETE,
         )

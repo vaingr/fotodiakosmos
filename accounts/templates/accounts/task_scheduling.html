@@ -443,7 +443,8 @@
         background: rgba(245, 158, 11, 0.12);
     }
 
-    .task-quantity-input {
+    .task-quantity-input,
+    .task-item-notes-input {
         width: 100%;
         padding: 0.65rem 0.75rem;
         border: 1px solid var(--card-border);
@@ -452,6 +453,15 @@
         color: var(--text-primary);
         font-family: inherit;
         font-size: 0.95rem;
+    }
+
+    .task-item-notes-input {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    .task-item-notes-label {
+        margin-top: 0.5rem;
     }
 
     .task-product-select {
@@ -959,6 +969,13 @@
         font-size: 0.85rem;
     }
 
+    .task-detail-item-notes {
+        display: block;
+        margin-top: 0.2rem;
+        font-style: italic;
+        white-space: pre-wrap;
+    }
+
     .item-status-options {
         display: flex;
         flex-wrap: wrap;
@@ -1115,7 +1132,7 @@
 
     .task-product-line {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 0.5rem;
     }
 
@@ -1154,9 +1171,23 @@
         min-width: 0;
     }
 
+    .task-product-line-notes {
+        display: block;
+        margin-top: 0.1rem;
+        font-size: 0.78rem;
+        font-weight: 400;
+        font-style: italic;
+        color: var(--text-secondary);
+    }
+
     .task-product-line.task-product-completed .task-product-line-text {
         color: #4ade80;
         font-weight: 600;
+    }
+
+    .task-product-line.task-product-completed .task-product-line-notes {
+        color: var(--text-secondary);
+        font-weight: 400;
     }
 
     .task-badge {
@@ -1426,6 +1457,9 @@
                                         {% elif item.has_active_reservation %}
                                         <span class="task-reserved-badge"><i class="fas fa-lock"></i> Δεσμευμένο</span>
                                         {% endif %}
+                                        {% if item.notes %}
+                                        <span class="task-product-line-notes">{{ item.notes }}</span>
+                                        {% endif %}
                                     </span>
                                 </div>
                                 {% endfor %}
@@ -1688,6 +1722,11 @@
                                 {% if item_form.product.errors %}
                                 <div class="error-message">{{ item_form.product.errors.0 }}</div>
                                 {% endif %}
+                                <label class="task-item-notes-label">Σημειώσεις</label>
+                                {{ item_form.notes }}
+                                {% if item_form.notes.errors %}
+                                <div class="error-message">{{ item_form.notes.errors.0 }}</div>
+                                {% endif %}
                             </div>
                             <div>
                                 <label>Ποσότητα</label>
@@ -1902,6 +1941,9 @@
                 + '<div class="task-detail-item-info">'
                 + '<strong>' + item.product_code + ' - ' + item.product_name + '</strong>'
                 + '<span>Ποσότητα: ' + item.quantity + '</span>'
+                + (item.notes
+                    ? '<span class="task-detail-item-notes">' + escapeTaskHtml(item.notes) + '</span>'
+                    : '')
                 + reservedMeta
                 + '</div>'
                 + '</div>'
@@ -1965,7 +2007,11 @@
                     + '<div class="task-product-line' + completedClass + '">'
                     + '<div class="task-product-line-photo">' + photoHtml + '</div>'
                     + '<span class="task-product-line-text">' + item.product_code
-                    + ' - ' + item.product_name + ' x' + item.quantity + statusBadge + '</span>'
+                    + ' - ' + item.product_name + ' x' + item.quantity + statusBadge
+                    + (item.notes
+                        ? '<span class="task-product-line-notes">' + escapeTaskHtml(item.notes) + '</span>'
+                        : '')
+                    + '</span>'
                     + '</div>';
             }).join('');
         }
@@ -2273,6 +2319,37 @@
         }
     }
 
+    function escapeTaskHtml(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function getRowNotes(row) {
+        const input = row.querySelector('.task-item-notes-input, [name$="-notes"]');
+        return input ? String(input.value || '') : '';
+    }
+
+    function mergeTaskItemNotes(existing, incoming) {
+        const current = String(existing || '').trim();
+        const next = String(incoming || '').trim();
+        if (!current) return next;
+        if (!next || current === next) return current;
+        return current + ' · ' + next;
+    }
+
+    function buildTaskItemNotesFieldHtml(index, notes) {
+        return ''
+            + '<label class="task-item-notes-label">Σημειώσεις</label>'
+            + '<input type="text" class="task-item-notes-input"'
+            + ' name="items-' + index + '-notes" id="id_items-' + index + '-notes"'
+            + ' maxlength="500" placeholder="Προαιρετικές σημειώσεις..."'
+            + ' value="' + escapeTaskHtml(notes || '') + '">';
+    }
+
     function resetTaskProductsFormset() {
         const formset = document.getElementById('taskProductsFormset');
         const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS');
@@ -2296,6 +2373,7 @@
                                 ${options}
                             </select>
                         </div>
+                        ${buildTaskItemNotesFieldHtml(0, '')}
                     </div>
                     <div>
                         <label>Ποσότητα</label>
@@ -2898,7 +2976,7 @@
             });
         }
 
-        function buildExpandedTaskRowHtml(index, productId, quantity, reservedStockId, itemId, extraAttrs) {
+        function buildExpandedTaskRowHtml(index, productId, quantity, reservedStockId, itemId, extraAttrs, notes) {
             const options = window.taskProductsData.map(function(item) {
                 const selected = String(item.id) === String(productId) ? ' selected' : '';
                 return '<option value="' + item.id + '"' + selected + '>' + item.label + '</option>';
@@ -2932,6 +3010,7 @@
                                     ${options}
                                 </select>
                             </div>
+                            ${buildTaskItemNotesFieldHtml(index, notes || '')}
                         </div>
                         <div>
                             <label>Ποσότητα</label>
@@ -2968,6 +3047,7 @@
                 '',
                 group.itemIds[0] || '',
                 extraAttrs,
+                group.notes || '',
             );
         }
 
@@ -3038,6 +3118,7 @@
                         allocations: {},
                         itemIds: itemIds,
                         itemStatus: 'shipped',
+                        notes: getRowNotes(row),
                     });
                     return;
                 }
@@ -3048,6 +3129,7 @@
                         totalQty: 0,
                         allocations: {},
                         itemIds: [],
+                        notes: '',
                     };
                     groupOrder.push(productId);
                 } else {
@@ -3056,6 +3138,7 @@
 
                 const group = groups[productId];
                 group.totalQty += qty;
+                group.notes = mergeTaskItemNotes(group.notes, getRowNotes(row));
                 itemIds.forEach(function(id) {
                     if (group.itemIds.indexOf(id) === -1) {
                         group.itemIds.push(id);
@@ -3116,6 +3199,7 @@
                         + (group.itemIds.length
                             ? ' data-original-item-ids="' + group.itemIds.join(',') + '"'
                             : ''),
+                    group.notes || '',
                 );
                 index += 1;
             });
@@ -3171,6 +3255,7 @@
                         manufactureQty: totalQty,
                         itemId: itemId,
                         shipped: true,
+                        notes: getRowNotes(row),
                     });
                     continue;
                 }
@@ -3190,6 +3275,7 @@
                     manufactureQty: totalQty - reservedTotal,
                     itemId: itemId,
                     shipped: false,
+                    notes: getRowNotes(row),
                 });
             }
 
@@ -3225,6 +3311,7 @@
                         '',
                         takeId(plan.itemId),
                         ' data-item-status="shipped"',
+                        plan.notes || '',
                     );
                     index += 1;
                     return;
@@ -3239,6 +3326,8 @@
                         entry.qty,
                         entry.stockId,
                         rowId,
+                        '',
+                        plan.notes || '',
                     );
                     index += 1;
                 });
@@ -3250,6 +3339,8 @@
                         plan.manufactureQty,
                         '',
                         rowId,
+                        '',
+                        plan.notes || '',
                     );
                     index += 1;
                 }
@@ -3377,6 +3468,7 @@
                                     ${options}
                                 </select>
                             </div>
+                            ${buildTaskItemNotesFieldHtml(index, '')}
                         </div>
                         <div>
                             <label>Ποσότητα</label>

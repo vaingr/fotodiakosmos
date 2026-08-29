@@ -8,7 +8,7 @@ admin.site.register(Subscription)
 class ScheduledTaskItemInline(admin.TabularInline):
     model = ScheduledTaskItem
     extra = 0
-    fields = ('product', 'quantity', 'item_status')
+    fields = ('product', 'quantity', 'notes', 'item_status')
 
 
 @admin.register(ScheduledTask)
