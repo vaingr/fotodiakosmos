@@ -10,10 +10,14 @@ def get_complete_stocks_for_product(product_id, exclude_item=None):
         ProductStock.objects
         .filter(
             product_id=product_id,
-            construction_stage=ProductStock.STAGE_COMPLETE,
+            construction_stage__in=[
+                ProductStock.STAGE_COMPLETE,
+                ProductStock.STAGE_SKELETON,
+            ],
             quantity__gt=0,
         )
-        .order_by('carpet', 'bulb', 'dimensions')
+        .select_related('product')
+        .order_by('construction_stage', 'carpet', 'bulb', 'dimensions')
     )
     result = []
     for stock in stocks:
@@ -33,7 +37,12 @@ def get_complete_stocks_for_product(product_id, exclude_item=None):
             'bulb': stock.bulb,
             'photocell': stock.photocell,
             'dimensions': stock.dimensions,
+            'stage': stock.construction_stage,
+            'stage_label': stock.get_construction_stage_display(),
             'label': stock.variant_label(),
+            'product_code': stock.product.code,
+            'product_name': stock.product.name,
+            'product_label': f'{stock.product.code} - {stock.product.name}',
             'quantity': stock.quantity,
             'reserved_quantity': stock.reserved_quantity,
             'available': available,

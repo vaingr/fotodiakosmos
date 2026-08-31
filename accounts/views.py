@@ -686,7 +686,10 @@ def task_scheduling(request):
                     'message': message,
                 })
             if task.status == ScheduledTask.STATUS_COMPLETED:
-                messages.success(request, 'Όλα τα προϊόντα ολοκληρώθηκαν. Η εργασία θεωρείται ολοκληρωμένη.')
+                messages.success(
+                    request,
+                    'Όλα τα προϊόντα αποστάλθηκαν. Η εργασία θεωρείται ολοκληρωμένη.',
+                )
             else:
                 messages.success(request, 'Οι καταστάσεις των προϊόντων ενημερώθηκαν.')
             return _redirect_task_dashboard(

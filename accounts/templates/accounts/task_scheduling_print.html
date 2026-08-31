@@ -377,11 +377,11 @@
                     <span class="print-task-product-text">
                         {{ item.product.code }} - {{ item.product.name }} x{{ item.quantity }}
                         {% if item.item_status == 'reserved' %}
-                        <strong> · Δεσμευμένο</strong>
+                        <strong> · Από αποθήκη</strong>
                         {% elif item.item_status == 'shipped' %}
                         <strong> · Έχει αποσταλεί</strong>
                         {% elif item.has_active_reservation %}
-                        <strong> · Δεσμευμένο</strong>
+                        <strong> · Από αποθήκη</strong>
                         {% endif %}
                         {% if item.notes %}
                         <div class="print-task-description">{{ item.notes }}</div>

@@ -296,17 +296,21 @@
         font-size: 0.92rem;
     }
 
+    #taskProductsFormset {
+        display: flex;
+        flex-direction: column;
+        gap: 1.35rem;
+    }
+
     .task-product-row {
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px dashed var(--card-border);
-    }
-
-    .task-product-row:last-of-type {
-        border-bottom: none;
-        padding-bottom: 0;
+        gap: 0.65rem;
+        padding: 0.95rem;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 0.7rem;
+        background: var(--bg-primary);
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.4);
     }
 
     .task-product-row-fields {
@@ -331,6 +335,24 @@
         background: var(--bg-primary);
     }
 
+    .task-stock-reserve-panel.has-available {
+        border-color: #4ade80;
+        background: rgba(34, 197, 94, 0.42);
+    }
+
+    .task-stock-reserve-panel.has-available .task-stock-reserve-title {
+        color: #bbf7d0;
+    }
+
+    .task-stock-reserve-panel.has-available .task-stock-reserve-option {
+        border-color: rgba(74, 222, 128, 0.55);
+        background: rgba(15, 23, 42, 0.28);
+    }
+
+    .task-stock-reserve-panel.has-available .task-stock-reserve-option-text span {
+        color: #d1fae5;
+    }
+
     .task-stock-reserve-panel[hidden] {
         display: none !important;
     }
@@ -350,7 +372,7 @@
 
     .task-stock-reserve-option {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 72px;
+        grid-template-columns: minmax(0, 1fr) 118px;
         gap: 0.65rem;
         align-items: center;
         padding: 0.5rem 0.65rem;
@@ -376,21 +398,78 @@
         font-size: 0.78rem;
     }
 
+    .task-stock-reserve-qty-wrap {
+        display: flex;
+        align-items: stretch;
+        gap: 0.3rem;
+        min-width: 0;
+    }
+
     .task-stock-reserve-qty {
         width: 100%;
-        padding: 0.4rem 0.45rem;
+        min-width: 0;
+        padding: 0.4rem 0.25rem;
         border: 1px solid var(--card-border);
         border-radius: 0.4rem;
         background: var(--card-bg);
         color: var(--text-primary);
         font-family: inherit;
-        font-size: 0.85rem;
+        font-size: 0.95rem;
+        font-weight: 600;
         text-align: center;
+        -moz-appearance: textfield;
+        appearance: textfield;
+    }
+
+    .task-stock-reserve-qty::-webkit-inner-spin-button,
+    .task-stock-reserve-qty::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
     }
 
     .task-stock-reserve-qty:focus {
         outline: none;
         border-color: var(--accent);
+    }
+
+    .task-stock-reserve-qty-btns {
+        display: flex;
+        flex-direction: column;
+        width: 36px;
+        flex-shrink: 0;
+        overflow: hidden;
+        border-radius: 0.4rem;
+        box-shadow: 0 0 0 1px rgba(5, 46, 22, 0.2);
+    }
+
+    .task-stock-reserve-qty-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        margin: 0;
+        padding: 0;
+        min-height: 20px;
+        background: #facc15;
+        color: #422006;
+        cursor: pointer;
+        font-size: 1.5rem;
+        line-height: 1;
+    }
+
+    .task-stock-reserve-qty-btn + .task-stock-reserve-qty-btn {
+        border-top: 1px solid rgba(66, 32, 6, 0.28);
+    }
+
+    .task-stock-reserve-qty-btn:hover,
+    .task-stock-reserve-qty-btn:focus-visible {
+        background: #fde047;
+        outline: none;
+    }
+
+    .task-stock-reserve-qty-btn:active {
+        background: #eab308;
     }
 
     .task-stock-reserve-summary {
@@ -1451,11 +1530,11 @@
                                     <span class="task-product-line-text">
                                         {{ item.product.code }} - {{ item.product.name }} x{{ item.quantity }}
                                         {% if item.item_status == 'reserved' %}
-                                        <span class="task-reserved-badge"><i class="fas fa-lock"></i> Δεσμευμένο</span>
+                                        <span class="task-reserved-badge"><i class="fas fa-lock"></i> Από αποθήκη</span>
                                         {% elif item.item_status == 'shipped' %}
                                         <span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί</span>
                                         {% elif item.has_active_reservation %}
-                                        <span class="task-reserved-badge"><i class="fas fa-lock"></i> Δεσμευμένο</span>
+                                        <span class="task-reserved-badge"><i class="fas fa-lock"></i> Από αποθήκη</span>
                                         {% endif %}
                                         {% if item.notes %}
                                         <span class="task-product-line-notes">{{ item.notes }}</span>
@@ -1830,6 +1909,7 @@
     const taskDetailSaveStatus = document.getElementById('taskDetailSaveStatus');
     const taskSchedulingUrl = '{% url "task_scheduling" %}';
     const taskSchedulingPrintUrl = '{% url "task_scheduling_print" %}';
+    const offersListUrl = '{% url "products:offers" %}';
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
     const openTaskDetailId = '{{ open_task_detail_id|escapejs }}';
     let taskDetailSaveTimer = null;
@@ -1902,7 +1982,7 @@
                     + (item.reserved_label ? ': ' + item.reserved_label : '')
                     + '</span>'
                 : ((item.has_active_reservation || item.is_reserved || item.reserved_label)
-                    ? '<span class="task-reserved-badge"><i class="fas fa-lock"></i> Δεσμευμένο'
+                    ? '<span class="task-reserved-badge"><i class="fas fa-lock"></i> Από αποθήκη'
                         + (item.reserved_label ? ': ' + item.reserved_label : '')
                         + '</span>'
                     : '');
@@ -1999,7 +2079,7 @@
                     : '<div class="task-product-line-thumb-placeholder" title="Χωρίς φωτογραφία"><i class="fas fa-image"></i></div>';
                 let statusBadge = '';
                 if (item.item_status === 'reserved' || item.has_active_reservation) {
-                    statusBadge = ' <span class="task-reserved-badge"><i class="fas fa-lock"></i> Δεσμευμένο</span>';
+                    statusBadge = ' <span class="task-reserved-badge"><i class="fas fa-lock"></i> Από αποθήκη</span>';
                 } else if (item.item_status === 'shipped') {
                     statusBadge = ' <span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί</span>';
                 }
@@ -2484,19 +2564,59 @@
         }
     }
 
-    function closeTaskModal() {
-        if (taskModal) {
-            taskModal.hidden = true;
-            clearEditQueryFromUrl();
-            clearFromOfferQueryFromUrl();
-            if (taskCreateForm) {
-                taskCreateForm.dataset.preserveForm = 'false';
+    function taskModalOpenedViaNavigation() {
+        const url = new URL(window.location.href);
+        return url.searchParams.has('from_offer') || url.searchParams.has('edit');
+    }
+
+    function returnToPreviousPageFromTaskModal() {
+        const url = new URL(window.location.href);
+        const fromOffer = url.searchParams.has('from_offer');
+        if (document.referrer) {
+            try {
+                const referrer = new URL(document.referrer);
+                const currentWithoutHash = url.href.split('#')[0];
+                const referrerWithoutHash = referrer.href.split('#')[0];
+                if (referrer.origin === window.location.origin && referrerWithoutHash !== currentWithoutHash) {
+                    window.history.back();
+                    return;
+                }
+            } catch (e) {
+                // Fall through to the explicit destinations below.
             }
-            setTaskFormCreateMode();
-            resetCustomerPicker();
-            resetTaskDatePicker();
-            resetTaskProductsFormset();
         }
+        if (fromOffer) {
+            window.location.href = offersListUrl;
+            return;
+        }
+        closeTaskModalInPlace();
+    }
+
+    function closeTaskModalInPlace() {
+        if (!taskModal) {
+            return;
+        }
+        taskModal.hidden = true;
+        clearEditQueryFromUrl();
+        clearFromOfferQueryFromUrl();
+        if (taskCreateForm) {
+            taskCreateForm.dataset.preserveForm = 'false';
+        }
+        setTaskFormCreateMode();
+        resetCustomerPicker();
+        resetTaskDatePicker();
+        resetTaskProductsFormset();
+    }
+
+    function closeTaskModal() {
+        if (!taskModal) {
+            return;
+        }
+        if (taskModalOpenedViaNavigation()) {
+            returnToPreviousPageFromTaskModal();
+            return;
+        }
+        closeTaskModalInPlace();
     }
 
     function updateTaskProductsTitle() {
@@ -2817,7 +2937,7 @@
             }, 0);
             const manufactureQty = totalQty - reservedTotal;
             let html = ''
-                + '<span class="is-reserve-count">Δεσμευμένα: <strong>' + reservedTotal + '</strong></span>'
+                + '<span class="is-reserve-count">Απο αποθήκη: <strong>' + reservedTotal + '</strong></span>'
                 + '<span class="is-build-count">Προς κατασκευή: <strong>' + Math.max(manufactureQty, 0) + '</strong></span>';
             if (reservedTotal > totalQty) {
                 html += '<span class="is-error">Οι δεσμεύσεις υπερβαίνουν την ποσότητα (' + totalQty + ').</span>';
@@ -2832,16 +2952,20 @@
             const reservedInput = getRowReservedInput(row);
             if (!panel || !productSelect) return;
 
-            if (getSelectedTaskType() !== 'construction' || !productSelect.value) {
+            function hideTaskStockReservePanel() {
                 panel.hidden = true;
                 panel.innerHTML = '';
+                panel.classList.remove('has-available');
+            }
+
+            if (getSelectedTaskType() !== 'construction' || !productSelect.value) {
+                hideTaskStockReservePanel();
                 clearTaskStockReservation(row);
                 return;
             }
 
             if (row.dataset.itemStatus === 'shipped') {
-                panel.hidden = true;
-                panel.innerHTML = '';
+                hideTaskStockReservePanel();
                 return;
             }
 
@@ -2850,8 +2974,7 @@
             });
             const stocks = (product && product.complete_stocks) ? product.complete_stocks : [];
             if (!stocks.length) {
-                panel.hidden = true;
-                panel.innerHTML = '';
+                hideTaskStockReservePanel();
                 clearTaskStockReservation(row);
                 return;
             }
@@ -2904,24 +3027,52 @@
                     displayAvailable,
                     Math.max(0, totalQty - othersTotal),
                 );
+                const stageLabel = stock.stage_label
+                    || (stock.stage === 'skeleton' ? 'Σκελετός' : 'Ολοκληρωμένο');
+                const stageClass = stock.stage === 'skeleton' ? ' is-skeleton' : ' is-complete';
+                const hasVariantDetails = stock.label && stock.label !== 'Χωρίς λεπτομέρειες';
+                const productTitle = escapeTaskHtml(
+                    stock.product_label
+                    || (stock.product_code && stock.product_name
+                        ? stock.product_code + ' - ' + stock.product_name
+                        : '')
+                    || (product && product.label)
+                    || ''
+                );
+                const metaParts = [];
+                if (hasVariantDetails) {
+                    metaParts.push(escapeTaskHtml(stock.label));
+                }
+                metaParts.push(escapeTaskHtml(stageLabel));
+                metaParts.push('Διαθέσιμα: ' + displayAvailable);
                 optionsHtml += ''
-                    + '<div class="task-stock-reserve-option' + (currentQty > 0 ? ' is-active' : '') + '" data-stock-id="' + stockId + '">'
+                    + '<div class="task-stock-reserve-option' + (currentQty > 0 ? ' is-active' : '') + stageClass + '" data-stock-id="' + stockId + '">'
                     + '<div class="task-stock-reserve-option-text">'
-                    + '<strong>' + stock.label + '</strong>'
-                    + '<span>Διαθέσιμα: ' + displayAvailable + '</span>'
+                    + '<strong>' + productTitle + '</strong>'
+                    + '<span>' + metaParts.join(' · ') + '</span>'
                     + '</div>'
+                    + '<div class="task-stock-reserve-qty-wrap">'
                     + '<input type="number" class="task-stock-reserve-qty" min="0" step="1"'
                     + ' max="' + Math.max(maxForInput, 0) + '"'
                     + ' value="' + currentQty + '"'
                     + ' data-reserve-qty data-stock-id="' + stockId + '"'
                     + ' aria-label="Ποσότητα δέσμευσης">'
+                    + '<div class="task-stock-reserve-qty-btns">'
+                    + '<button type="button" class="task-stock-reserve-qty-btn" data-qty-step="1" aria-label="Αύξηση ποσότητας">▲</button>'
+                    + '<button type="button" class="task-stock-reserve-qty-btn" data-qty-step="-1" aria-label="Μείωση ποσότητας">▼</button>'
+                    + '</div>'
+                    + '</div>'
                     + '</div>';
             });
 
             panel.innerHTML = ''
-                + '<p class="task-stock-reserve-title">Δέσμευση από ολοκληρωμένα αποθήκης (ίδιος κωδικός · διαφορετικές παραλλαγές)</p>'
+                + '<p class="task-stock-reserve-title">ΥΠΑΡΧΟΥΝ ΤΑ ΠΑΡΑΚΑΤΩ ΣΤΗΝ ΑΠΟΘΗΚΗ. ΚΑΤΑΧΩΡΗΣΕ ΑΝ ΘΕΣ ΝΑ ΔΕΣΜΕΥΘΕΙ ΚΑΠΟΙΟ ΑΠΟ ΑΥΤΑ ΓΙΑ ΑΥΤΗ ΤΗΝ ΠΑΡΑΓΓΕΛΙΑ</p>'
                 + '<div class="task-stock-reserve-options">' + optionsHtml + '</div>'
                 + '<div class="task-stock-reserve-summary" data-reserve-summary></div>';
+            const hasAvailableStock = stocks.some(function(stock) {
+                return stockDisplayAvailable(stock) > 0;
+            });
+            panel.classList.toggle('has-available', hasAvailableStock);
             panel.hidden = false;
             updateTaskStockReserveSummary(row);
 
@@ -2974,6 +3125,21 @@
                     updateTaskStockReserveSummary(row);
                 });
             });
+        }
+
+        function stepTaskStockReserveQty(btn) {
+            const wrap = btn.closest('.task-stock-reserve-qty-wrap');
+            const input = wrap ? wrap.querySelector('[data-reserve-qty]') : null;
+            if (!input) return;
+            const step = parseInt(btn.getAttribute('data-qty-step'), 10) || 0;
+            const min = parseInt(input.min, 10);
+            const max = parseInt(input.max, 10);
+            let qty = (parseInt(input.value, 10) || 0) + step;
+            if (!isNaN(min) && qty < min) qty = min;
+            if (!isNaN(max) && qty > max) qty = max;
+            if (qty < 0) qty = 0;
+            input.value = String(qty);
+            input.dispatchEvent(new Event('input', { bubbles: true }));
         }
 
         function buildExpandedTaskRowHtml(index, productId, quantity, reservedStockId, itemId, extraAttrs, notes) {
@@ -3383,6 +3549,16 @@
                         updateTaskStockReservePanel(row);
                     });
                 }
+            });
+        }
+
+        if (taskProductsFormset && !taskProductsFormset.dataset.qtyStepBound) {
+            taskProductsFormset.dataset.qtyStepBound = '1';
+            taskProductsFormset.addEventListener('click', function(event) {
+                const btn = event.target.closest('[data-qty-step]');
+                if (!btn || !taskProductsFormset.contains(btn)) return;
+                event.preventDefault();
+                stepTaskStockReserveQty(btn);
             });
         }
 

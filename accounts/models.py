@@ -142,9 +142,10 @@ class ScheduledTask(models.Model):
         if not items:
             return
 
-        all_completed = all(item.is_finished() for item in items)
+        # Η εργασία μένει εκκρεμής όσο υπάρχει προϊόν που δεν έχει αποσταλεί.
+        all_shipped = all(item.is_shipped() for item in items)
         new_status = (
-            self.STATUS_COMPLETED if all_completed else self.STATUS_PENDING
+            self.STATUS_COMPLETED if all_shipped else self.STATUS_PENDING
         )
 
         if self.status == self.STATUS_CANCELLED:
@@ -238,3 +239,6 @@ class ScheduledTaskItem(models.Model):
 
     def is_finished(self):
         return self.item_status in (self.STATUS_COMPLETED, self.STATUS_SHIPPED)
+
+    def is_shipped(self):
+        return self.item_status == self.STATUS_SHIPPED

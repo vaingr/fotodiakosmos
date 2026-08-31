@@ -80,7 +80,10 @@ class TaskItemForm(forms.ModelForm):
         self.fields['quantity'].required = False
         self.fields['notes'].required = False
         self.fields['reserved_stock'].queryset = ProductStock.objects.filter(
-            construction_stage=ProductStock.STAGE_COMPLETE,
+            construction_stage__in=[
+                ProductStock.STAGE_COMPLETE,
+                ProductStock.STAGE_SKELETON,
+            ],
         )
         self.fields['reserved_stock'].required = False
 
@@ -103,8 +106,11 @@ class TaskItemForm(forms.ModelForm):
         if reserved_stock:
             if reserved_stock.product_id != product.pk:
                 self.add_error('reserved_stock', 'Το απόθεμα δεν ανήκει στο επιλεγμένο προϊόν.')
-            elif reserved_stock.construction_stage != ProductStock.STAGE_COMPLETE:
-                self.add_error('reserved_stock', 'Μόνο ολοκληρωμένα προϊόντα μπορούν να δεσμευτούν.')
+            elif reserved_stock.construction_stage not in (
+                ProductStock.STAGE_COMPLETE,
+                ProductStock.STAGE_SKELETON,
+            ):
+                self.add_error('reserved_stock', 'Μόνο ολοκληρωμένα ή σκελετοί μπορούν να δεσμευτούν.')
             else:
                 available = reserved_stock.available_quantity
                 if (
