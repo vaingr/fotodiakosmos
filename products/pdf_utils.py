@@ -3,7 +3,7 @@ from pathlib import Path
 
 from django.utils import timezone
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.pdfbase import pdfmetrics
@@ -67,11 +67,11 @@ def generate_warehouse_pdf(warehouse_items):
 
     doc = SimpleDocTemplate(
         buffer,
-        pagesize=A4,
-        leftMargin=1.5 * cm,
-        rightMargin=1.5 * cm,
-        topMargin=1.5 * cm,
-        bottomMargin=1.5 * cm,
+        pagesize=landscape(A4),
+        leftMargin=1.2 * cm,
+        rightMargin=1.2 * cm,
+        topMargin=1.2 * cm,
+        bottomMargin=1.2 * cm,
     )
 
     title_style = ParagraphStyle(
@@ -149,12 +149,13 @@ def generate_warehouse_pdf(warehouse_items):
             '', '', '', '', '', '', '', '', '', '', '',
         ])
 
+    # A4 landscape usable width ≈ 27.3cm with 1.2cm side margins
     table = Table(
         table_data,
         colWidths=[
-            0.6 * cm, 1.2 * cm, 1.6 * cm, 2.8 * cm, 1.6 * cm,
-            1.5 * cm, 1.5 * cm, 1.7 * cm, 1.7 * cm, 1.3 * cm,
-            1.5 * cm, 1.4 * cm,
+            1.2 * cm, 1.5 * cm, 2.1 * cm, 4.3 * cm, 2.1 * cm,
+            2.0 * cm, 2.0 * cm, 2.2 * cm, 2.2 * cm, 1.8 * cm,
+            2.0 * cm, 1.9 * cm,
         ],
         repeatRows=1,
     )

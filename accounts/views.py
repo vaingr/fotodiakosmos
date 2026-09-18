@@ -321,6 +321,11 @@ def _get_task_detail_dict(task):
                     if item.reserved_stock_id
                     else ''
                 ),
+                'reserved_stage_label': (
+                    item.reserved_stock.get_construction_stage_display()
+                    if item.reserved_stock_id
+                    else ''
+                ),
             }
             for item in task.items.select_related('product', 'reserved_stock')
         ],

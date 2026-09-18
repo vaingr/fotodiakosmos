@@ -84,6 +84,127 @@
             color: #2563eb;
             margin-bottom: 0.75rem;
         }
+        .email-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 900;
+            padding: 1rem;
+        }
+        .email-modal-overlay[hidden] {
+            display: none;
+        }
+        .email-modal {
+            width: 100%;
+            max-width: 520px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+            padding: 1.5rem;
+            color: #111;
+        }
+        .email-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .email-modal-header h3 {
+            margin: 0;
+            font-size: 1.125rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .email-modal-close {
+            border: none;
+            background: transparent;
+            color: #6b7280;
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            line-height: 1;
+        }
+        .email-modal-description {
+            margin: 0 0 1rem 0;
+            color: #4b5563;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .email-field-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        .email-field-row label,
+        .email-field-label {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .offer-email-recipients {
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+        }
+        .offer-email-recipient-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 0.65rem 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            background: #fafafa;
+        }
+        .offer-email-recipient-option input[type="checkbox"] {
+            margin-top: 0.2rem;
+            flex-shrink: 0;
+        }
+        .offer-email-recipient-option:has(input:checked) {
+            border-color: #059669;
+            background: #ecfdf5;
+        }
+        .offer-email-recipient-option strong {
+            font-weight: 700;
+        }
+        .offer-email-subject,
+        .offer-email-message {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            background: #fff;
+            color: #111;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 0.9375rem;
+        }
+        .offer-email-message {
+            min-height: 110px;
+            resize: vertical;
+        }
+        .offer-email-subject:focus,
+        .offer-email-message:focus {
+            outline: none;
+            border-color: #059669;
+        }
+        .email-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 1.25rem;
+        }
+        .email-modal-actions .btn {
+            padding: 0.6rem 1rem;
+            font-size: 0.875rem;
+        }
         .print-pages {
             display: flex;
             flex-direction: column;
@@ -298,7 +419,8 @@
         }
         body.pdf-export .print-toolbar,
         body.pdf-export .print-messages,
-        body.pdf-export .email-sending-overlay {
+        body.pdf-export .email-sending-overlay,
+        body.pdf-export .email-modal-overlay {
             display: none !important;
         }
         body.pdf-export .print-pages {
@@ -314,6 +436,10 @@
                 padding: 0;
             }
             .print-toolbar {
+                display: none !important;
+            }
+            .email-modal-overlay,
+            .email-sending-overlay {
                 display: none !important;
             }
             .print-pages {
@@ -345,18 +471,12 @@
 
     <div class="print-toolbar">
         <button type="button" class="btn btn-primary" onclick="window.print()">Εκτύπωση</button>
-        <form method="post"
-              action="{% url 'products:offer_email' offer.pk %}"
-              id="offerEmailForm"
-              style="display: inline;">
-            {% csrf_token %}
-            <button type="submit"
-                    class="btn btn-email"
-                    id="offerEmailBtn"
-                    {% if not email_configured or not can_send_offer_email %}disabled title="{% if not email_configured %}Οι ρυθμίσεις email δεν έχουν ολοκληρωθεί{% else %}Ο πελάτης δεν έχει email{% endif %}"{% endif %}>
-                <i class="fas fa-envelope"></i> Αποστολή σε mail
-            </button>
-        </form>
+        <button type="button"
+                class="btn btn-email"
+                id="offerEmailBtn"
+                {% if not email_configured or not can_send_offer_email %}disabled title="{% if not email_configured %}Οι ρυθμίσεις email δεν έχουν ολοκληρωθεί{% else %}Ο πελάτης δεν έχει email{% endif %}"{% endif %}>
+            <i class="fas fa-envelope"></i> Αποστολή σε mail
+        </button>
         <a class="btn btn-pdf"
            id="offerPdfBtn"
            href="{% url 'products:offer_pdf' offer.pk %}"
@@ -364,6 +484,91 @@
             <i class="fas fa-file-pdf"></i> Λήψη αρχείου pdf
         </a>
         <button type="button" class="btn btn-close" onclick="closePrintPage()">Κλείσιμο</button>
+    </div>
+
+    <div class="email-modal-overlay" id="offerEmailModal" hidden>
+        <div class="email-modal" role="dialog" aria-labelledby="offerEmailModalTitle" aria-modal="true">
+            <div class="email-modal-header">
+                <h3 id="offerEmailModalTitle"><i class="fas fa-envelope"></i> Αποστολή σε Email</h3>
+                <button type="button" class="email-modal-close" id="closeOfferEmailModal" aria-label="Κλείσιμο">&times;</button>
+            </div>
+            {% if not email_configured %}
+            <p class="email-modal-description" style="color:#dc2626;">
+                Οι ρυθμίσεις email δεν έχουν ολοκληρωθεί. Ρυθμίστε τον SMTP server από τις ρυθμίσεις συστήματος.
+            </p>
+            {% elif not can_send_offer_email %}
+            <p class="email-modal-description" style="color:#dc2626;">
+                Ο πελάτης δεν έχει καταχωρημένο email.
+            </p>
+            {% else %}
+            <form method="post"
+                  action="{% url 'products:offer_email' offer.pk %}"
+                  id="offerEmailForm"
+                  autocomplete="off"
+                  novalidate>
+                {% csrf_token %}
+                {% if email_recipients|length == 1 %}
+                <p class="email-modal-description">
+                    Θα σταλεί στο {{ email_recipients.0.email }}
+                    {% if email_recipients.0.label %}({{ email_recipients.0.label }}){% endif %}.
+                    Αφήστε κενά τα πεδία για να χρησιμοποιηθούν οι προεπιλογές.
+                </p>
+                {{ email_form.email_to }}
+                {% else %}
+                <p class="email-modal-description">
+                    Επιλέξτε ένα ή και τα δύο emails για αποστολή.
+                    Αφήστε κενά θέμα/κείμενο για τις προεπιλογές.
+                </p>
+                <div class="email-field-row">
+                    <span class="email-field-label">{{ email_form.email_to.label }}</span>
+                    <div class="offer-email-recipients">
+                        {% for entry in email_recipients %}
+                        <label class="offer-email-recipient-option">
+                            <input type="checkbox"
+                                   name="email_to"
+                                   value="{{ entry.contact_recipient }}"
+                                   class="offer-email-recipient"
+                                   {% if forloop.first %}checked{% endif %}>
+                            <span>
+                                <strong>{{ entry.label }}</strong><br>
+                                {{ entry.email }}
+                            </span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% if email_form.email_to.errors %}
+                    <div class="print-message error">{{ email_form.email_to.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                <div class="email-field-row">
+                    <label for="{{ email_form.subject.id_for_label }}">{{ email_form.subject.label }}</label>
+                    <input type="text"
+                           name="{{ email_form.subject.html_name }}"
+                           id="{{ email_form.subject.id_for_label }}"
+                           class="offer-email-subject"
+                           value=""
+                           maxlength="200"
+                           autocomplete="off"
+                           placeholder="{{ default_email_subject }}">
+                </div>
+                <div class="email-field-row">
+                    <label for="{{ email_form.message.id_for_label }}">{{ email_form.message.label }}</label>
+                    <textarea name="{{ email_form.message.html_name }}"
+                              id="{{ email_form.message.id_for_label }}"
+                              class="offer-email-message"
+                              rows="4"
+                              placeholder="Αφήστε κενό για το προεπιλεγμένο κείμενο..."></textarea>
+                </div>
+                <div class="email-modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelOfferEmailModal">Ακύρωση</button>
+                    <button type="submit" class="btn btn-email" id="offerEmailSubmitBtn">
+                        <i class="fas fa-paper-plane"></i> Αποστολή
+                    </button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
     </div>
 
     <div class="email-sending-overlay" id="emailSendingOverlay" hidden aria-live="polite" aria-busy="true">
@@ -457,6 +662,7 @@
             </tbody>
         </table>
 
+        {% if not offer.hide_totals %}
         <div class="content-block" data-block="total">
             <div class="offer-totals">
                 <div>Υποσύνολο: {{ offer.subtotal_amount|floatformat:2 }} €</div>
@@ -466,6 +672,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
         {% if offer.notes %}
         <div class="content-block" data-block="notes">
@@ -527,16 +734,76 @@
         }, 150);
     }
 
+    const offerEmailModal = document.getElementById('offerEmailModal');
+    const offerEmailBtn = document.getElementById('offerEmailBtn');
     const offerEmailForm = document.getElementById('offerEmailForm');
+    const closeOfferEmailModalBtn = document.getElementById('closeOfferEmailModal');
+    const cancelOfferEmailModalBtn = document.getElementById('cancelOfferEmailModal');
+
+    function closeOfferEmailModal() {
+        if (offerEmailModal) {
+            offerEmailModal.hidden = true;
+        }
+    }
+
+    function openOfferEmailModal() {
+        if (!offerEmailModal || (offerEmailBtn && offerEmailBtn.disabled)) {
+            return;
+        }
+        offerEmailModal.hidden = false;
+        const recipientInput = offerEmailModal.querySelector('input[name="email_to"]:checked')
+            || offerEmailModal.querySelector('input[name="email_to"]');
+        const subjectInput = document.getElementById('id_offer_email_subject');
+        if (recipientInput && recipientInput.type === 'checkbox') {
+            recipientInput.focus();
+        } else if (subjectInput) {
+            subjectInput.focus();
+        }
+    }
+
+    if (offerEmailBtn) {
+        offerEmailBtn.addEventListener('click', openOfferEmailModal);
+    }
+    if (closeOfferEmailModalBtn) {
+        closeOfferEmailModalBtn.addEventListener('click', closeOfferEmailModal);
+    }
+    if (cancelOfferEmailModalBtn) {
+        cancelOfferEmailModalBtn.addEventListener('click', closeOfferEmailModal);
+    }
+    if (offerEmailModal) {
+        offerEmailModal.addEventListener('click', function(event) {
+            if (event.target === offerEmailModal) {
+                closeOfferEmailModal();
+            }
+        });
+    }
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && offerEmailModal && !offerEmailModal.hidden) {
+            closeOfferEmailModal();
+        }
+    });
+
     if (offerEmailForm) {
-        offerEmailForm.addEventListener('submit', function() {
+        offerEmailForm.addEventListener('submit', function(event) {
+            const recipientBoxes = offerEmailForm.querySelectorAll('input[name="email_to"][type="checkbox"]');
+            if (recipientBoxes.length) {
+                const checked = offerEmailForm.querySelectorAll('input[name="email_to"][type="checkbox"]:checked');
+                if (!checked.length) {
+                    event.preventDefault();
+                    alert('Επιλέξτε τουλάχιστον έναν παραλήπτη email.');
+                    return;
+                }
+            }
             const overlay = document.getElementById('emailSendingOverlay');
-            const submitBtn = document.getElementById('offerEmailBtn');
+            const submitBtn = document.getElementById('offerEmailSubmitBtn');
             if (overlay) {
                 overlay.hidden = false;
             }
             if (submitBtn) {
                 submitBtn.disabled = true;
+            }
+            if (offerEmailBtn) {
+                offerEmailBtn.disabled = true;
             }
         });
     }

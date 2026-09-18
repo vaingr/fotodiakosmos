@@ -251,6 +251,10 @@ class Offer(models.Model):
         default='',
         verbose_name='Τρόπος πληρωμής',
     )
+    hide_totals = models.BooleanField(
+        default=False,
+        verbose_name='Χωρίς εμφάνιση συνολικών ποσών',
+    )
     total_amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,

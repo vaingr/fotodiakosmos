@@ -16,6 +16,7 @@ from warehouse.models import Product as WarehouseProduct
 
 from .forms import (
     FinishedProductForm,
+    OfferEmailForm,
     OfferForm,
     OfferItemFormSet,
     OfferSettingsForm,
@@ -125,14 +126,28 @@ def _get_customers_email_data():
 
     customers = []
     for customer in Customer.objects.all().order_by('last_name', 'first_name', 'company_name'):
-        email = get_customer_delivery_email(customer)
-        if not email:
+        recipients = get_offer_email_recipients(customer)
+        if not recipients:
             continue
+        primary_email = recipients[0]['email']
+        search_emails = ' '.join(entry['email'] for entry in recipients)
+        label = f'{customer.display_name()} ({primary_email})'
+        if len(recipients) > 1:
+            label = f'{customer.display_name()} ({len(recipients)} emails)'
         customers.append({
             'id': customer.pk,
             'name': customer.display_name(),
-            'email': email,
-            'label': f'{customer.display_name()} ({email})',
+            'email': primary_email,
+            'emails': search_emails,
+            'label': label,
+            'recipients': [
+                {
+                    'email': entry['email'],
+                    'contact_recipient': entry['contact_recipient'],
+                    'label': entry['label'],
+                }
+                for entry in recipients
+            ],
         })
     return customers
 
@@ -668,6 +683,14 @@ def product_warehouse(request):
         if stock_id:
             editing_stock = ProductStock.objects.filter(pk=stock_id).select_related('product').first()
 
+    email_settings = get_email_settings()
+    sender_name = email_settings.get('from_name') or 'Fotodiakosmos'
+    printed_at = timezone.localtime(timezone.now())
+    default_email_subject = (
+        f'{sender_name} - Αποθήκη έτοιμων προϊόντων '
+        f'({printed_at.strftime("%d/%m/%Y")})'
+    )
+
     return render(request, 'products/product_warehouse.html', {
         'add_form': add_form,
         'remove_form': remove_form,
@@ -682,6 +705,7 @@ def product_warehouse(request):
         'warehouse_products': _get_warehouse_products_data(),
         'customers_email_data': _get_customers_email_data(),
         'email_configured': is_email_configured(),
+        'default_email_subject': default_email_subject,
     })
 
 
@@ -739,8 +763,19 @@ def product_warehouse_email(request):
         return redirect('products:product_warehouse')
 
     customer = email_form.cleaned_data['customer']
-    recipient_email = get_customer_delivery_email(customer)
-    recipient_name = customer.display_name()
+    email_recipients = get_offer_email_recipients(customer)
+    posted_keys = {str(key) for key in request.POST.getlist('email_to')}
+    selected_recipients = [
+        entry for entry in email_recipients
+        if str(entry['contact_recipient']) in posted_keys
+    ]
+    if len(email_recipients) == 1:
+        selected_recipients = list(email_recipients)
+    if not selected_recipients:
+        messages.error(request, 'Επιλέξτε τουλάχιστον έναν παραλήπτη email.')
+        return redirect('products:product_warehouse')
+
+    custom_subject = email_form.cleaned_data.get('subject', '').strip()
     custom_message = email_form.cleaned_data.get('message', '').strip()
     printed_at = timezone.localtime(timezone.now())
     pdf_bytes = generate_warehouse_pdf(warehouse_items)
@@ -748,7 +783,7 @@ def product_warehouse_email(request):
 
     email_settings = get_email_settings()
     sender_name = email_settings.get('from_name') or 'Fotodiakosmos'
-    subject = (
+    subject = custom_subject or (
         f'{sender_name} - Αποθήκη έτοιμων προϊόντων '
         f'({printed_at.strftime("%d/%m/%Y")})'
     )
@@ -764,21 +799,43 @@ def product_warehouse_email(request):
         ]
         body = '\n'.join(body_lines)
 
-    success, response_message = send_email_with_attachment(
-        recipient_email,
-        subject,
-        body,
-        pdf_bytes,
-        filename,
-    )
+    sent_emails = []
+    last_error = ''
 
-    if success:
-        messages.success(
+    for recipient in selected_recipients:
+        success, response_message = send_email_with_attachment(
+            recipient['email'],
+            subject,
+            body,
+            pdf_bytes,
+            filename,
+        )
+        if success:
+            sent_emails.append(recipient['email'])
+        else:
+            last_error = response_message
+
+    if sent_emails and not last_error:
+        if len(sent_emails) == 1:
+            messages.success(
+                request,
+                f'Το PDF στάλθηκε στο email {sent_emails[0]} '
+                f'(πελάτης: {customer.display_name()}).',
+            )
+        else:
+            messages.success(
+                request,
+                f'Το PDF στάλθηκε στα emails {", ".join(sent_emails)} '
+                f'(πελάτης: {customer.display_name()}).',
+            )
+    elif sent_emails:
+        messages.warning(
             request,
-            f'Το PDF στάλθηκε στο email {recipient_email} (πελάτης: {customer.display_name()}).',
+            f'Το PDF στάλθηκε σε {", ".join(sent_emails)}, '
+            f'αλλά απέτυχε για άλλους παραλήπτες: {last_error}',
         )
     else:
-        messages.error(request, response_message)
+        messages.error(request, last_error or 'Αποτυχία αποστολής email.')
 
     return redirect('products:product_warehouse')
 
@@ -987,6 +1044,9 @@ def offer_print(request, pk):
     offer_bank_accounts = offer_settings.bank_accounts.filter(
         account_group=offer.bank_account_group,
     )
+    email_settings = get_email_settings()
+    sender_name = email_settings.get('from_name') or 'Fotodiakosmos'
+    default_email_subject = f'{sender_name} - Προσφορά {offer.offer_number}'
     return render(request, 'products/offer_print.html', {
         'offer': offer,
         'offer_settings': offer_settings,
@@ -995,6 +1055,9 @@ def offer_print(request, pk):
         'email_configured': is_email_configured(),
         'customer_email': email_recipients[0]['email'] if email_recipients else '',
         'can_send_offer_email': bool(email_recipients),
+        'email_recipients': email_recipients,
+        'email_form': OfferEmailForm(recipients=email_recipients),
+        'default_email_subject': default_email_subject,
         'attention_display': attention_display,
         'pdf_export': request.GET.get('pdf') == '1',
     })
@@ -1010,6 +1073,14 @@ def offer_email(request, pk):
         pk=pk,
     )
 
+    email_recipients = get_offer_email_recipients(offer.customer)
+    email_form = OfferEmailForm(request.POST, recipients=email_recipients)
+    if not email_form.is_valid():
+        for field_errors in email_form.errors.values():
+            for error in field_errors:
+                messages.error(request, error)
+        return redirect('products:offer_print', pk=pk)
+
     if not is_email_configured():
         messages.error(
             request,
@@ -1017,33 +1088,48 @@ def offer_email(request, pk):
         )
         return redirect('products:offer_print', pk=pk)
 
-    email_recipients = get_offer_email_recipients(offer.customer)
-    if not email_recipients:
-        messages.error(request, 'Ο πελάτης δεν έχει καταχωρημένο email.')
+    # Πηγή αλήθειας: μόνο όσα checkbox υποβλήθηκαν στο POST.
+    posted_keys = {str(key) for key in request.POST.getlist('email_to')}
+    selected_recipients = [
+        entry for entry in email_recipients
+        if str(entry['contact_recipient']) in posted_keys
+    ]
+    if len(email_recipients) == 1:
+        selected_recipients = list(email_recipients)
+    if not selected_recipients:
+        messages.error(request, 'Επιλέξτε τουλάχιστον έναν παραλήπτη email.')
         return redirect('products:offer_print', pk=pk)
 
     filename = f'prosfora-{offer.offer_number}.pdf'
 
     email_settings = get_email_settings()
     sender_name = email_settings.get('from_name') or 'Fotodiakosmos'
-    subject = f'{sender_name} - Προσφορά {offer.offer_number}'
+    custom_subject = email_form.cleaned_data.get('subject', '').strip()
+    custom_message = email_form.cleaned_data.get('message', '').strip()
+    subject = custom_subject or f'{sender_name} - Προσφορά {offer.offer_number}'
 
-    body_lines = [
-        f'Σας αποστέλλουμε συνημμένη την οικονομική προσφορά {offer.offer_number}.',
-        '',
-        'Με εκτίμηση,',
-    ]
-    body = '\n'.join(body_lines)
+    if custom_message:
+        body = custom_message
+    else:
+        body_lines = [
+            f'Σας αποστέλλουμε συνημμένη την οικονομική προσφορά {offer.offer_number}.',
+            '',
+            'Με εκτίμηση,',
+        ]
+        body = '\n'.join(body_lines)
 
     sent_emails = []
     last_error = ''
 
-    for recipient in email_recipients:
+    for recipient in selected_recipients:
+        contact_recipient = recipient.get('contact_recipient')
+        if contact_recipient not in ('1', '2'):
+            contact_recipient = '1'
         try:
             pdf_bytes = generate_offer_pdf(
                 offer,
                 request,
-                contact_recipient=recipient.get('contact_recipient'),
+                contact_recipient=contact_recipient,
             )
         except Exception as exc:
             messages.error(request, f'Αποτυχία δημιουργίας PDF: {exc}')

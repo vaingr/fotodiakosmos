@@ -1530,11 +1530,11 @@
                                     <span class="task-product-line-text">
                                         {{ item.product.code }} - {{ item.product.name }} x{{ item.quantity }}
                                         {% if item.item_status == 'reserved' %}
-                                        <span class="task-reserved-badge"><i class="fas fa-lock"></i> Από αποθήκη</span>
+                                        <span class="task-reserved-badge"><i class="fas fa-lock"></i> Από αποθήκη{% if item.reserved_stock %} · {{ item.reserved_stock.get_construction_stage_display }}{% endif %}</span>
                                         {% elif item.item_status == 'shipped' %}
-                                        <span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί</span>
+                                        <span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί{% if item.reserved_stock %} · {{ item.reserved_stock.get_construction_stage_display }}{% endif %}</span>
                                         {% elif item.has_active_reservation %}
-                                        <span class="task-reserved-badge"><i class="fas fa-lock"></i> Από αποθήκη</span>
+                                        <span class="task-reserved-badge"><i class="fas fa-lock"></i> Από αποθήκη{% if item.reserved_stock %} · {{ item.reserved_stock.get_construction_stage_display }}{% endif %}</span>
                                         {% endif %}
                                         {% if item.notes %}
                                         <span class="task-product-line-notes">{{ item.notes }}</span>
@@ -1979,10 +1979,12 @@
                 || item.item_status === 'shipped';
             const reservedMeta = item.item_status === 'shipped'
                 ? '<span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί'
+                    + (item.reserved_stage_label ? ' · ' + item.reserved_stage_label : '')
                     + (item.reserved_label ? ': ' + item.reserved_label : '')
                     + '</span>'
-                : ((item.has_active_reservation || item.is_reserved || item.reserved_label)
+                : ((item.has_active_reservation || item.is_reserved || item.reserved_label || item.reserved_stage_label)
                     ? '<span class="task-reserved-badge"><i class="fas fa-lock"></i> Από αποθήκη'
+                        + (item.reserved_stage_label ? ' · ' + item.reserved_stage_label : '')
                         + (item.reserved_label ? ': ' + item.reserved_label : '')
                         + '</span>'
                     : '');
@@ -2079,9 +2081,13 @@
                     : '<div class="task-product-line-thumb-placeholder" title="Χωρίς φωτογραφία"><i class="fas fa-image"></i></div>';
                 let statusBadge = '';
                 if (item.item_status === 'reserved' || item.has_active_reservation) {
-                    statusBadge = ' <span class="task-reserved-badge"><i class="fas fa-lock"></i> Από αποθήκη</span>';
+                    statusBadge = ' <span class="task-reserved-badge"><i class="fas fa-lock"></i> Από αποθήκη'
+                        + (item.reserved_stage_label ? ' · ' + item.reserved_stage_label : '')
+                        + '</span>';
                 } else if (item.item_status === 'shipped') {
-                    statusBadge = ' <span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί</span>';
+                    statusBadge = ' <span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί'
+                        + (item.reserved_stage_label ? ' · ' + item.reserved_stage_label : '')
+                        + '</span>';
                 }
                 return ''
                     + '<div class="task-product-line' + completedClass + '">'

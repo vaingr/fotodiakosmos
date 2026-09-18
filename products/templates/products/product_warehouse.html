@@ -482,21 +482,53 @@
     font-weight: bold;
     font-size: 0.9rem;
 }
+.warehouse-email-subject,
 .warehouse-email-message {
     width: 100%;
-    min-height: 90px;
     padding: 0.75rem 1rem;
     border: 2px solid var(--bg-secondary);
     border-radius: 6px;
     background: var(--bg-primary);
     color: var(--text-primary);
     box-sizing: border-box;
-    resize: vertical;
     font-family: inherit;
 }
+.warehouse-email-message {
+    min-height: 90px;
+    resize: vertical;
+}
+.warehouse-email-subject:focus,
 .warehouse-email-message:focus {
     outline: none;
     border-color: var(--accent);
+}
+.warehouse-email-recipients {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+.warehouse-email-recipient-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.65rem 0.75rem;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+.warehouse-email-recipient-option input[type="checkbox"] {
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+}
+.warehouse-email-recipient-option:has(input:checked) {
+    border-color: var(--accent);
+}
+.warehouse-email-recipient-option strong {
+    font-weight: 700;
 }
 .email-modal-actions {
     display: flex;
@@ -1012,7 +1044,7 @@ body.email-sending-active .email-sending-overlay {
             <input type="hidden" name="filter_ids" id="emailFilterIds" value="">
 
             <div class="product-picker" data-product-picker="email">
-                <label for="emailCustomerSearch">Παραλήπτης</label>
+                <label for="emailCustomerSearch">Πελάτης</label>
                 <input type="text"
                        class="product-search-input"
                        id="emailCustomerSearch"
@@ -1034,9 +1066,34 @@ body.email-sending-active .email-sending-overlay {
             <div class="error-message">{{ email_form.customer.errors.0 }}</div>
             {% endif %}
 
+            <div class="email-message-row" id="warehouseEmailToRow" hidden>
+                <label>Παραλήπτες</label>
+                <div class="warehouse-email-recipients" id="warehouseEmailToOptions"></div>
+                <p class="email-modal-description" id="warehouseEmailToHint" style="margin:0.35rem 0 0;">
+                    Επιλέξτε ένα ή και τα δύο emails για αποστολή.
+                </p>
+            </div>
+            <div id="warehouseEmailToSingle" hidden></div>
+
+            <div class="email-message-row">
+                <label for="{{ email_form.subject.id_for_label }}">{{ email_form.subject.label }}</label>
+                <input type="text"
+                       name="{{ email_form.subject.html_name }}"
+                       id="{{ email_form.subject.id_for_label }}"
+                       class="warehouse-email-subject"
+                       value=""
+                       maxlength="200"
+                       autocomplete="off"
+                       placeholder="{{ default_email_subject }}">
+            </div>
+
             <div class="email-message-row">
                 <label for="{{ email_form.message.id_for_label }}">{{ email_form.message.label }}</label>
-                {{ email_form.message }}
+                <textarea name="{{ email_form.message.html_name }}"
+                          id="{{ email_form.message.id_for_label }}"
+                          class="warehouse-email-message"
+                          rows="4"
+                          placeholder="Αφήστε κενό για το προεπιλεγμένο κείμενο..."></textarea>
             </div>
 
             <div class="email-modal-actions">
@@ -1802,6 +1859,68 @@ document.addEventListener('DOMContentLoaded', function() {
         if (emailResults) {
             emailResults.hidden = true;
         }
+        clearWarehouseEmailToOptions();
+    }
+
+    function clearWarehouseEmailToOptions() {
+        const options = document.getElementById('warehouseEmailToOptions');
+        const row = document.getElementById('warehouseEmailToRow');
+        const single = document.getElementById('warehouseEmailToSingle');
+        if (options) options.innerHTML = '';
+        if (row) row.hidden = true;
+        if (single) {
+            single.innerHTML = '';
+            single.hidden = true;
+        }
+    }
+
+    function renderWarehouseEmailToOptions(item) {
+        const options = document.getElementById('warehouseEmailToOptions');
+        const row = document.getElementById('warehouseEmailToRow');
+        const single = document.getElementById('warehouseEmailToSingle');
+        if (!options || !row || !single) return;
+
+        const recipients = (item && item.recipients) ? item.recipients : [];
+        options.innerHTML = '';
+        single.innerHTML = '';
+
+        if (recipients.length <= 1) {
+            row.hidden = true;
+            single.hidden = false;
+            if (recipients.length === 1) {
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = 'email_to';
+                hidden.value = recipients[0].contact_recipient;
+                single.appendChild(hidden);
+            }
+            return;
+        }
+
+        single.hidden = true;
+        row.hidden = false;
+        recipients.forEach(function(entry, index) {
+            const label = document.createElement('label');
+            label.className = 'warehouse-email-recipient-option';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.name = 'email_to';
+            checkbox.value = entry.contact_recipient;
+            checkbox.className = 'offer-email-recipient';
+            if (index === 0) {
+                checkbox.checked = true;
+            }
+
+            const text = document.createElement('span');
+            text.innerHTML = '<strong></strong><br>';
+            text.querySelector('strong').textContent = entry.label || '';
+            text.appendChild(document.createTextNode(entry.email || ''));
+
+            label.appendChild(checkbox);
+            label.appendChild(text);
+            options.appendChild(label);
+        });
     }
 
     function updateEmailFilterFields() {
@@ -1822,6 +1941,10 @@ document.addEventListener('DOMContentLoaded', function() {
         emailWarehouseBtn.addEventListener('click', function() {
             updateEmailFilterFields();
             resetEmailCustomerSearch();
+            const subjectInput = document.getElementById('id_email_subject');
+            const messageInput = document.getElementById('id_email_message');
+            if (subjectInput) subjectInput.value = '';
+            if (messageInput) messageInput.value = '';
             ensureEmailPicker();
             if (emailModal) {
                 emailModal.hidden = false;
@@ -1847,6 +1970,19 @@ document.addEventListener('DOMContentLoaded', function() {
         emailWarehouseForm.addEventListener('submit', function(event) {
             const emailCustomerSelect = document.getElementById('id_email_customer');
             if (!emailCustomerSelect || !emailCustomerSelect.value) {
+                event.preventDefault();
+                alert('Επιλέξτε πελάτη από τη λίστα.');
+                return;
+            }
+            const recipientBoxes = emailWarehouseForm.querySelectorAll('input[name="email_to"][type="checkbox"]');
+            if (recipientBoxes.length) {
+                const checked = emailWarehouseForm.querySelectorAll('input[name="email_to"][type="checkbox"]:checked');
+                if (!checked.length) {
+                    event.preventDefault();
+                    alert('Επιλέξτε τουλάχιστον έναν παραλήπτη email.');
+                    return;
+                }
+            } else if (!emailWarehouseForm.querySelector('input[name="email_to"]')) {
                 event.preventDefault();
                 alert('Επιλέξτε πελάτη από τη λίστα.');
                 return;
@@ -1889,7 +2025,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!normalized) return customersData.slice(0, 30);
                 return customersData.filter(function(item) {
                     return item.name.toUpperCase().includes(normalized)
-                        || item.email.toUpperCase().includes(normalized)
+                        || (item.email || '').toUpperCase().includes(normalized)
+                        || (item.emails || '').toUpperCase().includes(normalized)
                         || item.label.toUpperCase().includes(normalized);
                 }).slice(0, 30);
             }
@@ -1915,6 +2052,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 emailCustomerSelect.value = value;
                 emailSearchInput.value = item.label;
                 emailResults.hidden = true;
+                renderWarehouseEmailToOptions(item);
             }
 
             function renderEmailResults(items) {
@@ -1943,6 +2081,7 @@ document.addEventListener('DOMContentLoaded', function() {
             emailSearchInput.addEventListener('input', function() {
                 if (!emailSearchInput.value.trim()) {
                     emailCustomerSelect.value = '';
+                    clearWarehouseEmailToOptions();
                 }
                 renderEmailResults(filterCustomers(emailSearchInput.value));
             });

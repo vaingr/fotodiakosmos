@@ -11,14 +11,16 @@
         body {
             font-family: Arial, Helvetica, sans-serif;
             color: #111;
-            background: #fff;
+            background: #e5e7eb;
             margin: 0;
             padding: 1.5rem;
         }
         .print-toolbar {
             display: flex;
+            flex-wrap: wrap;
             gap: 0.75rem;
-            margin-bottom: 1.5rem;
+            margin: 0 auto 1.5rem;
+            max-width: 210mm;
         }
         .btn {
             border: none;
@@ -32,116 +34,53 @@
         }
         .btn-primary { background: #2563eb; color: #fff; }
         .btn-secondary { background: #e5e7eb; color: #111; }
-        .print-header { margin-bottom: 1.25rem; }
-        .print-header h1 {
-            margin: 0 0 0.5rem;
-            font-size: 1.5rem;
-        }
-        .print-meta {
-            color: #444;
-            font-size: 0.875rem;
-            line-height: 1.6;
-        }
-        .print-meta p { margin: 0.15rem 0; }
-        .print-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.8125rem;
-            table-layout: fixed;
-        }
-        .print-table th,
-        .print-table td {
-            border: 1px solid #ccc;
-            padding: 0.5rem 0.625rem;
-            text-align: left;
-            vertical-align: top;
-        }
-        .print-table th {
-            background: #f3f4f6;
-            font-weight: 700;
-        }
-        .print-table tbody tr:nth-child(even) {
-            background: #fafafa;
-        }
-        .col-num { width: 2.4rem; text-align: center; }
-        .col-customer { width: 16%; }
-        .col-date { width: 11%; white-space: nowrap; }
-        .col-priority { width: 8%; }
-        .col-status { width: 10%; }
-        .print-task-type {
-            font-weight: 700;
-            margin-bottom: 0.35rem;
-        }
-        .print-task-product {
+        .print-pages {
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
-            gap: 0.4rem;
-            color: #333;
-            line-height: 1.35;
-            margin-top: 0.75rem;
-        }
-        .print-task-product.is-completed {
-            color: #15803d;
-            font-weight: 600;
-        }
-        .print-product-thumb {
-            width: 240px;
-            height: 240px;
-            object-fit: contain;
-            object-position: center;
-            background: #fff;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            flex-shrink: 0;
-            display: block;
-        }
-        .print-photo-empty {
-            width: 240px;
-            height: 240px;
-            border-radius: 4px;
-            border: 1px dashed #ccc;
-            display: inline-flex;
+            gap: 1.25rem;
             align-items: center;
-            justify-content: center;
-            color: #999;
-            font-size: 0.7rem;
+        }
+        .a4-page {
+            width: 210mm;
+            height: 297mm;
+            padding: 12mm 10mm 14mm;
+            background: #fff;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .a4-page-body {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .a4-page-footer {
             flex-shrink: 0;
+            margin-top: 0.5rem;
+            padding-top: 0.45rem;
+            border-top: 1px solid #ccc;
+            text-align: center;
+            font-size: 0.6875rem;
+            color: #444;
+            line-height: 1.35;
         }
-        .print-task-product-text {
-            min-width: 0;
-            max-width: 240px;
+        .print-doc-header {
+            margin: 0 0 0.85rem;
         }
-        .print-task-description {
-            margin-top: 0.35rem;
-            color: #555;
-            font-size: 0.75rem;
-            white-space: pre-wrap;
+        .print-doc-header h1 {
+            margin: 0 0 0.35rem;
+            font-size: 1.35rem;
         }
-        .print-overdue {
-            color: #b91c1c;
-            font-weight: 700;
-        }
-        .text-center { text-align: center; }
-        .print-footer {
-            margin-top: 1rem;
+        .print-doc-meta {
+            color: #444;
             font-size: 0.8125rem;
-            color: #555;
+            line-height: 1.45;
         }
-
-        .print-task-sheet {
-            width: 100%;
-        }
-        .print-task-sheet + .print-task-sheet {
-            margin-top: 1.75rem;
-            padding-top: 1.25rem;
-            border-top: 2px solid #222;
-            break-before: page;
-            page-break-before: always;
-        }
+        .print-doc-meta p { margin: 0.1rem 0; }
         .print-task-sheet-index {
             margin: 0 0 0.5rem;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 700;
             color: #555;
             letter-spacing: 0.04em;
@@ -152,168 +91,142 @@
             grid-template-columns: 1.4fr 1fr 0.7fr 0.9fr;
             border: 1px solid #ccc;
             background: #f8f8f8;
-            margin-bottom: 1.15rem;
+            margin-bottom: 0.85rem;
         }
         .print-task-meta > div {
-            padding: 0.55rem 0.75rem;
+            padding: 0.5rem 0.65rem;
             border-right: 1px solid #ccc;
             min-width: 0;
         }
         .print-task-meta > div:last-child { border-right: none; }
         .print-task-meta-label {
             display: block;
-            font-size: 0.68rem;
+            font-size: 0.65rem;
             font-weight: 700;
             letter-spacing: 0.03em;
             text-transform: uppercase;
             color: #666;
-            margin-bottom: 0.2rem;
+            margin-bottom: 0.15rem;
         }
         .print-task-meta-value {
-            font-size: 0.92rem;
+            font-size: 0.875rem;
             font-weight: 700;
             line-height: 1.3;
             word-break: break-word;
         }
+        .print-overdue { color: #b91c1c; }
         .print-products-title {
-            margin: 0 0 0.75rem;
+            margin: 0 0 0.65rem;
             font-size: 1rem;
         }
         .print-products-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 0.85rem 1rem;
+            gap: 0.75rem 0.9rem;
             width: 100%;
+            align-content: start;
         }
-        .print-task-sheet .print-task-product {
-            margin-top: 0;
-            width: auto;
-            min-width: 0;
+        .print-task-product {
+            display: flex;
+            flex-direction: column;
             align-items: stretch;
-            break-inside: avoid;
-            page-break-inside: avoid;
+            gap: 0.35rem;
+            min-width: 0;
         }
-        .print-task-sheet .print-product-thumb,
-        .print-task-sheet .print-photo-empty {
+        .print-task-product.is-completed .print-task-product-text {
+            color: #15803d;
+        }
+        .print-product-thumb {
             width: 100%;
-            height: auto;
-            max-width: 100%;
             aspect-ratio: 1;
+            max-height: 78mm;
             object-fit: contain;
-        }
-        .print-task-sheet .print-task-product-text {
-            max-width: none;
+            object-position: center;
+            background: #fff;
+            border-radius: 4px;
+            border: 1px solid #ccc;
             display: block;
-            font-size: 13pt;
+        }
+        .print-photo-empty {
+            width: 100%;
+            aspect-ratio: 1;
+            max-height: 78mm;
+            border-radius: 4px;
+            border: 1px dashed #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 0.75rem;
+        }
+        .print-task-product-text {
+            font-size: 0.8125rem;
             font-weight: 700;
             color: #111;
             line-height: 1.35;
         }
-        .print-task-sheet .print-task-product-text .print-task-description {
-            margin-top: 0.3rem;
-            font-size: 12pt;
-            font-weight: 700;
-            color: #111;
+        .print-task-description {
+            margin-top: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #333;
+            white-space: pre-wrap;
         }
         .print-task-notes {
-            margin-top: 1rem;
-            padding-top: 0.75rem;
+            margin-top: 0.75rem;
+            padding-top: 0.55rem;
             border-top: 1px solid #ddd;
         }
         .print-task-notes-label {
             font-weight: 700;
             margin-bottom: 0.25rem;
+            font-size: 0.875rem;
         }
-
+        .print-continuation {
+            margin: 0 0 0.55rem;
+            font-size: 0.75rem;
+            color: #555;
+            font-weight: 600;
+        }
+        .text-center { text-align: center; }
+        #printSource {
+            position: absolute;
+            left: -10000px;
+            top: 0;
+            width: 190mm;
+            visibility: hidden;
+            pointer-events: none;
+        }
         @page {
             size: A4 portrait;
-            margin: 14mm 12mm 16mm 12mm;
-
-            @top-left {
-                content: "{% if single_task_print %}{{ print_task.get_task_type_display }} · {{ print_task.customer.display_name|addslashes|safe }}{% else %}Προγραμματισμός Εργασιών{% endif %}";
-                font-family: Arial, Helvetica, sans-serif;
-                font-size: 8pt;
-                color: #444;
-            }
-            @top-right {
-                content: "Σελίδα " counter(page) " από " counter(pages);
-                font-family: Arial, Helvetica, sans-serif;
-                font-size: 10pt;
-                font-weight: 700;
-                color: #111;
-            }
-            @bottom-left {
-                content: "{{ printed_at|date:'d/m/Y H:i' }}";
-                font-family: Arial, Helvetica, sans-serif;
-                font-size: 8pt;
-                color: #666;
-            }
-            @bottom-right {
-                content: "Σελίδα " counter(page) " από " counter(pages);
-                font-family: Arial, Helvetica, sans-serif;
-                font-size: 10pt;
-                font-weight: 700;
-                color: #111;
-            }
+            margin: 0;
         }
         @media print {
-            body { padding: 0; }
-            .print-toolbar { display: none !important; }
-            .print-table { font-size: 10pt; }
-            .print-table th,
-            .print-table td { padding: 0.35rem 0.45rem; }
-            .print-task-product.is-completed {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
+            body {
+                background: #fff;
+                padding: 0;
             }
+            .print-toolbar { display: none !important; }
+            .print-pages { gap: 0; }
+            .a4-page {
+                margin: 0;
+                box-shadow: none;
+                page-break-after: always;
+            }
+            .a4-page:last-child {
+                page-break-after: auto;
+            }
+            .print-task-meta,
+            .print-task-product.is-completed,
             .print-product-thumb {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
-            }
-            .print-task-meta {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-                grid-template-columns: 1.4fr 1fr 0.7fr 0.9fr !important;
-            }
-            .print-task-meta > div {
-                border-right: 1px solid #ccc !important;
-                border-bottom: none !important;
-            }
-            .print-task-meta > div:last-child { border-right: none !important; }
-            .print-products-grid {
-                grid-template-columns: 1fr 1fr !important;
-                gap: 6mm 8mm;
-            }
-            .print-task-sheet .print-task-product {
-                width: auto !important;
-            }
-            .print-task-sheet .print-product-thumb,
-            .print-task-sheet .print-photo-empty {
-                width: 100%;
-                max-width: 82mm;
-                height: 82mm;
-                object-fit: contain;
-            }
-            .print-task-sheet .print-task-product-text {
-                font-size: 13pt;
-                font-weight: 700;
-                color: #111;
-            }
-            .print-task-sheet .print-task-product-text .print-task-description {
-                font-size: 12pt;
-                font-weight: 700;
-                color: #111;
             }
         }
         @media screen and (max-width: 768px) {
             body { padding: 1rem; }
             .print-toolbar { flex-direction: column; }
             .btn { width: 100%; justify-content: center; }
-            .print-task-meta {
-                grid-template-columns: 1fr;
-            }
-            .print-task-meta > div { border-right: none; border-bottom: 1px solid #ccc; }
-            .print-task-meta > div:last-child { border-bottom: none; }
         }
     </style>
 </head>
@@ -323,99 +236,323 @@
         <button type="button" class="btn btn-secondary" onclick="closePrintPage()">Κλείσιμο</button>
     </div>
 
-    <div class="print-header">
-        <h1>{% if single_task_print %}Εκτύπωση Εργασίας{% else %}Προγραμματισμός Εργασιών{% endif %}</h1>
-        <div class="print-meta">
-            <p>Ημερομηνία εκτύπωσης: {{ printed_at|date:"d/m/Y H:i" }}</p>
-            {% if filter_label %}<p>{% if single_task_print %}{{ filter_label }}{% else %}Φίλτρο: {{ filter_label }}{% endif %}</p>{% endif %}
-            {% if not single_task_print %}<p>Σύνολο εργασιών: {{ total_count }}</p>{% endif %}
-        </div>
-    </div>
-
-    {% if tasks %}
-        {% for task in tasks %}
-        <div class="print-task-sheet">
-            {% if not single_task_print %}
-            <div class="print-task-sheet-index">Εργασία {{ forloop.counter }} από {{ total_count }}</div>
-            {% endif %}
-            <div class="print-task-meta">
-                <div>
-                    <span class="print-task-meta-label">Πελάτης</span>
-                    <span class="print-task-meta-value">{{ task.customer.display_name }}</span>
-                </div>
-                <div>
-                    <span class="print-task-meta-label">Ημερομηνία</span>
-                    <span class="print-task-meta-value{% if task.is_overdue %} print-overdue{% endif %}">
-                        {{ task.scheduled_date|greek_date }}
-                        {% if task.is_overdue %}<div>Καθυστέρηση</div>{% endif %}
-                    </span>
-                </div>
-                <div>
-                    <span class="print-task-meta-label">Προτεραιότητα</span>
-                    <span class="print-task-meta-value">{{ task.get_priority_display }}</span>
-                </div>
-                <div>
-                    <span class="print-task-meta-label">Κατάσταση</span>
-                    <span class="print-task-meta-value">{{ task.get_status_display }}</span>
-                </div>
-            </div>
-
-            <h2 class="print-products-title">{{ task.get_task_type_display }} — Προϊόντα</h2>
-            {% if task.items.all %}
-            <div class="print-products-grid">
-                {% for item in task.items.all %}
-                <div class="print-task-product{% if item.item_status == 'completed' or item.item_status == 'shipped' %} is-completed{% elif item.item_status == 'reserved' %} is-reserved{% endif %}">
-                    {% if item.product.photo %}
-                    <img src="{{ request.scheme }}://{{ request.get_host }}{{ item.product.photo.url }}"
-                         alt="{{ item.product.name }}"
-                         class="print-product-thumb"
-                         width="180"
-                         height="180">
+    <div id="printSource">
+        {% if tasks %}
+            {% for task in tasks %}
+            <div class="content-block"
+                 data-block="task-start"
+                 data-task-index="{{ forloop.counter }}"
+                 data-task-total="{{ total_count }}"
+                 data-task-label="{{ task.get_task_type_display|escape }} — {{ task.customer.display_name|escape }}">
+                {% if not single_task_print %}
+                <div class="print-task-sheet-index">Εργασία {{ forloop.counter }} από {{ total_count }}</div>
+                {% endif %}
+                <div class="print-doc-header">
+                    {% if forloop.first %}
+                    <h1>{% if single_task_print %}Εκτύπωση Εργασίας{% else %}Προγραμματισμός Εργασιών{% endif %}</h1>
+                    <div class="print-doc-meta">
+                        <p>Ημερομηνία εκτύπωσης: {{ printed_at|date:"d/m/Y H:i" }}</p>
+                        {% if filter_label %}<p>{% if single_task_print %}{{ filter_label }}{% else %}Φίλτρο: {{ filter_label }}{% endif %}</p>{% endif %}
+                        {% if not single_task_print %}<p>Σύνολο εργασιών: {{ total_count }}</p>{% endif %}
+                    </div>
                     {% else %}
-                    <span class="print-photo-empty">—</span>
+                    <h1>{{ task.get_task_type_display }}</h1>
+                    <div class="print-doc-meta">
+                        <p>{{ task.customer.display_name }}</p>
+                    </div>
                     {% endif %}
-                    <span class="print-task-product-text">
-                        {{ item.product.code }} - {{ item.product.name }} x{{ item.quantity }}
-                        {% if item.item_status == 'reserved' %}
-                        <strong> · Από αποθήκη</strong>
-                        {% elif item.item_status == 'shipped' %}
-                        <strong> · Έχει αποσταλεί</strong>
-                        {% elif item.has_active_reservation %}
-                        <strong> · Από αποθήκη</strong>
-                        {% endif %}
-                        {% if item.notes %}
-                        <div class="print-task-description">{{ item.notes }}</div>
-                        {% endif %}
-                    </span>
                 </div>
-                {% endfor %}
+                <div class="print-task-meta">
+                    <div>
+                        <span class="print-task-meta-label">Πελάτης</span>
+                        <span class="print-task-meta-value">{{ task.customer.display_name }}</span>
+                    </div>
+                    <div>
+                        <span class="print-task-meta-label">Ημερομηνία</span>
+                        <span class="print-task-meta-value{% if task.is_overdue %} print-overdue{% endif %}">
+                            {{ task.scheduled_date|greek_date }}
+                            {% if task.is_overdue %}<div>Καθυστέρηση</div>{% endif %}
+                        </span>
+                    </div>
+                    <div>
+                        <span class="print-task-meta-label">Προτεραιότητα</span>
+                        <span class="print-task-meta-value">{{ task.get_priority_display }}</span>
+                    </div>
+                    <div>
+                        <span class="print-task-meta-label">Κατάσταση</span>
+                        <span class="print-task-meta-value">{{ task.get_status_display }}</span>
+                    </div>
+                </div>
+                <h2 class="print-products-title">{{ task.get_task_type_display }} — Προϊόντα</h2>
             </div>
-            {% endif %}
+
+            {% for item in task.items.all %}
+            <div class="content-block print-task-product{% if item.item_status == 'completed' or item.item_status == 'shipped' %} is-completed{% elif item.item_status == 'reserved' %} is-reserved{% endif %}"
+                 data-block="product"
+                 data-task-index="{{ forloop.parentloop.counter }}">
+                {% if item.product.photo %}
+                <img src="{{ item.product.photo.url }}"
+                     alt="{{ item.product.name }}"
+                     class="print-product-thumb"
+                     loading="eager"
+                     decoding="sync">
+                {% else %}
+                <span class="print-photo-empty">—</span>
+                {% endif %}
+                <span class="print-task-product-text">
+                    {{ item.product.code }} - {{ item.product.name }} x{{ item.quantity }}
+                    {% if item.item_status == 'reserved' %}
+                    <strong> · Από αποθήκη{% if item.reserved_stock %} · {{ item.reserved_stock.get_construction_stage_display }}{% endif %}</strong>
+                    {% elif item.item_status == 'shipped' %}
+                    <strong> · Έχει αποσταλεί{% if item.reserved_stock %} · {{ item.reserved_stock.get_construction_stage_display }}{% endif %}</strong>
+                    {% elif item.has_active_reservation %}
+                    <strong> · Από αποθήκη{% if item.reserved_stock %} · {{ item.reserved_stock.get_construction_stage_display }}{% endif %}</strong>
+                    {% endif %}
+                    {% if item.notes %}
+                    <div class="print-task-description">{{ item.notes }}</div>
+                    {% endif %}
+                </span>
+            </div>
+            {% empty %}
+            <div class="content-block" data-block="empty-products" data-task-index="{{ forloop.counter }}">
+                <p>Δεν υπάρχουν προϊόντα σε αυτή την εργασία.</p>
+            </div>
+            {% endfor %}
 
             {% if task.description %}
-            <div class="print-task-notes">
+            <div class="content-block print-task-notes" data-block="notes" data-task-index="{{ forloop.counter }}">
                 <div class="print-task-notes-label">Περιγραφή</div>
                 <div class="print-task-description">{{ task.description }}</div>
             </div>
             {% endif %}
-        </div>
-        {% endfor %}
-        {% if not single_task_print %}
-        <div class="print-footer">
-            Σύνολο εγγραφών: {{ total_count }}
-        </div>
+            {% endfor %}
+        {% else %}
+            <div class="content-block" data-block="empty">
+                <div class="print-doc-header">
+                    <h1>Προγραμματισμός Εργασιών</h1>
+                    <div class="print-doc-meta">
+                        <p>Ημερομηνία εκτύπωσης: {{ printed_at|date:"d/m/Y H:i" }}</p>
+                    </div>
+                </div>
+                <p class="text-center">Δεν υπάρχουν εργασίες για το επιλεγμένο φίλτρο.</p>
+            </div>
         {% endif %}
-    {% else %}
-    <p class="text-center">Δεν υπάρχουν εργασίες για το επιλεγμένο φίλτρο.</p>
-    {% endif %}
+    </div>
+
+    <div id="printPages" class="print-pages"></div>
 
     <script>
+    const FOOTER_BASE = '{% if single_task_print %}{{ print_task.get_task_type_display|escapejs }} · {{ print_task.customer.display_name|escapejs }}{% else %}Προγραμματισμός Εργασιών{% endif %} · {{ printed_at|date:"d/m/Y H:i" }}';
+
     function closePrintPage() {
         window.close();
         setTimeout(function() {
             window.location.href = "{% url 'task_scheduling' %}";
         }, 150);
     }
+
+    function pageBodyOverflows(page) {
+        const body = page.querySelector('.a4-page-body');
+        return body.scrollHeight > body.clientHeight + 1;
+    }
+
+    function createPage() {
+        const page = document.createElement('div');
+        page.className = 'a4-page';
+        page.innerHTML =
+            '<div class="a4-page-body"></div>' +
+            '<div class="a4-page-footer"></div>';
+        return page;
+    }
+
+    function updatePageNumbers() {
+        const pages = document.querySelectorAll('.a4-page');
+        pages.forEach(function(page, index) {
+            const footer = page.querySelector('.a4-page-footer');
+            if (footer) {
+                footer.textContent = FOOTER_BASE + ' · Σελίδα ' + (index + 1) + ' από ' + pages.length;
+            }
+        });
+    }
+
+    function appendBlock(page, node) {
+        const body = page.querySelector('.a4-page-body');
+        body.appendChild(node);
+        if (pageBodyOverflows(page)) {
+            body.removeChild(node);
+            return false;
+        }
+        return true;
+    }
+
+    function getOrCreateProductsGrid(page) {
+        const body = page.querySelector('.a4-page-body');
+        let grid = body.querySelector('.print-products-grid[data-active="true"]');
+        if (!grid) {
+            grid = document.createElement('div');
+            grid.className = 'print-products-grid';
+            grid.dataset.active = 'true';
+            body.appendChild(grid);
+        }
+        return grid;
+    }
+
+    function closeActiveProductsGrid(page) {
+        const grid = page.querySelector('.print-products-grid[data-active="true"]');
+        if (grid) {
+            grid.dataset.active = 'false';
+        }
+    }
+
+    function appendProduct(page, productNode) {
+        const grid = getOrCreateProductsGrid(page);
+        const body = page.querySelector('.a4-page-body');
+        if (!grid.parentNode) {
+            body.appendChild(grid);
+        }
+        grid.appendChild(productNode);
+        if (pageBodyOverflows(page)) {
+            grid.removeChild(productNode);
+            if (!grid.children.length) {
+                grid.remove();
+            } else {
+                closeActiveProductsGrid(page);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    function createContinuationHeader(label) {
+        const wrap = document.createElement('div');
+        wrap.className = 'content-block';
+
+        const cont = document.createElement('p');
+        cont.className = 'print-continuation';
+        cont.textContent = label + ' (συνέχεια)';
+
+        const title = document.createElement('h2');
+        title.className = 'print-products-title';
+        title.textContent = 'Προϊόντα';
+
+        wrap.appendChild(cont);
+        wrap.appendChild(title);
+        return wrap;
+    }
+
+    function buildPages() {
+        const source = document.getElementById('printSource');
+        const container = document.getElementById('printPages');
+        document.documentElement.setAttribute('data-pages-ready', 'false');
+        container.innerHTML = '';
+
+        let page = createPage();
+        container.appendChild(page);
+        let currentTaskLabel = '';
+
+        function startNewPage() {
+            page = createPage();
+            container.appendChild(page);
+        }
+
+        source.querySelectorAll('.content-block').forEach(function(block) {
+            const kind = block.dataset.block;
+            const clone = block.cloneNode(true);
+
+            if (kind === 'task-start') {
+                currentTaskLabel = block.dataset.taskLabel || '';
+                if (page.querySelector('.a4-page-body').children.length > 0) {
+                    startNewPage();
+                }
+                if (!appendBlock(page, clone)) {
+                    startNewPage();
+                    appendBlock(page, clone);
+                }
+                return;
+            }
+
+            if (kind === 'product') {
+                if (!appendProduct(page, clone)) {
+                    startNewPage();
+                    if (currentTaskLabel) {
+                        appendBlock(page, createContinuationHeader(currentTaskLabel));
+                    }
+                    appendProduct(page, clone);
+                }
+                return;
+            }
+
+            closeActiveProductsGrid(page);
+            if (!appendBlock(page, clone)) {
+                startNewPage();
+                if (currentTaskLabel && kind !== 'empty') {
+                    appendBlock(page, createContinuationHeader(currentTaskLabel));
+                }
+                appendBlock(page, clone);
+            }
+        });
+
+        const pages = container.querySelectorAll('.a4-page');
+        if (pages.length > 1) {
+            const last = pages[pages.length - 1];
+            if (!last.querySelector('.a4-page-body').children.length) {
+                last.remove();
+            }
+        }
+
+        updatePageNumbers();
+    }
+
+    function waitForImages(root) {
+        if (!root) return Promise.resolve();
+        const images = Array.from(root.querySelectorAll('img[src]'));
+        if (!images.length) return Promise.resolve();
+        return Promise.all(images.map(function(img) {
+            return new Promise(function(resolve) {
+                var settled = false;
+                function finish() {
+                    if (settled) return;
+                    settled = true;
+                    resolve();
+                }
+                img.addEventListener('load', finish, { once: true });
+                img.addEventListener('error', finish, { once: true });
+                if (img.complete && img.naturalWidth > 0) {
+                    finish();
+                    return;
+                }
+                if (img.complete) {
+                    var src = img.getAttribute('src');
+                    if (src) img.src = src;
+                }
+                setTimeout(finish, 8000);
+            });
+        }));
+    }
+
+    let layoutTimer = null;
+    function scheduleLayout() {
+        clearTimeout(layoutTimer);
+        layoutTimer = setTimeout(function() {
+            const source = document.getElementById('printSource');
+            const pages = document.getElementById('printPages');
+            waitForImages(source).then(function() {
+                buildPages();
+                return waitForImages(pages);
+            }).then(function() {
+                buildPages();
+                document.documentElement.setAttribute('data-pages-ready', 'true');
+            });
+        }, 50);
+    }
+
+    document.addEventListener('DOMContentLoaded', scheduleLayout);
+    window.addEventListener('load', scheduleLayout);
+    window.addEventListener('resize', scheduleLayout);
+    window.addEventListener('beforeprint', function() {
+        buildPages();
+        document.documentElement.setAttribute('data-pages-ready', 'true');
+    });
     </script>
 </body>
 </html>

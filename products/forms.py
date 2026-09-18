@@ -468,6 +468,7 @@ def get_offer_email_recipients(customer):
             recipients.append({
                 'email': primary_email,
                 'contact_recipient': '1',
+                'label': customer.contact_person_display() or 'Υπεύθυνος επικοινωνίας',
             })
 
         second_email = (customer.contact_person_2_email or '').strip()
@@ -476,13 +477,15 @@ def get_offer_email_recipients(customer):
                 recipients.append({
                     'email': second_email,
                     'contact_recipient': '2',
+                    'label': customer.contact_person_2_display() or '2ος υπεύθυνος',
                 })
     else:
         email = (customer.get_primary_email() or '').strip()
         if email:
             recipients.append({
                 'email': email,
-                'contact_recipient': None,
+                'contact_recipient': 'primary',
+                'label': customer.display_name(),
             })
 
     return recipients
@@ -508,14 +511,25 @@ class ProductWarehouseEmailForm(forms.Form):
             'id': 'id_email_customer',
         }),
     )
+    subject = forms.CharField(
+        required=False,
+        label='Θέμα',
+        max_length=200,
+        widget=forms.TextInput(attrs={
+            'class': 'warehouse-email-subject',
+            'id': 'id_email_subject',
+            'placeholder': 'Αφήστε κενό για το προεπιλεγμένο θέμα...',
+            'autocomplete': 'off',
+        }),
+    )
     message = forms.CharField(
         required=False,
-        label='Μήνυμα',
+        label='Κείμενο',
         widget=forms.Textarea(attrs={
             'class': 'warehouse-email-message',
             'id': 'id_email_message',
-            'rows': 3,
-            'placeholder': 'Προαιρετικό μήνυμα στο email...',
+            'rows': 4,
+            'placeholder': 'Αφήστε κενό για το προεπιλεγμένο κείμενο...',
         }),
     )
 
@@ -534,9 +548,92 @@ class ProductWarehouseEmailForm(forms.Form):
 
     def clean_customer(self):
         customer = self.cleaned_data['customer']
-        if not get_customer_delivery_email(customer):
+        if not get_offer_email_recipients(customer):
             raise forms.ValidationError('Ο πελάτης δεν έχει καταχωρημένο email.')
         return customer
+
+
+class OfferEmailForm(forms.Form):
+    use_required_attribute = False
+
+    email_to = forms.MultipleChoiceField(
+        required=False,
+        label='Παραλήπτες',
+        widget=forms.CheckboxSelectMultiple(attrs={
+            'class': 'offer-email-recipient',
+        }),
+    )
+    subject = forms.CharField(
+        required=False,
+        label='Θέμα',
+        max_length=200,
+        widget=forms.TextInput(attrs={
+            'class': 'offer-email-subject',
+            'id': 'id_offer_email_subject',
+            'placeholder': 'Αφήστε κενό για το προεπιλεγμένο θέμα...',
+            'autocomplete': 'off',
+        }),
+    )
+    message = forms.CharField(
+        required=False,
+        label='Κείμενο',
+        widget=forms.Textarea(attrs={
+            'class': 'offer-email-message',
+            'id': 'id_offer_email_message',
+            'rows': 4,
+            'placeholder': 'Αφήστε κενό για το προεπιλεγμένο κείμενο...',
+        }),
+    )
+
+    def __init__(self, *args, recipients=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.recipients = list(recipients or [])
+        choices = [
+            (
+                entry['contact_recipient'],
+                f"{entry['label']} — {entry['email']}",
+            )
+            for entry in self.recipients
+        ]
+        self.fields['email_to'].choices = choices
+        if len(choices) > 1:
+            self.fields['email_to'].required = True
+            if not self.is_bound:
+                # Προεπιλογή: μόνο ο πρώτος. Ο χρήστης τσεκάρει κι τον 2ο αν θέλει.
+                self.fields['email_to'].initial = [choices[0][0]]
+        elif len(choices) == 1:
+            self.fields['email_to'].required = False
+            self.fields['email_to'].initial = [choices[0][0]]
+            self.fields['email_to'].widget = forms.MultipleHiddenInput()
+        else:
+            self.fields['email_to'].required = False
+            self.fields['email_to'].choices = []
+
+    def clean_email_to(self):
+        selected = [
+            str(key)
+            for key in (self.cleaned_data.get('email_to') or [])
+        ]
+        valid_keys = {
+            str(entry['contact_recipient']) for entry in self.recipients
+        }
+        if not valid_keys:
+            return []
+        if len(valid_keys) == 1:
+            return [next(iter(valid_keys))]
+        selected = [key for key in selected if key in valid_keys]
+        if not selected:
+            raise forms.ValidationError('Επιλέξτε τουλάχιστον έναν παραλήπτη email.')
+        return selected
+
+    def get_selected_recipients(self):
+        selected = {
+            str(key) for key in (self.cleaned_data.get('email_to') or [])
+        }
+        return [
+            entry for entry in self.recipients
+            if str(entry['contact_recipient']) in selected
+        ]
 
 
 class OfferForm(forms.ModelForm):
@@ -563,10 +660,12 @@ class OfferForm(forms.ModelForm):
             'packaging',
             'payment_method',
             'notes',
+            'hide_totals',
         ]
         labels = {
             'notes': 'Σημείωση',
             'bank_account_group': 'Τραπεζικοί λογαριασμοί',
+            'hide_totals': 'Χωρίς εμφάνιση συνολικών ποσών',
         }
         widgets = {
             'bank_account_group': forms.RadioSelect(attrs={
@@ -581,6 +680,9 @@ class OfferForm(forms.ModelForm):
                 'class': 'form-control',
                 'rows': 2,
                 'placeholder': 'Προαιρετική σημείωση στην προσφορά...',
+            }),
+            'hide_totals': forms.CheckboxInput(attrs={
+                'class': 'offer-hide-totals-checkbox',
             }),
         }
 
