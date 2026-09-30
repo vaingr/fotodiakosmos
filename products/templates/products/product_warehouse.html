@@ -1122,6 +1122,35 @@ body.email-sending-active .email-sending-overlay {
 {% if catalog_products or warehouse_products or customers_email_data or warehouse_items %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    function parseQuantity(value) {
+        if (value === null || value === undefined || value === '') {
+            return 0;
+        }
+        return parseFloat(String(value).replace(',', '.')) || 0;
+    }
+
+    function sanitizeQuantityInput(value) {
+        let cleaned = String(value).replace(/[^\d.,]/g, '');
+        const separatorIndex = cleaned.search(/[.,]/);
+        if (separatorIndex === -1) {
+            return cleaned;
+        }
+        const integerPart = cleaned.slice(0, separatorIndex).replace(/[.,]/g, '');
+        const fractionPart = cleaned.slice(separatorIndex + 1).replace(/[.,]/g, '').slice(0, 2);
+        return integerPart + ',' + fractionPart;
+    }
+
+    function formatQuantityDisplay(value) {
+        const number = parseQuantity(value);
+        if (!Number.isFinite(number) || number <= 0) {
+            return value || '';
+        }
+        return number.toLocaleString('el-GR', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+        });
+    }
+
     const warehouseStockSearch = document.getElementById('warehouseStockSearch');
     const warehouseStockFilters = document.getElementById('warehouseStockFilters');
     const warehouseStockRows = document.querySelectorAll('.warehouse-stock-row');
@@ -1384,10 +1413,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!quantityInput) {
                 return;
             }
-            const quantity = parseInt(quantityInput.value, 10);
-            if (!quantity || quantity < 1) {
+            const quantity = parseQuantity(quantityInput.value);
+            if (!quantity || quantity < 0.01) {
                 event.preventDefault();
-                alert('Η ποσότητα πρέπει να είναι τουλάχιστον 1.');
+                alert('Η ποσότητα πρέπει να είναι τουλάχιστον 0,01.');
                 return;
             }
             if (config.mode === 'remove') {
@@ -1401,7 +1430,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (quantityInput) {
             quantityInput.addEventListener('input', function() {
-                quantityInput.value = quantityInput.value.replace(/[^\d]/g, '');
+                quantityInput.value = sanitizeQuantityInput(quantityInput.value);
             });
         }
 
@@ -1763,7 +1792,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (editStockInput) editStockInput.value = button.dataset.stockId || '';
         if (editStockProductLabel) editStockProductLabel.textContent = button.dataset.productLabel || '';
-        if (editQuantityInput) editQuantityInput.value = originalQuantity;
+        if (editQuantityInput) editQuantityInput.value = formatQuantityDisplay(originalQuantity);
         if (editCarpetInput) editCarpetInput.value = button.dataset.carpet || '';
         if (editBulbInput) editBulbInput.value = button.dataset.bulb || '';
         if (editPhotocellInput) editPhotocellInput.value = button.dataset.photocell || '';
@@ -1828,7 +1857,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     if (editQuantityInput) {
         editQuantityInput.addEventListener('input', function() {
-            editQuantityInput.value = editQuantityInput.value.replace(/[^\d]/g, '');
+            editQuantityInput.value = sanitizeQuantityInput(editQuantityInput.value);
         });
     }
     document.querySelectorAll('.edit-complete-detail-input').forEach(bindUppercaseInput);

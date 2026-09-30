@@ -536,6 +536,17 @@ document.addEventListener('DOMContentLoaded', function() {
         return parseFloat(String(value).replace(',', '.')) || 0;
     }
 
+    function formatQuantity(value) {
+        const number = parseNumber(value);
+        if (!Number.isFinite(number) || number <= 0) {
+            return value || '';
+        }
+        return number.toLocaleString('el-GR', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+        });
+    }
+
     function lineTotal(quantity, price, discount) {
         const factor = (100 - Math.min(100, Math.max(0, discount || 0))) / 100;
         return quantity * price * factor;
@@ -596,6 +607,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateLineTotal(row);
             });
         });
+        const quantityInput = row.querySelector('.offer-quantity-input');
+        if (quantityInput) {
+            quantityInput.addEventListener('blur', function() {
+                if (quantityInput.value.trim() === '') return;
+                quantityInput.value = formatQuantity(quantityInput.value);
+                updateLineTotal(row);
+            });
+            if (quantityInput.value.trim() !== '') {
+                quantityInput.value = formatQuantity(quantityInput.value);
+            }
+        }
         updateLineTotal(row);
     }
 
@@ -904,8 +926,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <div class="form-group quantity-field">
                         <label>Ποσότητα</label>
-                        <input type="number" class="form-control offer-quantity-input" name="items-${index}-quantity"
-                               id="id_items-${index}-quantity" min="1" step="1" value="1">
+                        <input type="text" class="form-control offer-quantity-input" name="items-${index}-quantity"
+                               id="id_items-${index}-quantity" inputmode="decimal"
+                               autocomplete="off" value="1">
                     </div>
                     <div class="form-group price-field">
                         <label>Τιμή μονάδας (€)</label>
@@ -990,7 +1013,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (productSelect && productSelect.value) {
                 hasProduct = true;
                 const quantityInput = row.querySelector('.offer-quantity-input');
-                if (!quantityInput || parseNumber(quantityInput.value) < 1) {
+                if (!quantityInput || parseNumber(quantityInput.value) < 0.01) {
                     missingQuantity = true;
                 }
             }

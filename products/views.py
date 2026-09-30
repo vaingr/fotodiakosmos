@@ -8,6 +8,7 @@ from django.db.models import Count, Max, OuterRef, Q, Subquery, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
+from decimal import Decimal
 
 from email_utils import get_email_settings, is_email_configured, send_email_with_attachment
 from warehouse.decorators import require_module_perm
@@ -58,13 +59,13 @@ def _get_catalog_products_data():
             'complete_stocks': [],
         })
         if stock.construction_stage == ProductStock.STAGE_SKELETON:
-            product_data[ProductStock.STAGE_SKELETON] = stock.quantity
+            product_data[ProductStock.STAGE_SKELETON] = float(stock.quantity)
         else:
             product_data['complete_stocks'].append({
                 'carpet': stock.carpet,
                 'bulb': stock.bulb,
                 'dimensions': stock.dimensions,
-                'quantity': stock.quantity,
+                'quantity': float(stock.quantity),
             })
 
     products = []
@@ -114,9 +115,9 @@ def _get_warehouse_products_data():
             'construction_stage': stock.construction_stage,
             'stage_label': stock.get_construction_stage_display(),
             'label': _format_warehouse_stock_label(stock),
-            'stock_quantity': stock.available_quantity,
-            'reserved_quantity': stock.reserved_quantity,
-            'total_quantity': stock.quantity,
+            'stock_quantity': float(stock.available_quantity),
+            'reserved_quantity': float(stock.reserved_quantity),
+            'total_quantity': float(stock.quantity),
         })
     return products
 
@@ -253,7 +254,7 @@ def _add_product_to_warehouse(product, quantity, construction_stage, user, compl
         'product': product,
         'construction_stage': construction_stage,
     }
-    defaults = {'quantity': 0}
+    defaults = {'quantity': Decimal('0')}
 
     if construction_stage == ProductStock.STAGE_COMPLETE:
         lookup.update({
@@ -313,7 +314,7 @@ def _remove_product_from_warehouse(stock, quantity, user):
         movement_type=ProductStockMovement.REMOVE,
         amount=quantity,
         quantity_before=quantity_before,
-        quantity_after=max(quantity_after, 0),
+        quantity_after=max(quantity_after, Decimal('0')),
         created_by=user,
     )
 

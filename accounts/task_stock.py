@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import transaction
 from django.db.models import F
 
@@ -103,8 +105,8 @@ def consume_item_reservation(item, user=None):
     stock = ProductStock.objects.select_for_update().get(pk=stock.pk)
     amount = min(item.quantity, stock.quantity)
     quantity_before = stock.quantity
-    stock.quantity = max(0, stock.quantity - amount)
-    stock.reserved_quantity = max(0, stock.reserved_quantity - item.quantity)
+    stock.quantity = max(Decimal('0'), stock.quantity - amount)
+    stock.reserved_quantity = max(Decimal('0'), stock.reserved_quantity - item.quantity)
     stock.save(update_fields=['quantity', 'reserved_quantity', 'updated_at'])
 
     if amount > 0:

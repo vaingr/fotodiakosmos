@@ -1,6 +1,16 @@
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.conf import settings
+from decimal import Decimal, ROUND_HALF_UP
+
+
+def format_warehouse_quantity(value):
+    """Display stock amounts without unnecessary trailing zeros."""
+    amount = Decimal(value).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    if amount == amount.to_integral_value():
+        return str(int(amount))
+    return format(amount.normalize(), 'f')
+
 
 class ProductCodeCounter(models.Model):
     """Model to track the last used product code counter"""
@@ -38,13 +48,23 @@ class MeasurementUnit(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def allows_decimals(self):
+        return 'ΜΕΤΡ' in (self.name or '').upper()
+
 
 class Product(models.Model):
     code = models.CharField(max_length=100, unique=True, verbose_name="Κωδικός")
     barcode = models.CharField(max_length=200, blank=True, null=True, verbose_name="QR/Bar Code")
     name = models.CharField(max_length=200, verbose_name="Όνομα")
     description = models.TextField(blank=True, null=True, verbose_name="Περιγραφή")
-    quantity = models.IntegerField(validators=[MinValueValidator(0)], default=0, verbose_name="Ποσότητα")
+    quantity = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0'))],
+        default=Decimal('0'),
+        verbose_name="Ποσότητα",
+    )
     low_stock_threshold = models.IntegerField(
         validators=[MinValueValidator(0)],
         verbose_name="Όριο Χαμηλού Αποθέματος",
@@ -73,7 +93,7 @@ class Product(models.Model):
     @property
     def quantity_display(self):
         unit = self.measurement_unit.name if self.measurement_unit_id else 'ΤΕΜΑΧΙΑ'
-        return f"{self.quantity} {unit}"
+        return f"{format_warehouse_quantity(self.quantity)} {unit}"
 
 
 class StockMovement(models.Model):
@@ -91,9 +111,22 @@ class StockMovement(models.Model):
         verbose_name="Υλικό",
     )
     movement_type = models.CharField(max_length=10, choices=MOVEMENT_TYPES, verbose_name="Τύπος")
-    amount = models.PositiveIntegerField(verbose_name="Ποσότητα")
-    quantity_before = models.IntegerField(verbose_name="Ποσότητα Πριν")
-    quantity_after = models.IntegerField(verbose_name="Ποσότητα Μετά")
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Ποσότητα",
+    )
+    quantity_before = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name="Ποσότητα Πριν",
+    )
+    quantity_after = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name="Ποσότητα Μετά",
+    )
     note = models.TextField(blank=True, verbose_name="Σημείωση")
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -111,11 +144,26 @@ class StockMovement(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.get_movement_type_display()} {self.amount} - {self.product.name}"
+        return (
+            f"{self.get_movement_type_display()} "
+            f"{format_warehouse_quantity(self.amount)} - {self.product.name}"
+        )
 
     @property
     def movement_type_label(self):
         return self.get_movement_type_display()
+
+    @property
+    def amount_display(self):
+        return format_warehouse_quantity(self.amount)
+
+    @property
+    def quantity_before_display(self):
+        return format_warehouse_quantity(self.quantity_before)
+
+    @property
+    def quantity_after_display(self):
+        return format_warehouse_quantity(self.quantity_after)
 
 
 class WarehouseUserProfile(models.Model):

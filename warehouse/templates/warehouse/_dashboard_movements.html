@@ -35,8 +35,8 @@
                         {{ movement.movement_type_label }}
                     </span>
                 </td>
-                <td class="cell-amount">{{ movement.amount }} {{ movement.product.measurement_unit.name }}</td>
-                <td class="cell-stock">{{ movement.quantity_before }} → {{ movement.quantity_after }}</td>
+                <td class="cell-amount">{{ movement.amount_display }} {{ movement.product.measurement_unit.name }}</td>
+                <td class="cell-stock">{{ movement.quantity_before_display }} → {{ movement.quantity_after_display }}</td>
                 <td class="cell-note">{% if movement.note %}{{ movement.note }}{% else %}—{% endif %}</td>
                 <td>{% if movement.created_by %}{{ movement.created_by.username }}{% else %}—{% endif %}</td>
             </tr>

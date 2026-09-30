@@ -16,7 +16,7 @@ from .decorators import (
     require_warehouse_admin,
     require_warehouse_dashboard_access,
 )
-from .models import Product, MeasurementUnit, StockMovement, WarehouseUserProfile
+from .models import Product, MeasurementUnit, StockMovement, WarehouseUserProfile, format_warehouse_quantity
 from .forms import (
     ProductForm,
     MeasurementUnitForm,
@@ -230,6 +230,9 @@ def _quantity_adjustment_view(request, pk, movement_type):
     product = get_object_or_404(Product.objects.select_related('measurement_unit'), pk=pk)
     is_add = movement_type == StockMovement.ADD
     unit_name = product.measurement_unit.name if product.measurement_unit_id else ''
+    allow_decimals = bool(
+        product.measurement_unit_id and product.measurement_unit.allows_decimals
+    )
 
     if is_add:
         title = 'Προσθήκη Ποσότητας'
@@ -241,7 +244,7 @@ def _quantity_adjustment_view(request, pk, movement_type):
         action_class = 'remove'
 
     if request.method == 'POST':
-        form = QuantityAdjustmentForm(request.POST)
+        form = QuantityAdjustmentForm(request.POST, allow_decimals=allow_decimals)
         if form.is_valid():
             amount = form.cleaned_data['amount']
             note = form.cleaned_data.get('note', '').strip()
@@ -253,7 +256,10 @@ def _quantity_adjustment_view(request, pk, movement_type):
                 if not is_add and amount > quantity_before:
                     form.add_error(
                         'amount',
-                        f'Η ποσότητα δεν μπορεί να υπερβαίνει το διαθέσιμο απόθεμα ({quantity_before} {unit_name}).',
+                        (
+                            f'Η ποσότητα δεν μπορεί να υπερβαίνει το διαθέσιμο απόθεμα '
+                            f'({format_warehouse_quantity(quantity_before)} {unit_name}).'
+                        ),
                     )
                 else:
                     quantity_after = quantity_before + amount if is_add else quantity_before - amount
@@ -269,15 +275,17 @@ def _quantity_adjustment_view(request, pk, movement_type):
                         created_by=request.user,
                     )
 
+                    amount_label = format_warehouse_quantity(amount)
+                    after_label = format_warehouse_quantity(quantity_after)
                     if is_add:
                         messages.success(
                             request,
-                            f'Προστέθηκαν {amount} {unit_name}. Νέο απόθεμα: {quantity_after} {unit_name}.',
+                            f'Προστέθηκαν {amount_label} {unit_name}. Νέο απόθεμα: {after_label} {unit_name}.',
                         )
                     else:
                         messages.success(
                             request,
-                            f'Αφαιρέθηκαν {amount} {unit_name}. Νέο απόθεμα: {quantity_after} {unit_name}.',
+                            f'Αφαιρέθηκαν {amount_label} {unit_name}. Νέο απόθεμα: {after_label} {unit_name}.',
                         )
 
                     next_url = request.POST.get('next') or request.GET.get('next')
@@ -285,7 +293,7 @@ def _quantity_adjustment_view(request, pk, movement_type):
                         return redirect(next_url)
                     return redirect('warehouse:product_detail', pk=pk)
     else:
-        form = QuantityAdjustmentForm()
+        form = QuantityAdjustmentForm(allow_decimals=allow_decimals)
 
     next_url = request.GET.get('next', '')
 
@@ -296,6 +304,7 @@ def _quantity_adjustment_view(request, pk, movement_type):
         'submit_label': submit_label,
         'action_class': action_class,
         'is_add': is_add,
+        'allow_decimals': allow_decimals,
         'next_url': next_url,
     })
 
@@ -452,7 +461,7 @@ def product_search_api(request):
         'name': p.name,
         'code': p.code,
         'barcode': p.barcode or '',
-        'quantity': p.quantity,
+        'quantity': format_warehouse_quantity(p.quantity),
         'measurement_unit': p.measurement_unit.name if p.measurement_unit_id else '',
     } for p in products]
     

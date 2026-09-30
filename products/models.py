@@ -60,13 +60,18 @@ class ProductStock(models.Model):
         default=STAGE_SKELETON,
         verbose_name='Στάδιο Κατασκευής',
     )
-    quantity = models.IntegerField(
-        default=0,
-        validators=[MinValueValidator(0)],
+    quantity = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0'),
+        validators=[MinValueValidator(Decimal('0'))],
         verbose_name='Ποσότητα',
     )
-    reserved_quantity = models.PositiveIntegerField(
-        default=0,
+    reserved_quantity = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0'),
+        validators=[MinValueValidator(Decimal('0'))],
         verbose_name='Δεσμευμένη ποσότητα',
     )
     low_stock_threshold = models.IntegerField(
@@ -105,7 +110,7 @@ class ProductStock(models.Model):
 
     @property
     def available_quantity(self):
-        return max(0, self.quantity - self.reserved_quantity)
+        return max(Decimal('0'), self.quantity - self.reserved_quantity)
 
     def is_low_stock(self):
         return self.available_quantity <= self.low_stock_threshold
@@ -138,9 +143,22 @@ class ProductStockMovement(models.Model):
         verbose_name='Απόθεμα προϊόντος',
     )
     movement_type = models.CharField(max_length=10, choices=MOVEMENT_CHOICES, verbose_name='Τύπος')
-    amount = models.PositiveIntegerField(verbose_name='Ποσότητα')
-    quantity_before = models.IntegerField(verbose_name='Ποσότητα Πριν')
-    quantity_after = models.IntegerField(verbose_name='Ποσότητα Μετά')
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name='Ποσότητα',
+    )
+    quantity_before = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name='Ποσότητα Πριν',
+    )
+    quantity_after = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name='Ποσότητα Μετά',
+    )
     note = models.TextField(blank=True, default='', verbose_name='Σημείωση')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Ημερομηνία')
     created_by = models.ForeignKey(
@@ -351,8 +369,10 @@ class OfferItem(models.Model):
         related_name='offer_items',
         verbose_name='Προϊόν',
     )
-    quantity = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)],
+    quantity = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
         verbose_name='Ποσότητα',
     )
     unit_price = models.DecimalField(
@@ -375,7 +395,15 @@ class OfferItem(models.Model):
         ordering = ['id']
 
     def __str__(self):
-        return f'{self.product.name} x {self.quantity}'
+        return f'{self.product.name} x {self.quantity_display}'
+
+    @property
+    def quantity_display(self):
+        amount = Decimal(self.quantity or 0).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        if amount == amount.to_integral_value():
+            return str(int(amount))
+        text = format(amount, 'f').rstrip('0').rstrip('.')
+        return text.replace('.', ',')
 
     @property
     def line_total(self):

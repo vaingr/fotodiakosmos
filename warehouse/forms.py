@@ -2,9 +2,10 @@ from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from decimal import Decimal
 import re
 
-from .models import Product, MeasurementUnit, WarehouseUserProfile
+from .models import Product, MeasurementUnit, WarehouseUserProfile, format_warehouse_quantity
 from .permissions import WAREHOUSE_PERMISSION_FIELDS, WAREHOUSE_PERMISSION_KEYS
 
 LOWERCASE_ENGLISH_RE = re.compile(r'^[a-z]+$')
@@ -154,17 +155,16 @@ class ProductForm(forms.ModelForm):
 
 
 class QuantityAdjustmentForm(forms.Form):
-    amount = forms.IntegerField(
-        min_value=1,
+    amount = forms.DecimalField(
+        min_value=Decimal('0.01'),
+        max_digits=12,
+        decimal_places=2,
         label='Ποσότητα',
-        widget=forms.NumberInput(attrs={
+        widget=forms.TextInput(attrs={
             'class': 'form-control qty-input',
-            'min': '1',
-            'step': '1',
             'required': True,
-            'inputmode': 'numeric',
-            'pattern': '[0-9]*',
-            'placeholder': 'π.χ. 5',
+            'inputmode': 'decimal',
+            'autocomplete': 'off',
         }),
     )
     note = forms.CharField(
@@ -178,10 +178,45 @@ class QuantityAdjustmentForm(forms.Form):
         }),
     )
 
+    def __init__(self, *args, allow_decimals=False, **kwargs):
+        self.allow_decimals = allow_decimals
+        if args:
+            data = args[0]
+            if hasattr(data, 'copy'):
+                data = data.copy()
+                raw_amount = data.get('amount')
+                if isinstance(raw_amount, str) and raw_amount.strip():
+                    data['amount'] = raw_amount.strip().replace(',', '.')
+                args = (data,) + args[1:]
+        super().__init__(*args, **kwargs)
+
+        if allow_decimals:
+            self.fields['amount'].widget.attrs.update({
+                'inputmode': 'decimal',
+            })
+        else:
+            self.fields['amount'].min_value = Decimal('1')
+            self.fields['amount'].widget.attrs.update({
+                'inputmode': 'numeric',
+            })
+
     def clean_amount(self):
         amount = self.cleaned_data.get('amount')
-        if amount is None or amount < 1:
-            raise forms.ValidationError('Η ποσότητα πρέπει να είναι τουλάχιστον 1.')
+        if amount is None:
+            raise forms.ValidationError('Η ποσότητα είναι υποχρεωτική.')
+
+        amount = amount.quantize(Decimal('0.01'))
+
+        if self.allow_decimals:
+            if amount < Decimal('0.01'):
+                raise forms.ValidationError('Η ποσότητα πρέπει να είναι τουλάχιστον 0,01.')
+        else:
+            if amount < Decimal('1'):
+                raise forms.ValidationError('Η ποσότητα πρέπει να είναι τουλάχιστον 1.')
+            if amount != amount.to_integral_value():
+                raise forms.ValidationError('Για αυτή τη μονάδα μέτρησης επιτρέπονται μόνο ακέραιες ποσότητες.')
+            amount = amount.to_integral_value()
+
         return amount
 
 

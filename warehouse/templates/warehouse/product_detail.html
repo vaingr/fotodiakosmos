@@ -103,8 +103,8 @@
                                 {{ movement.movement_type_label }}
                             </span>
                         </td>
-                        <td>{{ movement.amount }}</td>
-                        <td>{{ movement.quantity_before }} → {{ movement.quantity_after }}</td>
+                        <td>{{ movement.amount_display }}</td>
+                        <td>{{ movement.quantity_before_display }} → {{ movement.quantity_after_display }}</td>
                         <td>{% if movement.note %}{{ movement.note }}{% else %}—{% endif %}</td>
                         <td>{% if movement.created_by %}{{ movement.created_by.username }}{% else %}—{% endif %}</td>
                     </tr>

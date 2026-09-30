@@ -1,4 +1,5 @@
 import re
+from decimal import Decimal, ROUND_HALF_UP
 
 from django import forms
 from django.forms import BaseInlineFormSet, inlineformset_factory
@@ -8,6 +9,27 @@ from warehouse.models import Product as WarehouseProduct
 from customers.models import Customer
 
 from .models import FinishedProduct, Offer, OfferItem, OfferBankAccount, OfferSettings, ProductMaterial, ProductStock
+
+
+def format_offer_quantity_input(value):
+    """Format quantity for Greek decimal input (comma separator)."""
+    if value in (None, ''):
+        return ''
+    amount = Decimal(value).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    if amount == amount.to_integral_value():
+        return str(int(amount))
+    text = format(amount, 'f').rstrip('0').rstrip('.')
+    return text.replace('.', ',')
+
+
+class GreekDecimalInput(forms.TextInput):
+    def format_value(self, value):
+        if value in (None, ''):
+            return ''
+        try:
+            return format_offer_quantity_input(value)
+        except Exception:
+            return str(value).replace('.', ',')
 
 
 class FinishedProductForm(forms.ModelForm):
@@ -140,6 +162,38 @@ ProductMaterialFormSet = inlineformset_factory(
 )
 
 
+def normalize_greek_decimal_data(data, field_name):
+    """Copy form data and convert Greek decimal commas to dots for a field."""
+    if data is None or not hasattr(data, 'copy'):
+        return data
+    data = data.copy()
+    raw_value = data.get(field_name)
+    if isinstance(raw_value, str) and raw_value.strip():
+        data[field_name] = raw_value.strip().replace(',', '.')
+    return data
+
+
+def greek_decimal_quantity_field(widget_id, initial=1):
+    return forms.DecimalField(
+        label='Ποσότητα',
+        min_value=Decimal('0.01'),
+        max_digits=12,
+        decimal_places=2,
+        initial=initial,
+        widget=GreekDecimalInput(attrs={
+            'class': 'warehouse-quantity-input',
+            'id': widget_id,
+            'inputmode': 'decimal',
+            'autocomplete': 'off',
+        }),
+        error_messages={
+            'invalid': 'Εισάγετε έγκυρη ποσότητα (π.χ. 1,50).',
+            'min_value': 'Η ποσότητα πρέπει να είναι τουλάχιστον 0,01.',
+            'required': 'Η ποσότητα είναι υποχρεωτική.',
+        },
+    )
+
+
 class ProductWarehouseAddForm(forms.Form):
     use_required_attribute = False
 
@@ -160,18 +214,7 @@ class ProductWarehouseAddForm(forms.Form):
             'class': 'construction-stage-radio',
         }),
     )
-    quantity = forms.IntegerField(
-        label='Ποσότητα',
-        min_value=1,
-        initial=1,
-        widget=forms.NumberInput(attrs={
-            'class': 'warehouse-quantity-input',
-            'id': 'id_warehouse_quantity',
-            'min': 1,
-            'step': 1,
-            'placeholder': 'Ποσότητα',
-        }),
-    )
+    quantity = greek_decimal_quantity_field('id_warehouse_quantity')
     carpet = forms.CharField(
         label='ΜΟΚΕΤΑ',
         required=False,
@@ -214,6 +257,10 @@ class ProductWarehouseAddForm(forms.Form):
     )
 
     def __init__(self, *args, **kwargs):
+        if args:
+            args = (normalize_greek_decimal_data(args[0], 'quantity'),) + args[1:]
+        elif 'data' in kwargs:
+            kwargs['data'] = normalize_greek_decimal_data(kwargs.get('data'), 'quantity')
         super().__init__(*args, **kwargs)
         products = FinishedProduct.objects.order_by('name')
         self.fields['product'].label_from_instance = lambda product: f'{product.code} - {product.name}'
@@ -254,16 +301,7 @@ class ProductWarehouseEditForm(forms.Form):
         queryset=ProductStock.objects.none(),
         widget=forms.HiddenInput(attrs={'id': 'id_edit_warehouse_stock'}),
     )
-    quantity = forms.IntegerField(
-        label='Ποσότητα',
-        min_value=1,
-        widget=forms.NumberInput(attrs={
-            'class': 'warehouse-quantity-input',
-            'id': 'id_edit_warehouse_quantity',
-            'min': 1,
-            'step': 1,
-        }),
-    )
+    quantity = greek_decimal_quantity_field('id_edit_warehouse_quantity')
     construction_stage = forms.ChoiceField(
         choices=ProductStock.STAGE_CHOICES,
         label='Στάδιο Κατασκευής',
@@ -309,6 +347,10 @@ class ProductWarehouseEditForm(forms.Form):
     )
 
     def __init__(self, *args, **kwargs):
+        if args:
+            args = (normalize_greek_decimal_data(args[0], 'quantity'),) + args[1:]
+        elif 'data' in kwargs:
+            kwargs['data'] = normalize_greek_decimal_data(kwargs.get('data'), 'quantity')
         super().__init__(*args, **kwargs)
         stocks = ProductStock.objects.filter(quantity__gt=0)
         if self.is_bound:
@@ -387,20 +429,13 @@ class ProductWarehouseRemoveForm(forms.Form):
             'id': 'id_remove_warehouse_stock',
         }),
     )
-    quantity = forms.IntegerField(
-        label='Ποσότητα',
-        min_value=1,
-        initial=1,
-        widget=forms.NumberInput(attrs={
-            'class': 'warehouse-quantity-input',
-            'id': 'id_remove_warehouse_quantity',
-            'min': 1,
-            'step': 1,
-            'placeholder': 'Ποσότητα',
-        }),
-    )
+    quantity = greek_decimal_quantity_field('id_remove_warehouse_quantity')
 
     def __init__(self, *args, **kwargs):
+        if args:
+            args = (normalize_greek_decimal_data(args[0], 'quantity'),) + args[1:]
+        elif 'data' in kwargs:
+            kwargs['data'] = normalize_greek_decimal_data(kwargs.get('data'), 'quantity')
         super().__init__(*args, **kwargs)
         stocks = (
             ProductStock.objects.filter(quantity__gt=0).select_related('product').order_by(
@@ -718,10 +753,10 @@ class OfferItemForm(forms.ModelForm):
         }
         widgets = {
             'product': forms.Select(attrs={'class': 'offer-product-select'}),
-            'quantity': forms.NumberInput(attrs={
+            'quantity': GreekDecimalInput(attrs={
                 'class': 'form-control offer-quantity-input',
-                'min': 1,
-                'step': 1,
+                'inputmode': 'decimal',
+                'autocomplete': 'off',
             }),
             'unit_price': forms.NumberInput(attrs={
                 'class': 'form-control offer-price-input',
@@ -737,6 +772,25 @@ class OfferItemForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        prefix = kwargs.get('prefix')
+        data = kwargs.get('data')
+        if data is None and args:
+            data = args[0]
+            using_args = True
+        else:
+            using_args = False
+
+        if data is not None and hasattr(data, 'copy'):
+            data = data.copy()
+            quantity_key = f'{prefix}-quantity' if prefix else 'quantity'
+            raw_quantity = data.get(quantity_key)
+            if isinstance(raw_quantity, str) and raw_quantity.strip():
+                data[quantity_key] = raw_quantity.strip().replace(',', '.')
+            if using_args:
+                args = (data,) + args[1:]
+            else:
+                kwargs['data'] = data
+
         super().__init__(*args, **kwargs)
         products = FinishedProduct.objects.order_by('name')
         self.fields['product'].label_from_instance = lambda product: f'{product.code} - {product.name}'
@@ -748,6 +802,7 @@ class OfferItemForm(forms.ModelForm):
             self.fields['product'].queryset = products.none()
         self.fields['product'].error_messages['required'] = 'Επιλέξτε προϊόν.'
         self.fields['quantity'].error_messages['required'] = 'Η ποσότητα είναι υποχρεωτική.'
+        self.fields['quantity'].error_messages['invalid'] = 'Εισάγετε έγκυρη ποσότητα (π.χ. 1,50).'
         self.fields['unit_price'].error_messages['required'] = 'Η τιμή είναι υποχρεωτική.'
         self.fields['discount_percent'].required = False
         self.fields['discount_percent'].initial = 0

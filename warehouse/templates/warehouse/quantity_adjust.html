@@ -37,7 +37,7 @@
                     <span class="qty-suffix">{{ product.measurement_unit.name }}</span>
                 </div>
                 {% if not is_add %}
-                <small class="field-help">Μέγιστο διαθέσιμο: {{ product.quantity }} {{ product.measurement_unit.name }}</small>
+                <small class="field-help">Μέγιστο διαθέσιμο: {{ product.quantity_display }}</small>
                 {% endif %}
                 {% if form.amount.errors %}
                 <div class="error-message">{{ form.amount.errors.0 }}</div>
