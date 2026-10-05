@@ -1126,7 +1126,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (value === null || value === undefined || value === '') {
             return 0;
         }
-        return parseFloat(String(value).replace(',', '.')) || 0;
+        let text = String(value).trim();
+        if (text.includes(',')) {
+            text = text.replace(/\./g, '').replace(',', '.');
+        }
+        return parseFloat(text) || 0;
     }
 
     function sanitizeQuantityInput(value) {
@@ -1148,6 +1152,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return number.toLocaleString('el-GR', {
             minimumFractionDigits: 0,
             maximumFractionDigits: 2,
+            useGrouping: false,
         });
     }
 
