@@ -305,6 +305,8 @@
                     <strong> · Από αποθήκη{% if item.reserved_stock %} · {{ item.reserved_stock.get_construction_stage_display }}{% endif %}</strong>
                     {% elif item.item_status == 'shipped' %}
                     <strong> · Έχει αποσταλεί{% if item.reserved_stock %} · {{ item.reserved_stock.get_construction_stage_display }}{% endif %}</strong>
+                    {% elif item.item_status == 'skeleton_ready' %}
+                    <strong> · {% if item.quantity > 1 %}Σκελετοί Έτοιμοι{% else %}Σκελετός Έτοιμος{% endif %}</strong>
                     {% elif item.has_active_reservation %}
                     <strong> · Από αποθήκη{% if item.reserved_stock %} · {{ item.reserved_stock.get_construction_stage_display }}{% endif %}</strong>
                     {% endif %}

@@ -107,10 +107,10 @@ class ProductMaterialForm(forms.ModelForm):
         fields = ['material', 'quantity']
         widgets = {
             'material': forms.Select(attrs={'class': 'form-control material-select'}),
-            'quantity': forms.NumberInput(attrs={
+            'quantity': GreekDecimalInput(attrs={
                 'class': 'form-control quantity-input',
-                'min': 1,
-                'step': 1,
+                'inputmode': 'decimal',
+                'autocomplete': 'off',
                 'placeholder': 'Ποσότητα',
             }),
         }
@@ -120,12 +120,32 @@ class ProductMaterialForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        prefix = kwargs.get('prefix')
+        data = kwargs.get('data')
+        if data is None and args:
+            data = args[0]
+            using_args = True
+        else:
+            using_args = False
+
+        if data is not None and hasattr(data, 'copy'):
+            data = data.copy()
+            quantity_key = f'{prefix}-quantity' if prefix else 'quantity'
+            raw_quantity = data.get(quantity_key)
+            if isinstance(raw_quantity, str) and raw_quantity.strip():
+                data[quantity_key] = raw_quantity.strip().replace(',', '.')
+            if using_args:
+                args = (data,) + args[1:]
+            else:
+                kwargs['data'] = data
+
         super().__init__(*args, **kwargs)
         self.fields['material'].queryset = (
             WarehouseProduct.objects.select_related('measurement_unit').order_by('name')
         )
         self.fields['material'].empty_label = 'Επιλέξτε υλικό...'
         self.fields['material'].label_from_instance = self._material_label
+        self.fields['quantity'].error_messages['invalid'] = 'Εισάγετε έγκυρη ποσότητα (π.χ. 1,5).'
 
     @staticmethod
     def _material_label(material):

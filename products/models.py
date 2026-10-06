@@ -192,8 +192,10 @@ class ProductMaterial(models.Model):
         related_name='product_usages',
         verbose_name='Υλικό',
     )
-    quantity = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)],
+    quantity = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
         verbose_name='Ποσότητα',
     )
 
@@ -210,12 +212,17 @@ class ProductMaterial(models.Model):
 
     def __str__(self):
         unit = self.material.measurement_unit.name if self.material.measurement_unit_id else ''
-        return f'{self.material.name} x {self.quantity} {unit}'.strip()
+        return f'{self.material.name} x {self.quantity_display} {unit}'.strip()
 
     @property
     def quantity_display(self):
         unit = self.material.measurement_unit.name if self.material.measurement_unit_id else 'ΤΕΜΑΧΙΑ'
-        return f'{self.quantity} {unit}'
+        amount = Decimal(self.quantity or 0).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        if amount == amount.to_integral_value():
+            qty_text = str(int(amount))
+        else:
+            qty_text = format(amount, 'f').rstrip('0').rstrip('.').replace('.', ',')
+        return f'{qty_text} {unit}'
 
 
 class Offer(models.Model):

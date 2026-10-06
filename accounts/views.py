@@ -304,6 +304,7 @@ def _get_task_detail_dict(task):
                 'notes': item.notes or '',
                 'item_status': item.item_status,
                 'status_label': item.get_status_label(),
+                'skeleton_ready_label': ScheduledTaskItem.get_skeleton_ready_label(item.quantity),
                 'is_reserved': item.is_reserved(),
                 'has_active_reservation': item.has_active_reservation(),
                 'can_ship_toggle': bool(
@@ -318,6 +319,11 @@ def _get_task_detail_dict(task):
                 'reserved_stock_id': item.reserved_stock_id or '',
                 'reserved_label': (
                     item.reserved_stock.variant_label()
+                    if item.reserved_stock_id
+                    else ''
+                ),
+                'reserved_stage': (
+                    item.reserved_stock.construction_stage
                     if item.reserved_stock_id
                     else ''
                 ),
@@ -342,6 +348,7 @@ def _update_task_item_statuses(task, post_data, user=None):
 
     valid_statuses = {
         ScheduledTaskItem.STATUS_UNDER_WORK,
+        ScheduledTaskItem.STATUS_SKELETON_READY,
         ScheduledTaskItem.STATUS_RESERVED,
         ScheduledTaskItem.STATUS_COMPLETED,
         ScheduledTaskItem.STATUS_SHIPPED,
@@ -381,10 +388,32 @@ def _update_task_item_statuses(task, post_data, user=None):
             )
 
             if reservation_flow and has_stock_link:
+                is_skeleton_stock = (
+                    item.reserved_stock_id
+                    and item.reserved_stock.construction_stage
+                    == item.reserved_stock.STAGE_SKELETON
+                )
+
+                if new_status == ScheduledTaskItem.STATUS_SKELETON_READY:
+                    continue
+
                 if new_status == ScheduledTaskItem.STATUS_UNDER_WORK:
+                    if not is_skeleton_stock:
+                        continue
+                    if item.item_status in (
+                        ScheduledTaskItem.STATUS_SHIPPED,
+                        ScheduledTaskItem.STATUS_RESERVED,
+                    ):
+                        continue
+                    # Σκελετός από αποθήκη: «υπό κατασκευή» = δεσμευμένο
+                    item.item_status = ScheduledTaskItem.STATUS_RESERVED
+                    item.save(update_fields=['item_status'])
+                    updated = True
                     continue
 
                 if new_status == ScheduledTaskItem.STATUS_SHIPPED:
+                    if is_skeleton_stock and item.item_status != ScheduledTaskItem.STATUS_COMPLETED:
+                        continue
                     if item.item_status != ScheduledTaskItem.STATUS_SHIPPED:
                         consume_item_reservation(item, user=user)
                         item.item_status = ScheduledTaskItem.STATUS_SHIPPED
@@ -499,7 +528,10 @@ def _get_task_print_filter_label(
 def _get_pending_construction_products():
     items = ScheduledTaskItem.objects.filter(
         task__task_type=ScheduledTask.TYPE_CONSTRUCTION,
-        item_status=ScheduledTaskItem.STATUS_UNDER_WORK,
+        item_status__in=(
+            ScheduledTaskItem.STATUS_UNDER_WORK,
+            ScheduledTaskItem.STATUS_SKELETON_READY,
+        ),
     ).exclude(
         task__status=ScheduledTask.STATUS_CANCELLED,
     ).select_related(

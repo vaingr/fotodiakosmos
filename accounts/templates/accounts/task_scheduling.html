@@ -513,6 +513,11 @@
         font-weight: 700;
     }
 
+    .task-skeleton-ready-badge {
+        background: rgba(34, 197, 94, 0.18);
+        color: #4ade80;
+    }
+
     .task-product-line.is-reserved .task-product-line-text {
         color: #fbbf24;
     }
@@ -1098,6 +1103,12 @@
         color: #4ade80;
     }
 
+    .item-status-option.is-skeleton-ready:has(input:checked) {
+        border-color: #22c55e;
+        background: rgba(34, 197, 94, 0.15);
+        color: #4ade80;
+    }
+
     .item-status-option.is-reserved:has(input:checked) {
         border-color: #f59e0b;
         background: rgba(245, 158, 11, 0.15);
@@ -1533,6 +1544,8 @@
                                         <span class="task-reserved-badge"><i class="fas fa-lock"></i> Από αποθήκη{% if item.reserved_stock %} · {{ item.reserved_stock.get_construction_stage_display }}{% endif %}</span>
                                         {% elif item.item_status == 'shipped' %}
                                         <span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί{% if item.reserved_stock %} · {{ item.reserved_stock.get_construction_stage_display }}{% endif %}</span>
+                                        {% elif item.item_status == 'skeleton_ready' %}
+                                        <span class="task-reserved-badge task-skeleton-ready-badge"><i class="fas fa-cube"></i> {% if item.quantity > 1 %}Σκελετοί Έτοιμοι{% else %}Σκελετός Έτοιμος{% endif %}</span>
                                         {% elif item.has_active_reservation %}
                                         <span class="task-reserved-badge"><i class="fas fa-lock"></i> Από αποθήκη{% if item.reserved_stock %} · {{ item.reserved_stock.get_construction_stage_display }}{% endif %}</span>
                                         {% endif %}
@@ -1962,10 +1975,18 @@
         }
 
         taskDetailItems.innerHTML = task.items.map(function(item) {
-            const underWorkChecked = item.item_status === 'under_work' ? ' checked' : '';
+            const isSkeletonFromWarehouse = Boolean(item.reserved_stock_id)
+                && item.reserved_stage === 'skeleton';
+            const underWorkChecked = (
+                item.item_status === 'under_work'
+                || (isSkeletonFromWarehouse && item.item_status === 'reserved')
+            ) ? ' checked' : '';
+            const skeletonReadyChecked = item.item_status === 'skeleton_ready' ? ' checked' : '';
             const completedChecked = (item.item_status === 'completed' || item.item_status === 'shipped') ? ' checked' : '';
             const shippedChecked = item.is_shipped || item.item_status === 'shipped' ? ' checked' : '';
             const notShippedChecked = !shippedChecked ? ' checked' : '';
+            const skeletonReadyLabel = item.skeleton_ready_label
+                || (item.quantity > 1 ? 'Σκελετοί Έτοιμοι' : 'Σκελετός Έτοιμος');
             const photoHtml = item.product_photo_url
                 ? '<img src="' + item.product_photo_url + '" alt="' + item.product_name + '" class="task-detail-item-thumb">'
                 : '<div class="task-detail-item-thumb-placeholder" title="Χωρίς φωτογραφία"><i class="fas fa-image"></i></div>';
@@ -1974,7 +1995,8 @@
                 || item.is_reserved
                 || item.item_status === 'reserved'
                 || Boolean(item.reserved_stock_id);
-            const showShipToggle = isReservedItem
+            const isCompleteFromWarehouse = isReservedItem && item.reserved_stage === 'complete';
+            const showShipToggle = isCompleteFromWarehouse
                 || item.item_status === 'completed'
                 || item.item_status === 'shipped';
             const reservedMeta = item.item_status === 'shipped'
@@ -2001,15 +2023,24 @@
                     + '</div>')
                 : '';
             let statusOptions = '';
-            if (isReservedItem) {
+            if (isCompleteFromWarehouse) {
+                // Ολοκληρωμένο από αποθήκη: μόνο αποστολή
                 statusOptions = shipToggleHtml;
             } else {
                 const workDisabled = item.item_status === 'shipped' ? ' disabled' : '';
+                // Σκελετός από αποθήκη: χωρίς «Σκελετοί Έτοιμοι»
+                const showSkeletonReady = task.task_type === 'construction' && !isSkeletonFromWarehouse;
                 statusOptions = ''
                     + '<label class="item-status-option">'
                     + '<input type="radio" name="item_' + item.id + '" value="under_work"' + underWorkChecked + workDisabled + '>'
                     + '<span>' + task.under_work_label + '</span>'
                     + '</label>'
+                    + (showSkeletonReady
+                        ? ('<label class="item-status-option is-skeleton-ready">'
+                            + '<input type="radio" name="item_' + item.id + '" value="skeleton_ready"' + skeletonReadyChecked + workDisabled + '>'
+                            + '<span>' + skeletonReadyLabel + '</span>'
+                            + '</label>')
+                        : '')
                     + '<label class="item-status-option is-completed">'
                     + '<input type="radio" name="item_' + item.id + '" value="completed"' + completedChecked + workDisabled + '>'
                     + '<span>Ολοκληρώθηκε</span>'
@@ -2088,6 +2119,11 @@
                     statusBadge = ' <span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί'
                         + (item.reserved_stage_label ? ' · ' + item.reserved_stage_label : '')
                         + '</span>';
+                } else if (item.item_status === 'skeleton_ready') {
+                    const skeletonLabel = item.skeleton_ready_label
+                        || (item.quantity > 1 ? 'Σκελετοί Έτοιμοι' : 'Σκελετός Έτοιμος');
+                    statusBadge = ' <span class="task-reserved-badge task-skeleton-ready-badge"><i class="fas fa-cube"></i> '
+                        + skeletonLabel + '</span>';
                 }
                 return ''
                     + '<div class="task-product-line' + completedClass + '">'

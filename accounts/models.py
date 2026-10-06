@@ -158,11 +158,13 @@ class ScheduledTask(models.Model):
 
 class ScheduledTaskItem(models.Model):
     STATUS_UNDER_WORK = 'under_work'
+    STATUS_SKELETON_READY = 'skeleton_ready'
     STATUS_RESERVED = 'reserved'
     STATUS_COMPLETED = 'completed'
     STATUS_SHIPPED = 'shipped'
     STATUS_CHOICES = [
         (STATUS_UNDER_WORK, 'Υπό κατασκευή'),
+        (STATUS_SKELETON_READY, 'Σκελετός Έτοιμος'),
         (STATUS_RESERVED, 'Δεσμευμένο'),
         (STATUS_COMPLETED, 'Ολοκληρώθηκε'),
         (STATUS_SHIPPED, 'Έχει αποσταλεί'),
@@ -213,11 +215,19 @@ class ScheduledTaskItem(models.Model):
     def __str__(self):
         return f'{self.product.code} x {self.quantity}'
 
+    @classmethod
+    def get_skeleton_ready_label(cls, quantity=1):
+        if quantity and quantity > 1:
+            return 'Σκελετοί Έτοιμοι'
+        return 'Σκελετός Έτοιμος'
+
     def get_status_label(self):
         if self.item_status == self.STATUS_SHIPPED:
             return 'Έχει αποσταλεί'
         if self.item_status == self.STATUS_COMPLETED:
             return 'Ολοκληρώθηκε'
+        if self.item_status == self.STATUS_SKELETON_READY:
+            return self.get_skeleton_ready_label(self.quantity)
         if self.item_status == self.STATUS_RESERVED:
             return 'Δεσμευμένο'
         if self.task.task_type == ScheduledTask.TYPE_REPAIR:
