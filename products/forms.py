@@ -888,9 +888,13 @@ class OfferSettingsForm(forms.ModelForm):
             'delivery_method',
             'packaging',
             'payment_method',
+            'company_signature',
+            'individual_signature',
         ]
         labels = {
             'logo': 'Λογότυπο',
+            'company_signature': 'Κείμενο Υπογραφής Εταιρίας',
+            'individual_signature': 'Κείμενο Υπογραφής Ατομικής',
         }
         widgets = {
             'logo': forms.ClearableFileInput(attrs={
@@ -902,6 +906,16 @@ class OfferSettingsForm(forms.ModelForm):
             'delivery_method': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}),
             'packaging': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}),
             'payment_method': forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}),
+            'company_signature': forms.Textarea(attrs={
+                'class': 'form-control signature-textarea',
+                'rows': 8,
+                'autocomplete': 'off',
+            }),
+            'individual_signature': forms.Textarea(attrs={
+                'class': 'form-control signature-textarea',
+                'rows': 8,
+                'autocomplete': 'off',
+            }),
         }
 
     def clean_logo(self):

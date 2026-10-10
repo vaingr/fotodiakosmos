@@ -220,12 +220,29 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+.offers-table td:first-child {
+    white-space: normal;
+}
 .offers-table th,
 .offers-table td {
     padding: 0.875rem 1rem;
     border-bottom: 1px solid var(--bg-secondary);
     text-align: left;
     color: var(--text-primary);
+    vertical-align: middle;
+}
+.offer-row-cancelled td {
+    opacity: 0.72;
+}
+.offer-cancelled-badge {
+    display: inline-block;
+    margin-left: 0.4rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    font-size: 0.72rem;
+    font-weight: 700;
     vertical-align: middle;
 }
 .offers-table th {

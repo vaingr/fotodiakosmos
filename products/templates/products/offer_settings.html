@@ -56,6 +56,60 @@
 
     {% include 'products/_offer_bank_accounts_section.html' with section_id='individualBank' section_title='Τραπεζικοί Λογαριασμοί Ατομικής' section_description='Λογαριασμοί ατομικής δραστηριότητας που εμφανίζονται στην εκτύπωση προσφοράς όταν επιλέγεται ομάδα «Ατομικής».' bank_formset=individual_bank_formset section_open=individual_bank_section_open formset_prefix='individual_banks' formset_container_id='individual-bank-formset' %}
 
+    <div class="settings-accordion contact-accordion settings-accordion-wide" id="companySignatureSettingsAccordion">
+        <button type="button"
+                class="contact-accordion-toggle"
+                id="companySignatureSettingsAccordionToggle"
+                aria-expanded="{% if company_signature_section_open %}true{% else %}false{% endif %}"
+                aria-controls="companySignatureSettingsAccordionPanel">
+            <span class="contact-accordion-title">
+                <i class="fas fa-signature"></i> Κείμενο Υπογραφής Εταιρίας
+            </span>
+            <i class="fas fa-chevron-down contact-accordion-icon" aria-hidden="true"></i>
+        </button>
+        <div class="contact-accordion-panel"
+             id="companySignatureSettingsAccordionPanel"
+             {% if not company_signature_section_open %}hidden{% endif %}>
+            <p class="settings-description">
+                Εμφανίζεται στην εκτύπωση της προσφοράς όταν επιλέγεται ομάδα λογαριασμών «Εταιρίας».
+            </p>
+            <div class="form-group">
+                <label for="{{ form.company_signature.id_for_label }}">{{ form.company_signature.label }}</label>
+                {{ form.company_signature }}
+                {% if form.company_signature.errors %}
+                <div class="error-message">{{ form.company_signature.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-accordion contact-accordion settings-accordion-wide" id="individualSignatureSettingsAccordion">
+        <button type="button"
+                class="contact-accordion-toggle"
+                id="individualSignatureSettingsAccordionToggle"
+                aria-expanded="{% if individual_signature_section_open %}true{% else %}false{% endif %}"
+                aria-controls="individualSignatureSettingsAccordionPanel">
+            <span class="contact-accordion-title">
+                <i class="fas fa-signature"></i> Κείμενο Υπογραφής Ατομικής
+            </span>
+            <i class="fas fa-chevron-down contact-accordion-icon" aria-hidden="true"></i>
+        </button>
+        <div class="contact-accordion-panel"
+             id="individualSignatureSettingsAccordionPanel"
+             {% if not individual_signature_section_open %}hidden{% endif %}>
+            <p class="settings-description">
+                Εμφανίζεται στην εκτύπωση της προσφοράς όταν επιλέγεται ομάδα λογαριασμών «Ατομικής».
+            </p>
+            <div class="form-group">
+                <label for="{{ form.individual_signature.id_for_label }}">{{ form.individual_signature.label }}</label>
+                {{ form.individual_signature }}
+                {% if form.individual_signature.errors %}
+                <div class="error-message">{{ form.individual_signature.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     <div class="settings-accordion contact-accordion settings-accordion-wide" id="termsSettingsAccordion">
         <button type="button"
                 class="contact-accordion-toggle"
@@ -274,6 +328,13 @@
     display: grid;
     gap: 1rem;
 }
+.signature-textarea {
+    min-height: 10rem;
+    line-height: 1.5;
+    resize: vertical;
+    font-family: inherit;
+    white-space: pre-wrap;
+}
 .settings-actions {
     max-width: 900px;
     display: flex;
@@ -318,6 +379,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initSettingsAccordion('logoSettingsAccordionToggle', 'logoSettingsAccordionPanel');
     initSettingsAccordion('companyBankSettingsAccordionToggle', 'companyBankSettingsAccordionPanel');
     initSettingsAccordion('individualBankSettingsAccordionToggle', 'individualBankSettingsAccordionPanel');
+    initSettingsAccordion('companySignatureSettingsAccordionToggle', 'companySignatureSettingsAccordionPanel');
+    initSettingsAccordion('individualSignatureSettingsAccordionToggle', 'individualSignatureSettingsAccordionPanel');
     initSettingsAccordion('termsSettingsAccordionToggle', 'termsSettingsAccordionPanel');
 
     function bindUppercaseInput(input) {

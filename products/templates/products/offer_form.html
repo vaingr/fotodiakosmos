@@ -217,7 +217,20 @@
     font-size: 1.35rem;
     color: var(--accent);
 }
-.form-actions { margin-top: 1.5rem; }
+.form-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+.form-actions .btn-warning {
+    background: #d97706;
+    color: #fff;
+}
+.form-actions .btn-warning:hover {
+    background: #b45309;
+}
 .btn {
     display: inline-flex;
     align-items: center;
@@ -295,6 +308,7 @@
     <div class="form-card">
         <form method="post" id="offerForm" autocomplete="off" novalidate>
             {% csrf_token %}
+            <input type="hidden" name="form_action" id="offerFormAction" value="save">
 
             {% if form.non_field_errors %}
             <div class="error-message">{{ form.non_field_errors.0 }}</div>
@@ -491,10 +505,19 @@
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary" data-form-action="save">
                     <i class="fas fa-save"></i>
                     {% if is_edit %}Αποθήκευση αλλαγών{% else %}Αποθήκευση προσφοράς{% endif %}
                 </button>
+                {% if is_edit and offer and not offer.is_cancelled %}
+                <button type="submit"
+                        class="btn btn-warning"
+                        data-form-action="save_as_new"
+                        id="saveAsNewOfferBtn">
+                    <i class="fas fa-copy"></i>
+                    Αποθήκευση ως νέα προσφορά και ακύρωση προηγούμενης
+                </button>
+                {% endif %}
             </div>
         </form>
     </div>
@@ -983,10 +1006,33 @@ document.addEventListener('DOMContentLoaded', function() {
     bindRemoveButtons(formsetContainer);
     updateGrandTotal();
 
+    const formActionInput = document.getElementById('offerFormAction');
+
     offerForm.addEventListener('submit', function(event) {
         if (offerForm.dataset.submitting === '1') {
             event.preventDefault();
             return;
+        }
+
+        const action = (event.submitter && event.submitter.dataset.formAction)
+            || (formActionInput && formActionInput.value)
+            || 'save';
+        if (formActionInput) {
+            formActionInput.value = action;
+        }
+
+        const isSaveAsNew = action === 'save_as_new';
+        if (isSaveAsNew) {
+            const confirmed = window.confirm(
+                'Θα δημιουργηθεί νέα προσφορά με τα τρέχοντα στοιχεία και η υπάρχουσα θα ακυρωθεί. Συνέχεια;',
+            );
+            if (!confirmed) {
+                event.preventDefault();
+                if (formActionInput) {
+                    formActionInput.value = 'save';
+                }
+                return;
+            }
         }
 
         const customerPicker = document.querySelector('[data-customer-picker]');
@@ -1036,10 +1082,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         offerForm.dataset.submitting = '1';
-        const submitButton = offerForm.querySelector('button[type="submit"]');
-        if (submitButton) {
-            submitButton.disabled = true;
-        }
+        offerForm.querySelectorAll('button[type="submit"]').forEach(function(button) {
+            button.disabled = true;
+        });
     });
 });
 </script>

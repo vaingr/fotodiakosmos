@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.cache import never_cache
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models.deletion import ProtectedError
 from django.db.models import Count, Max, OuterRef, Q, Subquery, Sum
 from django.shortcuts import get_object_or_404, redirect, render
@@ -937,6 +938,45 @@ def offer_create(request):
     })
 
 
+def _create_offer_from_form_data(form, formset, user):
+    """Create a new offer + items from validated form/formset data."""
+    new_offer = Offer(
+        customer=form.cleaned_data['customer'],
+        notes=form.cleaned_data.get('notes') or '',
+        bank_account_group=form.cleaned_data.get(
+            'bank_account_group',
+            Offer.BANK_GROUP_COMPANY,
+        ),
+        delivery_time=form.cleaned_data.get('delivery_time') or '',
+        delivery_place=form.cleaned_data.get('delivery_place') or '',
+        delivery_method=form.cleaned_data.get('delivery_method') or '',
+        packaging=form.cleaned_data.get('packaging') or '',
+        payment_method=form.cleaned_data.get('payment_method') or '',
+        hide_totals=bool(form.cleaned_data.get('hide_totals')),
+        created_by=user,
+        status=Offer.STATUS_ACTIVE,
+    )
+    new_offer.save()
+
+    for item_form in formset.forms:
+        cleaned = item_form.cleaned_data
+        if not cleaned or cleaned.get('DELETE'):
+            continue
+        product = cleaned.get('product')
+        if not product:
+            continue
+        OfferItem.objects.create(
+            offer=new_offer,
+            product=product,
+            quantity=cleaned['quantity'],
+            unit_price=cleaned['unit_price'],
+            discount_percent=cleaned.get('discount_percent') or 0,
+        )
+
+    new_offer.recalculate_total()
+    return new_offer
+
+
 @require_module_perm('perm_offers')
 def offer_edit(request, pk):
     offer = get_object_or_404(
@@ -944,23 +984,47 @@ def offer_edit(request, pk):
         pk=pk,
     )
     if request.method == 'POST':
+        save_as_new = request.POST.get('form_action') == 'save_as_new'
         form = OfferForm(request.POST, instance=offer)
         formset = OfferItemFormSet(request.POST, instance=offer, prefix='items')
         if form.is_valid() and formset.is_valid():
-            offer = form.save()
-            formset.save()
-            if hasattr(offer, '_prefetched_objects_cache'):
-                offer._prefetched_objects_cache.pop('items', None)
-            offer.recalculate_total()
-            messages.success(
+            if save_as_new:
+                if offer.is_cancelled:
+                    messages.error(request, 'Η προσφορά είναι ήδη ακυρωμένη.')
+                else:
+                    with transaction.atomic():
+                        previous_number = offer.offer_number
+                        # Μόνο ακύρωση — χωρίς αποθήκευση των πεδίων της φόρμας στην παλιά
+                        Offer.objects.filter(pk=offer.pk).update(
+                            status=Offer.STATUS_CANCELLED,
+                        )
+                        new_offer = _create_offer_from_form_data(
+                            form, formset, request.user,
+                        )
+                    messages.success(
+                        request,
+                        (
+                            f'Δημιουργήθηκε η νέα προσφορά {new_offer.offer_number}. '
+                            f'Η προηγούμενη ({previous_number}) ακυρώθηκε.'
+                        ),
+                    )
+                    return redirect('products:offers')
+            else:
+                offer = form.save()
+                formset.save()
+                if hasattr(offer, '_prefetched_objects_cache'):
+                    offer._prefetched_objects_cache.pop('items', None)
+                offer.recalculate_total()
+                messages.success(
+                    request,
+                    f'Η προσφορά {offer.offer_number} ενημερώθηκε επιτυχώς.',
+                )
+                return redirect('products:offers')
+        else:
+            messages.error(
                 request,
-                f'Η προσφορά {offer.offer_number} ενημερώθηκε επιτυχώς.',
+                'Η προσφορά δεν αποθηκεύτηκε. Ελέγξτε τα στοιχεία και δοκιμάστε ξανά.',
             )
-            return redirect('products:offers')
-        messages.error(
-            request,
-            'Η προσφορά δεν αποθηκεύτηκε. Ελέγξτε τα στοιχεία και δοκιμάστε ξανά.',
-        )
     else:
         form = OfferForm(instance=offer)
         formset = OfferItemFormSet(instance=offer, prefix='items')
@@ -1019,6 +1083,12 @@ def offer_settings(request):
                 'delivery_time', 'delivery_place', 'delivery_method', 'packaging', 'payment_method',
             )
         ),
+        'company_signature_section_open': (
+            request.method == 'POST' and 'company_signature' in form.errors
+        ),
+        'individual_signature_section_open': (
+            request.method == 'POST' and 'individual_signature' in form.errors
+        ),
         'company_bank_section_open': request.method == 'POST' and (
             bool(company_bank_formset.non_form_errors())
             or any(bank_form.errors for bank_form in company_bank_formset)
@@ -1045,6 +1115,7 @@ def offer_print(request, pk):
     offer_bank_accounts = offer_settings.bank_accounts.filter(
         account_group=offer.bank_account_group,
     )
+    offer_signature = offer_settings.get_signature_text(offer.bank_account_group)
     email_settings = get_email_settings()
     sender_name = email_settings.get('from_name') or 'Fotodiakosmos'
     default_email_subject = f'{sender_name} - Προσφορά {offer.offer_number}'
@@ -1052,6 +1123,7 @@ def offer_print(request, pk):
         'offer': offer,
         'offer_settings': offer_settings,
         'offer_bank_accounts': offer_bank_accounts,
+        'offer_signature': offer_signature,
         'printed_at': timezone.localtime(timezone.now()),
         'email_configured': is_email_configured(),
         'customer_email': email_recipients[0]['email'] if email_recipients else '',

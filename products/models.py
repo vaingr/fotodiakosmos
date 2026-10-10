@@ -226,6 +226,13 @@ class ProductMaterial(models.Model):
 
 
 class Offer(models.Model):
+    STATUS_ACTIVE = 'active'
+    STATUS_CANCELLED = 'cancelled'
+    STATUS_CHOICES = [
+        (STATUS_ACTIVE, 'Ενεργή'),
+        (STATUS_CANCELLED, 'Ακυρωμένη'),
+    ]
+
     offer_number = models.CharField(max_length=30, unique=True, verbose_name='Αριθμός Προσφοράς')
     customer = models.ForeignKey(
         'customers.Customer',
@@ -234,6 +241,12 @@ class Offer(models.Model):
         verbose_name='Πελάτης',
     )
     notes = models.TextField(blank=True, default='', verbose_name='Σημείωση')
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_ACTIVE,
+        verbose_name='Κατάσταση',
+    )
     BANK_GROUP_COMPANY = 'company'
     BANK_GROUP_INDIVIDUAL = 'individual'
     BANK_GROUP_CHOICES = [
@@ -303,6 +316,10 @@ class Offer(models.Model):
 
     def __str__(self):
         return f'{self.offer_number} - {self.customer.display_name()}'
+
+    @property
+    def is_cancelled(self):
+        return self.status == self.STATUS_CANCELLED
 
     def save(self, *args, **kwargs):
         if not self.offer_number:
@@ -422,6 +439,29 @@ class OfferItem(models.Model):
 
 
 class OfferSettings(models.Model):
+    DEFAULT_COMPANY_SIGNATURE = (
+        'Μετά τιμής,\n'
+        '\n'
+        'ΓΙΑ ΤΗΝ ΕΤΑΙΡΕΙΑ\n'
+        '\n'
+        'ΜΠΟΥΡΟΥ ΓΕΩΡΓΙΑ & ΣΙΑ Ε.Ε.\n'
+        '\n'
+        'Η ΕΚΠΡΟΣΩΠΟΣ\n'
+        '\n'
+        'ΜΠΟΥΡΟΥ ΓΕΩΡΓΙΑ'
+    )
+    DEFAULT_INDIVIDUAL_SIGNATURE = (
+        'Μετά τιμής,\n'
+        '\n'
+        'ΓΙΑ ΤΗΝ ΕΤΑΙΡΕΙΑ\n'
+        '\n'
+        'ΜΠΟΥΡΟΥ ΓΕΩΡΓΙΑ\n'
+        '\n'
+        'Η ΕΚΠΡΟΣΩΠΟΣ\n'
+        '\n'
+        'ΜΠΟΥΡΟΥ ΓΕΩΡΓΙΑ'
+    )
+
     logo = models.ImageField(
         upload_to='offers/logo/',
         blank=True,
@@ -454,6 +494,16 @@ class OfferSettings(models.Model):
         default='',
         verbose_name='Τρόπος πληρωμής',
     )
+    company_signature = models.TextField(
+        blank=True,
+        default=DEFAULT_COMPANY_SIGNATURE,
+        verbose_name='Κείμενο Υπογραφής Εταιρίας',
+    )
+    individual_signature = models.TextField(
+        blank=True,
+        default=DEFAULT_INDIVIDUAL_SIGNATURE,
+        verbose_name='Κείμενο Υπογραφής Ατομικής',
+    )
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Τελευταία ενημέρωση')
 
     class Meta:
@@ -471,6 +521,11 @@ class OfferSettings(models.Model):
 
     def __str__(self):
         return 'Ρυθμίσεις Προσφορών'
+
+    def get_signature_text(self, account_group):
+        if account_group == OfferBankAccount.GROUP_INDIVIDUAL:
+            return (self.individual_signature or '').strip() or self.DEFAULT_INDIVIDUAL_SIGNATURE
+        return (self.company_signature or '').strip() or self.DEFAULT_COMPANY_SIGNATURE
 
     def get_offer_terms_rows(self):
         return [

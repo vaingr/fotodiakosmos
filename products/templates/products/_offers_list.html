@@ -13,8 +13,13 @@
         </thead>
         <tbody>
             {% for offer in offers %}
-            <tr>
-                <td>{{ offer.offer_number }}</td>
+            <tr{% if offer.is_cancelled %} class="offer-row-cancelled"{% endif %}>
+                <td>
+                    {{ offer.offer_number }}
+                    {% if offer.is_cancelled %}
+                    <span class="offer-cancelled-badge">Ακυρωμένη</span>
+                    {% endif %}
+                </td>
                 <td>{{ offer.customer.display_name }}</td>
                 <td>{{ offer.created_at|date:"d/m/Y H:i" }}</td>
                 <td>{{ offer.grand_total_amount|floatformat:2 }} €</td>
