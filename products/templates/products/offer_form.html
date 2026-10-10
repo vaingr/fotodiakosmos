@@ -224,12 +224,71 @@
     gap: 0.75rem;
     align-items: center;
 }
-.form-actions .btn-warning {
+.form-actions .btn-warning,
+.offer-confirm-actions .btn-warning {
     background: #d97706;
     color: #fff;
 }
-.form-actions .btn-warning:hover {
+.form-actions .btn-warning:hover,
+.offer-confirm-actions .btn-warning:hover {
     background: #b45309;
+}
+.offer-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.55);
+}
+.offer-confirm-overlay[hidden] {
+    display: none;
+}
+.offer-confirm-modal {
+    width: 100%;
+    max-width: 460px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border, var(--bg-secondary));
+    border-radius: 10px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    padding: 1.25rem;
+}
+.offer-confirm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+}
+.offer-confirm-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.offer-confirm-close {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0.25rem;
+}
+.offer-confirm-message {
+    margin: 0 0 1.25rem;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    line-height: 1.55;
+}
+.offer-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.6rem;
 }
 .btn {
     display: inline-flex;
@@ -510,7 +569,7 @@
                     {% if is_edit %}Αποθήκευση αλλαγών{% else %}Αποθήκευση προσφοράς{% endif %}
                 </button>
                 {% if is_edit and offer and not offer.is_cancelled %}
-                <button type="submit"
+                <button type="button"
                         class="btn btn-warning"
                         data-form-action="save_as_new"
                         id="saveAsNewOfferBtn">
@@ -522,6 +581,35 @@
         </form>
     </div>
 </div>
+
+{% if is_edit and offer and not offer.is_cancelled %}
+<div class="offer-confirm-overlay" id="saveAsNewConfirmModal" hidden>
+    <div class="offer-confirm-modal" role="alertdialog" aria-labelledby="saveAsNewConfirmTitle" aria-modal="true">
+        <div class="offer-confirm-header">
+            <h3 id="saveAsNewConfirmTitle">
+                <i class="fas fa-exclamation-triangle"></i> Επιβεβαίωση
+            </h3>
+            <button type="button" class="offer-confirm-close" id="closeSaveAsNewConfirmBtn" aria-label="Κλείσιμο">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <p class="offer-confirm-message">
+            Θα δημιουργηθεί <strong>νέα προσφορά</strong> με τα τρέχοντα στοιχεία και η υπάρχουσα
+            (<strong>{{ offer.offer_number }}</strong>) θα σημειωθεί ως <strong>ακυρωμένη</strong>.
+            <br><br>
+            Θέλετε να συνεχίσετε;
+        </p>
+        <div class="offer-confirm-actions">
+            <button type="button" class="btn btn-secondary" id="cancelSaveAsNewConfirmBtn">
+                Ακύρωση
+            </button>
+            <button type="button" class="btn btn-warning" id="confirmSaveAsNewBtn">
+                <i class="fas fa-copy"></i> Ναι, συνέχεια
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 {{ catalog_products|json_script:"catalog-products-data" }}
 {{ customers_data|json_script:"customers-data" }}
@@ -1007,6 +1095,58 @@ document.addEventListener('DOMContentLoaded', function() {
     updateGrandTotal();
 
     const formActionInput = document.getElementById('offerFormAction');
+    const saveAsNewBtn = document.getElementById('saveAsNewOfferBtn');
+    const saveAsNewModal = document.getElementById('saveAsNewConfirmModal');
+    const confirmSaveAsNewBtn = document.getElementById('confirmSaveAsNewBtn');
+    const cancelSaveAsNewConfirmBtn = document.getElementById('cancelSaveAsNewConfirmBtn');
+    const closeSaveAsNewConfirmBtn = document.getElementById('closeSaveAsNewConfirmBtn');
+
+    function openSaveAsNewConfirm() {
+        if (!saveAsNewModal) return;
+        saveAsNewModal.hidden = false;
+    }
+
+    function closeSaveAsNewConfirm() {
+        if (!saveAsNewModal) return;
+        saveAsNewModal.hidden = true;
+        if (formActionInput && formActionInput.value === 'save_as_new') {
+            formActionInput.value = 'save';
+        }
+    }
+
+    if (saveAsNewBtn) {
+        saveAsNewBtn.addEventListener('click', function() {
+            openSaveAsNewConfirm();
+        });
+    }
+    if (cancelSaveAsNewConfirmBtn) {
+        cancelSaveAsNewConfirmBtn.addEventListener('click', closeSaveAsNewConfirm);
+    }
+    if (closeSaveAsNewConfirmBtn) {
+        closeSaveAsNewConfirmBtn.addEventListener('click', closeSaveAsNewConfirm);
+    }
+    if (saveAsNewModal) {
+        saveAsNewModal.addEventListener('click', function(event) {
+            if (event.target === saveAsNewModal) {
+                closeSaveAsNewConfirm();
+            }
+        });
+    }
+    if (confirmSaveAsNewBtn) {
+        confirmSaveAsNewBtn.addEventListener('click', function() {
+            if (formActionInput) {
+                formActionInput.value = 'save_as_new';
+            }
+            if (saveAsNewModal) {
+                saveAsNewModal.hidden = true;
+            }
+            if (typeof offerForm.requestSubmit === 'function') {
+                offerForm.requestSubmit();
+            } else {
+                HTMLFormElement.prototype.submit.call(offerForm);
+            }
+        });
+    }
 
     offerForm.addEventListener('submit', function(event) {
         if (offerForm.dataset.submitting === '1') {
@@ -1014,25 +1154,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const action = (event.submitter && event.submitter.dataset.formAction)
-            || (formActionInput && formActionInput.value)
+        const action = (formActionInput && formActionInput.value)
+            || (event.submitter && event.submitter.dataset.formAction)
             || 'save';
         if (formActionInput) {
             formActionInput.value = action;
-        }
-
-        const isSaveAsNew = action === 'save_as_new';
-        if (isSaveAsNew) {
-            const confirmed = window.confirm(
-                'Θα δημιουργηθεί νέα προσφορά με τα τρέχοντα στοιχεία και η υπάρχουσα θα ακυρωθεί. Συνέχεια;',
-            );
-            if (!confirmed) {
-                event.preventDefault();
-                if (formActionInput) {
-                    formActionInput.value = 'save';
-                }
-                return;
-            }
         }
 
         const customerPicker = document.querySelector('[data-customer-picker]');
@@ -1082,7 +1208,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         offerForm.dataset.submitting = '1';
-        offerForm.querySelectorAll('button[type="submit"]').forEach(function(button) {
+        offerForm.querySelectorAll('button[type="submit"], #saveAsNewOfferBtn, #confirmSaveAsNewBtn').forEach(function(button) {
             button.disabled = true;
         });
     });
