@@ -1543,7 +1543,7 @@
                                         {% if item.item_status == 'reserved' %}
                                         <span class="task-reserved-badge"><i class="fas fa-lock"></i> Από αποθήκη{% if item.reserved_stock %} · {{ item.reserved_stock.get_construction_stage_display }}{% endif %}</span>
                                         {% elif item.item_status == 'shipped' %}
-                                        <span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί{% if item.reserved_stock %} · {{ item.reserved_stock.get_construction_stage_display }}{% endif %}</span>
+                                        <span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί</span>
                                         {% elif item.item_status == 'skeleton_ready' %}
                                         <span class="task-reserved-badge task-skeleton-ready-badge"><i class="fas fa-cube"></i> {% if item.quantity > 1 %}Σκελετοί Έτοιμοι{% else %}Σκελετός Έτοιμος{% endif %}</span>
                                         {% elif item.has_active_reservation %}
@@ -2000,10 +2000,7 @@
                 || item.item_status === 'completed'
                 || item.item_status === 'shipped';
             const reservedMeta = item.item_status === 'shipped'
-                ? '<span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί'
-                    + (item.reserved_stage_label ? ' · ' + item.reserved_stage_label : '')
-                    + (item.reserved_label ? ': ' + item.reserved_label : '')
-                    + '</span>'
+                ? '<span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί</span>'
                 : ((item.has_active_reservation || item.is_reserved || item.reserved_label || item.reserved_stage_label)
                     ? '<span class="task-reserved-badge"><i class="fas fa-lock"></i> Από αποθήκη'
                         + (item.reserved_stage_label ? ' · ' + item.reserved_stage_label : '')
@@ -2116,9 +2113,7 @@
                         + (item.reserved_stage_label ? ' · ' + item.reserved_stage_label : '')
                         + '</span>';
                 } else if (item.item_status === 'shipped') {
-                    statusBadge = ' <span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί'
-                        + (item.reserved_stage_label ? ' · ' + item.reserved_stage_label : '')
-                        + '</span>';
+                    statusBadge = ' <span class="task-reserved-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8;"><i class="fas fa-truck"></i> Έχει αποσταλεί</span>';
                 } else if (item.item_status === 'skeleton_ready') {
                     const skeletonLabel = item.skeleton_ready_label
                         || (item.quantity > 1 ? 'Σκελετοί Έτοιμοι' : 'Σκελετός Έτοιμος');
@@ -3015,12 +3010,6 @@
                 return String(item.id) === String(productSelect.value);
             });
             const stocks = (product && product.complete_stocks) ? product.complete_stocks : [];
-            if (!stocks.length) {
-                hideTaskStockReservePanel();
-                clearTaskStockReservation(row);
-                return;
-            }
-
             const totalQty = quantityInput ? parseInt(quantityInput.value, 10) || 1 : 1;
             const existingAllocations = getRowExistingAllocations(row);
             let allocations = readRowAllocations(row);
@@ -3030,25 +3019,53 @@
                 writeRowAllocations(row, allocations);
             }
 
-            function stockDisplayAvailable(stock) {
-                let available = stock.available;
-                const stockId = String(stock.id);
-                if (existingAllocations[stockId]) {
-                    available += existingAllocations[stockId];
+            function toStockNumber(value) {
+                const number = Number(value);
+                if (!isFinite(number) || number < 0) {
+                    return 0;
                 }
-                return available;
+                return number;
+            }
+
+            function stockDisplayAvailable(stock) {
+                const stockId = String(stock.id);
+                return toStockNumber(stock.available) + toStockNumber(existingAllocations[stockId]);
+            }
+
+            if (!stocks.length) {
+                hideTaskStockReservePanel();
+                if (Object.keys(existingAllocations).length) {
+                    writeRowAllocations(row, existingAllocations);
+                } else {
+                    clearTaskStockReservation(row);
+                }
+                return;
             }
 
             // Clamp allocations to available / remaining total
             let reservedSoFar = 0;
             const nextAllocations = {};
+            const listedStockIds = {};
             stocks.forEach(function(stock) {
                 const stockId = String(stock.id);
+                listedStockIds[stockId] = true;
                 let qty = parseInt(allocations[stockId], 10) || 0;
                 const available = stockDisplayAvailable(stock);
-                qty = Math.max(0, Math.min(qty, available));
                 const remaining = Math.max(0, totalQty - reservedSoFar);
-                qty = Math.min(qty, remaining);
+                qty = Math.floor(Math.max(0, Math.min(qty, available, remaining)));
+                if (qty > 0) {
+                    nextAllocations[stockId] = qty;
+                    reservedSoFar += qty;
+                }
+            });
+            // Δέσμευση που δεν εμφανίζεται στον κατάλογο (πλήρως δεσμευμένο απόθεμα)
+            // μένει στην εργασία. Αλλιώς η αποθήκευση σημειώσεων την αποδεσμεύει.
+            Object.keys(existingAllocations).forEach(function(stockId) {
+                if (listedStockIds[stockId] || nextAllocations[stockId]) {
+                    return;
+                }
+                const remaining = Math.max(0, totalQty - reservedSoFar);
+                const qty = Math.min(parseInt(existingAllocations[stockId], 10) || 0, remaining);
                 if (qty > 0) {
                     nextAllocations[stockId] = qty;
                     reservedSoFar += qty;
@@ -3064,6 +3081,9 @@
                 const stockId = String(stock.id);
                 const displayAvailable = stockDisplayAvailable(stock);
                 const currentQty = nextAllocations[stockId] || 0;
+                if (displayAvailable <= 0 && currentQty <= 0) {
+                    return;
+                }
                 const othersTotal = reservedSoFar - currentQty;
                 const maxForInput = Math.min(
                     displayAvailable,
@@ -3106,6 +3126,12 @@
                     + '</div>'
                     + '</div>';
             });
+
+            if (!optionsHtml && !Object.keys(nextAllocations).length) {
+                hideTaskStockReservePanel();
+                clearTaskStockReservation(row);
+                return;
+            }
 
             panel.innerHTML = ''
                 + '<p class="task-stock-reserve-title">ΥΠΑΡΧΟΥΝ ΤΑ ΠΑΡΑΚΑΤΩ ΣΤΗΝ ΑΠΟΘΗΚΗ. ΚΑΤΑΧΩΡΗΣΕ ΑΝ ΘΕΣ ΝΑ ΔΕΣΜΕΥΘΕΙ ΚΑΠΟΙΟ ΑΠΟ ΑΥΤΑ ΓΙΑ ΑΥΤΗ ΤΗΝ ΠΑΡΑΓΓΕΛΙΑ</p>'

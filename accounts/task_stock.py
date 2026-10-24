@@ -7,6 +7,15 @@ from products.models import ProductStock, ProductStockMovement
 from .models import ScheduledTaskItem
 
 
+def _stock_number(value):
+    """Ακέραιος/float για JSON. Το Decimal γίνεται string και μετά κολλάει αντί να προστίθεται."""
+    number = Decimal(value or 0)
+    integral = number.to_integral_value()
+    if number == integral:
+        return int(integral)
+    return float(number)
+
+
 def get_complete_stocks_for_product(product_id, exclude_item=None):
     stocks = (
         ProductStock.objects
@@ -31,8 +40,8 @@ def get_complete_stocks_for_product(product_id, exclude_item=None):
             and exclude_item.has_active_reservation()
         ):
             available += exclude_item.quantity
-        if available <= 0:
-            continue
+        # Κρατάμε και το πλήρως δεσμευμένο απόθεμα. Αλλιώς, στην επεξεργασία,
+        # η γραμμή που το κρατάει ήδη δεν το βρίσκει και το αποδεσμεύει.
         result.append({
             'id': stock.pk,
             'carpet': stock.carpet,
@@ -45,9 +54,9 @@ def get_complete_stocks_for_product(product_id, exclude_item=None):
             'product_code': stock.product.code,
             'product_name': stock.product.name,
             'product_label': f'{stock.product.code} - {stock.product.name}',
-            'quantity': stock.quantity,
-            'reserved_quantity': stock.reserved_quantity,
-            'available': available,
+            'quantity': _stock_number(stock.quantity),
+            'reserved_quantity': _stock_number(stock.reserved_quantity),
+            'available': _stock_number(available),
         })
     return result
 

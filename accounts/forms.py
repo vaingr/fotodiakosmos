@@ -200,15 +200,26 @@ class BaseTaskItemFormSet(forms.BaseInlineFormSet):
                     previous_quantity=previous_quantity if previous_was_reserved else 0,
                 )
                 item.reserved_stock = reserved_stock
-                item.item_status = ScheduledTaskItem.STATUS_RESERVED
+                # Σημειώσεις/ποσότητα δεν πρέπει να ρίχνουν ολοκληρωμένο ή
+                # ήδη δεσμευμένο προϊόν πίσω σε νέα δέσμευση.
+                if item.item_status not in (
+                    ScheduledTaskItem.STATUS_RESERVED,
+                    ScheduledTaskItem.STATUS_COMPLETED,
+                    ScheduledTaskItem.STATUS_SHIPPED,
+                ):
+                    item.item_status = ScheduledTaskItem.STATUS_RESERVED
             else:
-                if previous_was_reserved:
-                    release_reservation_counters(previous_stock_id, previous_quantity)
-                item.reserved_stock = None
-                if item.item_status == ScheduledTaskItem.STATUS_RESERVED:
-                    item.item_status = ScheduledTaskItem.STATUS_UNDER_WORK
-                elif not item.pk:
-                    item.item_status = ScheduledTaskItem.STATUS_UNDER_WORK
+                if item.item_status == ScheduledTaskItem.STATUS_SHIPPED and previous_stock_id:
+                    # Η επεξεργασία δεν ξαναστέλνει τη δέσμευση των αποσταλμένων.
+                    item.reserved_stock_id = previous_stock_id
+                else:
+                    if previous_was_reserved:
+                        release_reservation_counters(previous_stock_id, previous_quantity)
+                    item.reserved_stock = None
+                    if item.item_status == ScheduledTaskItem.STATUS_RESERVED:
+                        item.item_status = ScheduledTaskItem.STATUS_UNDER_WORK
+                    elif not item.pk:
+                        item.item_status = ScheduledTaskItem.STATUS_UNDER_WORK
 
             if commit:
                 item.save()

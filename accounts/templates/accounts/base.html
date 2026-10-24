@@ -129,6 +129,31 @@
             font-weight: bold;
         }
 
+        .navbar-clock {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.55rem;
+            min-width: 0;
+            padding: 0 1.25rem;
+            color: var(--text-primary);
+            font-size: 1.02rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .navbar-clock i {
+            color: var(--accent);
+            font-size: 0.95rem;
+        }
+
+        .navbar-clock-time {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
         .navbar-user {
             display: flex;
             align-items: center;
@@ -452,7 +477,7 @@
     <!-- Navbar -->
     <nav class="navbar" id="navbar">
         <div class="navbar-brand">{{ client_name }}</div>
-        <div style="flex:1"></div>
+        <div class="navbar-clock" id="navbarClock" aria-live="polite"></div>
         <button class="theme-toggle" id="themeToggle">
             <i class="fas fa-moon"></i>
             <span>Αλλαγή Θέματος</span>
@@ -557,6 +582,33 @@
             const savedTheme = localStorage.getItem('theme') || 'dark';
             document.documentElement.setAttribute('data-theme', savedTheme);
             themeIcon.className = savedTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+
+            const navbarClock = document.getElementById('navbarClock');
+            const clockDateFormat = new Intl.DateTimeFormat('el-GR', {
+                timeZone: 'Europe/Athens',
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+            });
+            const clockTimeFormat = new Intl.DateTimeFormat('el-GR', {
+                timeZone: 'Europe/Athens',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hourCycle: 'h23',
+            });
+
+            function updateNavbarClock() {
+                if (!navbarClock) return;
+                const now = new Date();
+                navbarClock.innerHTML = '<i class="fas fa-clock" aria-hidden="true"></i>'
+                    + '<span>' + clockDateFormat.format(now) + '</span>'
+                    + '<span class="navbar-clock-time">' + clockTimeFormat.format(now) + '</span>';
+            }
+
+            updateNavbarClock();
+            setInterval(updateNavbarClock, 1000);
 
             function toggleSidebar() {
                 sidebar.classList.toggle('active');
